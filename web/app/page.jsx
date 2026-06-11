@@ -14,6 +14,7 @@ export default function Home() {
   const [selectedZone, setSelectedZone] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [apiError, setApiError] = useState(null);
+  const [colorMode, setColorMode] = useState("demand");
 
   const refresh = useCallback(() => {
     fetchZones()
@@ -44,6 +45,14 @@ export default function Home() {
           <span className="label">States reporting</span>
           <span className="value">{stateCount}</span>
         </div>
+        <div className="toggle" role="group" aria-label="map color mode">
+          <button className={colorMode === "demand" ? "on" : ""} onClick={() => setColorMode("demand")}>
+            Demand
+          </button>
+          <button className={colorMode === "carbon" ? "on" : ""} onClick={() => setColorMode("carbon")}>
+            Carbon
+          </button>
+        </div>
         <div className="freshness">
           {apiError
             ? `API unreachable: ${apiError}`
@@ -51,7 +60,7 @@ export default function Home() {
         </div>
       </header>
       <main className="main">
-        <GridMap zonesData={zonesData} onSelect={setSelectedZone} selectedZone={selectedZone} />
+        <GridMap zonesData={zonesData} onSelect={setSelectedZone} selectedZone={selectedZone} colorMode={colorMode} />
         <SidePanel zone={selectedZone} refreshKey={refreshKey} />
       </main>
     </div>

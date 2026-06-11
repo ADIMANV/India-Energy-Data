@@ -16,6 +16,7 @@ class Metric(StrEnum):
     ENERGY_SHORTAGE = "energy_shortage"
     FREQUENCY = "frequency"
     NET_IMPORT = "net_import"
+    CARBON_INTENSITY = "carbon_intensity"
 
 
 class Unit(StrEnum):
@@ -25,6 +26,7 @@ class Unit(StrEnum):
     MU = "MU"
     PCT = "pct"
     HZ = "Hz"
+    GCO2_PER_KWH = "gCO2/kWh"
 
 
 class Datapoint(BaseModel):

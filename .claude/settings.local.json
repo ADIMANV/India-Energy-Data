@@ -72,7 +72,17 @@
       "Bash(docker run *)",
       "Bash(POSTGRES_PASSWORD=x API_DOMAIN=api.example.com docker compose -f deploy/docker-compose.prod.yml config --quiet)",
       "Bash(.venv/bin/python scripts/probe_rldc.py --outdir /tmp/probe-local)",
-      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Deploy package: VPS bootstrap, prod compose with Caddy TLS, RLDC probe *)"
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Deploy package: VPS bootstrap, prod compose with Caddy TLS, RLDC probe *)",
+      "Bash(.venv/bin/python -m gridscrapers.run punjab_sldc)",
+      "Bash(/usr/bin/curl -sk --max-time 30 -X POST \"https://meritindia.in/StateWiseDetails/GetPowerStationData\" -H \"Content-Type: application/json; charset=utf-8\" -A \"Mozilla/5.0\" -d '{\"StateCode\":\"PNB\",\"date\":\"09 Jun 2026\"}' -o docs/sources/merit_powerstation_PNB.json -w \"HTTP %{http_code} size %{size_download}\\\\n\")",
+      "Bash(python3 -m json.tool docs/sources/merit_powerstation_PNB.json)",
+      "Bash(.venv/bin/python -c \"import powerplantmatching as pm; print\\('ppm', pm.__version__\\)\")",
+      "Bash(/usr/bin/curl -sL --max-time 120 -o /tmp/gppd.csv \"https://raw.githubusercontent.com/wri/global-power-plant-database/master/output_database/global_power_plant_database.csv\")",
+      "Bash(awk -F',' '$1==\"IND\"' /tmp/gppd.csv)",
+      "Bash(.venv/bin/python -m gridscrapers.plants load --csv /tmp/gppd.csv)",
+      "Bash(.venv/bin/python -m gridscrapers.fuelmix compute)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Punjab SLDC live mix + fuel-mix estimation pipeline with carbon intensity *)"
     ]
   }
 }

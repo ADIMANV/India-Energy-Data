@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { NAME_TO_ZONE, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
 
-// demand-colored choropleth; grey = no/ stale data
+// choropleth; grey = no/ stale data
 const NO_DATA_COLOR = "#3a4258";
 const DEMAND_STOPS = [
   [0, "#1a3a5c"],
@@ -13,18 +13,27 @@ const DEMAND_STOPS = [
   [18000, "#e06c3a"],
   [30000, "#c0392b"],
 ];
+// carbon intensity, gCO2/kWh: green (clean) -> dark brown (coal)
+const CARBON_STOPS = [
+  [0, "#1f9e55"],
+  [250, "#8fbf4d"],
+  [500, "#d8b13c"],
+  [750, "#c0653a"],
+  [1000, "#6e2f1f"],
+];
 
-function fillColorExpr() {
+function fillColorExpr(mode) {
+  const [stops, key] = mode === "carbon" ? [CARBON_STOPS, "carbon"] : [DEMAND_STOPS, "demand"];
   return [
     "case",
-    ["boolean", ["feature-state", "stale"], true],
+    ["boolean", ["feature-state", `${key}Missing`], true],
     NO_DATA_COLOR,
-    ["interpolate", ["linear"], ["to-number", ["feature-state", "demand"], -1],
-      ...DEMAND_STOPS.flat()],
+    ["interpolate", ["linear"], ["to-number", ["feature-state", key], -1],
+      ...stops.flat()],
   ];
 }
 
-export default function GridMap({ zonesData, onSelect, selectedZone }) {
+export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const featureIdsRef = useRef({}); // zone -> feature id
@@ -103,20 +112,33 @@ export default function GridMap({ zonesData, onSelect, selectedZone }) {
     return () => map.remove();
   }, [onSelect]);
 
-  // paint demand + staleness as feature-state whenever data refreshes
+  // paint demand + carbon intensity + staleness as feature-state on refresh
   useEffect(() => {
     if (!ready || !zonesData) return;
     const map = mapRef.current;
     const byZone = Object.fromEntries(zonesData.zones.map((z) => [z.zone, z]));
     for (const [zone, fid] of Object.entries(featureIdsRef.current)) {
       const z = byZone[zone];
-      const stale = !z || ageMinutes(z.ts) > STALE_AFTER_MIN;
+      const demandStale = !z || ageMinutes(z.ts) > STALE_AFTER_MIN;
+      const ci = z?.carbon_intensity;
+      const ciStale = !ci || ageMinutes(ci.ts) > STALE_AFTER_MIN;
       map.setFeatureState(
         { source: "states", id: fid },
-        { demand: z ? z.demand_met_mw : -1, stale }
+        {
+          demand: z ? z.demand_met_mw : -1,
+          demandMissing: demandStale,
+          carbon: ci ? ci.value : -1,
+          carbonMissing: ciStale,
+        }
       );
     }
   }, [ready, zonesData]);
+
+  // swap choropleth scale when the color mode toggles
+  useEffect(() => {
+    if (!ready) return;
+    mapRef.current.setPaintProperty("states-fill", "fill-color", fillColorExpr(colorMode));
+  }, [ready, colorMode]);
 
   useEffect(() => {
     if (!ready) return;
@@ -137,6 +159,12 @@ export default function GridMap({ zonesData, onSelect, selectedZone }) {
           {tipZone ? (
             <>
               <div>{fmtMW(tipZone.demand_met_mw)} demand met</div>
+              {tipZone.carbon_intensity && (
+                <div>
+                  {Math.round(tipZone.carbon_intensity.value)} gCO₂/kWh
+                  {tipZone.carbon_intensity.estimated ? " (est.)" : ""}
+                </div>
+              )}
               <div className={`t-age ${ageMinutes(tipZone.ts) > STALE_AFTER_MIN ? "stale" : ""}`}>
                 updated {ageLabel(tipZone.ts)}
               </div>
@@ -147,9 +175,19 @@ export default function GridMap({ zonesData, onSelect, selectedZone }) {
         </div>
       )}
       <div className="legend">
-        <div>Current demand met</div>
-        <div className="bar" />
-        <div className="ends"><span>0</span><span>30+ GW</span></div>
+        {colorMode === "carbon" ? (
+          <>
+            <div>Carbon intensity (mostly estimated)</div>
+            <div className="bar carbon" />
+            <div className="ends"><span>0</span><span>1000+ gCO₂/kWh</span></div>
+          </>
+        ) : (
+          <>
+            <div>Current demand met</div>
+            <div className="bar" />
+            <div className="ends"><span>0</span><span>30+ GW</span></div>
+          </>
+        )}
         <div className="ends" style={{ marginTop: 4 }}>
           <span style={{ color: NO_DATA_COLOR }}>■</span>
           <span>no data / stale &gt;{STALE_AFTER_MIN} min</span>

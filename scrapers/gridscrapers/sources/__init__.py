@@ -9,7 +9,7 @@ Each plugin module exposes:
 from importlib import import_module
 from types import ModuleType
 
-PLUGINS = ["vidyut_pravah", "merit"]
+PLUGINS = ["vidyut_pravah", "merit", "punjab_sldc"]
 
 
 def load(name: str) -> ModuleType:

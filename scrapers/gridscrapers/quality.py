@@ -23,6 +23,7 @@ BOUNDS: dict[Metric, tuple[float, float]] = {
     Metric.ENERGY_SHORTAGE: (0, 10_000),
     Metric.NET_IMPORT: (-100_000, 100_000),
     Metric.FREQUENCY: (45, 55),
+    Metric.CARBON_INTENSITY: (0, 1200),
 }
 
 CROSS_CHECK_WARN_PCT = 10.0

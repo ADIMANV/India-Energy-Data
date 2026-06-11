@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import httpx
 import psycopg
 
-from . import sources
+from . import estimation, fuelmix, sources
 from .db import get_dsn
 from .quality import cross_check_demand, stale_sources
 from .run import run_source
@@ -39,6 +39,15 @@ def main() -> int:
             print(stats.report(), file=sys.stderr)
             if not stats.ok:
                 failures.append(stats.report())
+
+        try:
+            if not fuelmix.shares_fresh(conn):
+                print("[fuelmix] shares stale — recomputing from MERIT dispatch", file=sys.stderr)
+                fuelmix.compute(conn=conn)
+            estimation.run(conn)
+        except Exception as e:
+            failures.append(f"estimation failed: {e}")
+            print(f"ESTIMATION FAILED: {e}", file=sys.stderr)
 
         offenders = cross_check_demand(conn)
         if offenders:

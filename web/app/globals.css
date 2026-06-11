@@ -44,6 +44,29 @@ body {
 }
 .legend .bar { width: 160px; height: 8px; border-radius: 4px; margin: 6px 0 2px;
   background: linear-gradient(to right, #1a3a5c, #2e7d6e, #d8b13c, #e06c3a, #c0392b); }
+.legend .bar.carbon {
+  background: linear-gradient(to right, #1f9e55, #8fbf4d, #d8b13c, #c0653a, #6e2f1f); }
+
+.toggle { display: flex; align-self: center; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.toggle button {
+  background: transparent; color: var(--muted); border: 0; padding: 6px 14px;
+  font-size: 13px; cursor: pointer;
+}
+.toggle button.on { background: var(--accent); color: #14182b; font-weight: 600; }
+
+.badge {
+  display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 9px;
+  font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+  background: #7a5b22; color: #ffd99a; vertical-align: middle;
+}
+.badge.measured { background: #1f5c40; color: #9af0c5; }
+
+.mix { display: flex; gap: 14px; align-items: center; margin-top: 6px; }
+.donut { width: 110px; height: 110px; flex-shrink: 0; }
+.mix-legend { flex: 1; font-size: 12px; }
+.mix-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.mix-row .k { color: var(--muted); flex: 1; }
+.mix-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .legend .ends { display: flex; justify-content: space-between; color: var(--muted); }
 
 .panel {

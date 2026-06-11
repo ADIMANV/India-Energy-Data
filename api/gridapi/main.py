@@ -22,6 +22,7 @@ ZONE_RE = re.compile(r"^IN(-[A-Z]{2})?$")
 METRICS = {
     "demand_met", "generation", "exchange_purchase", "exchange_price",
     "peak_shortage", "energy_shortage", "frequency", "net_import",
+    "carbon_intensity",
 }
 
 pool: AsyncConnectionPool
@@ -54,9 +55,9 @@ def _zone_or_400(zone: str) -> str:
 
 @app.get("/v1/zones")
 async def zones():
-    """All zones with their freshest demand_met (any source)."""
+    """All zones with freshest demand_met and carbon_intensity (any source)."""
     async with pool.connection() as conn:
-        rows = await (await conn.execute(
+        demand = await (await conn.execute(
             """
             SELECT DISTINCT ON (zone) zone, value, ts, source
             FROM datapoints
@@ -64,12 +65,25 @@ async def zones():
             ORDER BY zone, ts DESC, inserted_at DESC
             """
         )).fetchall()
-    return {
-        "zones": [
-            {"zone": z, "demand_met_mw": v, "ts": ts.isoformat(), "source": src}
-            for z, v, ts, src in rows
-        ]
-    }
+        ci = await (await conn.execute(
+            """
+            SELECT DISTINCT ON (zone) zone, value, ts, estimated
+            FROM datapoints
+            WHERE metric = 'carbon_intensity' AND ts > now() - interval '24 hours'
+            ORDER BY zone, ts DESC, inserted_at DESC
+            """
+        )).fetchall()
+    ci_by_zone = {z: (v, ts, est) for z, v, ts, est in ci}
+    out = []
+    for z, v, ts, src in demand:
+        entry = {"zone": z, "demand_met_mw": v, "ts": ts.isoformat(), "source": src}
+        if z in ci_by_zone:
+            cv, cts, cest = ci_by_zone[z]
+            entry["carbon_intensity"] = {
+                "value": cv, "unit": "gCO2/kWh", "ts": cts.isoformat(), "estimated": cest,
+            }
+        out.append(entry)
+    return {"zones": out}
 
 
 @app.get("/v1/zone/{zone_id}/live")
@@ -79,10 +93,10 @@ async def zone_live(zone_id: str):
     async with pool.connection() as conn:
         rows = await (await conn.execute(
             """
-            SELECT DISTINCT ON (metric, fuel) metric, fuel, value, unit, ts, source
+            SELECT DISTINCT ON (metric, fuel) metric, fuel, value, unit, ts, source, estimated
             FROM datapoints
             WHERE zone = %s AND ts > now() - interval '24 hours'
-            ORDER BY metric, fuel, ts DESC, inserted_at DESC
+            ORDER BY metric, fuel, ts DESC, estimated ASC, inserted_at DESC
             """,
             (zone,),
         )).fetchall()
@@ -93,9 +107,9 @@ async def zone_live(zone_id: str):
         "metrics": [
             {
                 "metric": m, "fuel": f or None, "value": v, "unit": u,
-                "ts": ts.isoformat(), "source": src,
+                "ts": ts.isoformat(), "source": src, "estimated": est,
             }
-            for m, f, v, u, ts, src in rows
+            for m, f, v, u, ts, src, est in rows
         ],
     }
 
@@ -112,7 +126,7 @@ async def zone_history(
     async with pool.connection() as conn:
         rows = await (await conn.execute(
             """
-            SELECT ts, fuel, value, unit, source
+            SELECT ts, fuel, value, unit, source, estimated
             FROM datapoints
             WHERE zone = %s AND metric = %s AND ts > now() - make_interval(hours => %s)
             ORDER BY ts
@@ -124,7 +138,8 @@ async def zone_history(
         "metric": metric,
         "hours": hours,
         "points": [
-            {"ts": ts.isoformat(), "fuel": f or None, "value": v, "unit": u, "source": src}
-            for ts, f, v, u, src in rows
+            {"ts": ts.isoformat(), "fuel": f or None, "value": v, "unit": u,
+             "source": src, "estimated": est}
+            for ts, f, v, u, src, est in rows
         ],
     }
