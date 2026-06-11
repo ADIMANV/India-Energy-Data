@@ -1,0 +1,608 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head id="Head1"><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" /><meta name="author" /><title>
+	Welcome to WRLDC
+</title>
+
+    <script type="text/javascript" src='/js/jquery.min.js'></script>
+
+    
+     <link href='/css/jquery.treeview.css' type="text/css" rel="stylesheet" />
+    <link href='/css/ajaxtabs.css' type="text/css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href='/css/ajaxtabs.css' />
+
+    <script type="text/javascript" src='/js/jquery.treeview.js'></script>
+    <script type="text/javascript">
+        jQuery(document).ready(function () {
+            jQuery('li.dropdown:has(ul:empty)').remove();
+            jQuery('ul.menu-class li:has(ul)').addClass('collapsed');
+            jQuery("ul.menu-class").treeview({
+                collapsed: true,
+                unique: true,
+                persist: "location"
+            });
+            return false;
+        });
+    </script>
+
+    <script type="text/jscript">
+        jQuery(document).ready(function () {
+            jQuery('.left-menu .left ').menu - class()
+        });
+    </script>
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/bootstrap.css" /><link rel="stylesheet" href="/css/style.css" /><link rel="alternate stylesheet" media="screen" title="change" href="/css/change.css" /><link rel="stylesheet" href="/css/responsive.css" /><link rel="stylesheet" href="/css/meanmenu.css" /><link rel="stylesheet" type="text/css" href="/font-awesome/css/font-awesome.min.css" />
+
+   
+    <script type="text/javascript" src='/js/bootstrap.min.js'></script>
+    <script type="text/javascript" src='/js/superfish.js'></script>
+    <script type="text/javascript" src='/js/font-size.js'></script>
+    <script type="text/javascript" src='/js/swithcer.js'></script>
+
+    <script type="text/javascript" src='/js/jquery.scrollbox.js'></script>
+    <script type="text/javascript">
+
+        // initialise plugins
+        if (getCookie("mysheet") == "change") {
+            setStylesheet("change");
+        } else if (getCookie("mysheet") == "style") {
+            setStylesheet("style");
+        } else if (getCookie("mysheet") == "green") {
+            setStylesheet("green");
+        } else if (getCookie("mysheet") == "orange") {
+            setStylesheet("orange");
+        } else {
+            setStylesheet("");
+        }
+    </script>
+
+    <script type="text/javascript">
+
+        (function ($) { //create closure so we can safely use $ as alias for jQuery
+
+            $(document).ready(function () {
+
+                // initialise plugin
+                var example = $('#example').superfish({
+                    //add options here if required
+                });
+
+                // buttons to demonstrate Superfish's public methods
+                $('.destroy').on('click', function () {
+                    example.superfish('destroy');
+                });
+
+                $('.init').on('click', function () {
+                    example.superfish();
+                });
+
+                $('.open').on('click', function () {
+                    example.children('li:first').superfish('show');
+                });
+
+                $('.close').on('click', function () {
+                    example.children('li:first').superfish('hide');
+                });
+
+                //$("#aLogin").click(function () {
+                //    $('.login-section').css({ display: "block" });
+                //    $('#custom-search-input , .headerlink ').css({ display: "none" });
+
+                //});
+                $('.cancel').click(function () {
+                    $('.login-section').css({ display: "none" });
+                    $('#custom-search-input , .headerlink ').css({ display: "block" });
+
+                });
+
+            });
+
+        })(jQuery);
+    </script>
+
+    <script type="text/javascript">
+
+        (function ($) { //create closure so we can safely use $ as alias for jQuery
+
+            $(document).ready(function () {
+
+                // initialise plugin
+                var example = $('#example1').superfish({
+                    //add options here if required
+                });
+
+                // buttons to demonstrate Superfish's public methods
+                $('.destroy').on('click', function () {
+                    example.superfish('destroy');
+                });
+
+                $('.init').on('click', function () {
+                    example.superfish();
+                });
+
+                $('.open').on('click', function () {
+                    example.children('li:first').superfish('show');
+                });
+
+                $('.close').on('click', function () {
+                    example.children('li:first').superfish('hide');
+                });
+            });
+
+        })(jQuery);
+    </script>
+
+    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.min.css" /><link type="text/css" rel="stylesheet" href="/css/modern-ticker.css" />
+    <script src='/js/jquery-migrate-1.0.0.js' type="text/javascript"></script>
+    <script src='/js/jquery.js' type="text/javascript"></script>
+    <script type="text/javascript" charset="utf8" src='/js/jquery.dataTables.js' ></script>
+    <script type="text/javascript" charset="utf8" src='/js/bootstrap-datepicker.min.js' ></script>
+    <script type="text/javascript" charset="utf8" src='/js/moment.min.js' ></script>
+    <script type="text/javascript">
+        $(function () {
+            $(".ticker1").modernTicker({
+                effect: "scroll",
+                scrollInterval: 20,
+                transitionTime: 500,
+                autoplay: true
+            });
+        });
+    </script>
+
+
+    <script type="text/javascript">
+        $(function () {
+            $(".ticker").modernTicker({
+                effect: "scroll",
+                scrollInterval: 20,
+                transitionTime: 500,
+                autoplay: true
+            });
+        });
+    </script>
+    <script type="text/javascript" src='/js/jquery.totemticker.js'></script>
+    <script type="text/javascript">
+        $(function () {
+            //$('#vertical-ticker').totemticker({
+            //    row_height: '100px',
+            //    next: '#ticker-next',
+            //    previous: '#ticker-previous',
+            //    stop: '#stop',
+            //    start: '#start',
+            //    mousestop: true,
+            //});
+        });
+    </script>
+
+    <script type="text/javascript">
+        $(function () {
+            //$('#vertical-ticker1').totemticker({
+            //    row_height: '100px',
+            //    mousestop: true,
+            //});
+        });
+    </script>
+
+
+
+    <script type="text/javascript" src='/js/jquery.meanmenu.js'></script>
+    <script type="text/jscript">
+        jQuery(document).ready(function () {
+            jQuery('#main-nav nav').meanmenu()
+        });
+    </script>
+
+    <script type='text/javascript'>
+        //<![CDATA[
+        $('.carousel').carousel({
+            interval: 3000,
+            pause: false
+        })
+    </script>
+    <script type="text/javascript">
+
+        function search() {
+
+
+            var Search = document.getElementById('txtsearch').value;
+
+        
+        
+            if (Search == "Enter Search text") {
+
+
+                alert("Please Enter search Text");
+                return false;
+
+            }
+            else if (Search == "अपने खोजशब्द दर्ज करें") {
+
+                alert("अपने खोजशब्द दर्ज करें.");
+
+
+
+                return (false);
+            }
+
+            if (Search ==="") {
+
+                alert("Please Enter search Text");
+                return false;
+            }
+
+        }
+
+
+
+        function getText() {
+            var Search = document.getElementById('txtsearch');
+        if (Search.value == '') {
+
+            if (("1") == 2) {
+                Search.value = 'अपने खोजशब्द दर्ज करें';
+            }
+            else {
+
+                Search.value = 'Enter Search text';
+            }
+        
+        
+        
+        }
+    
+    
+    }
+
+    </script>
+
+
+    <link rel="stylesheet" type="text/css" href="/css/jquery.treeview.css" /><link rel="stylesheet" type="text/css" href="/css/ajaxtabs.css" />
+    <script type="text/javascript" src='/js/jquery.treeview.js'></script>
+
+    <script type="text/javascript">
+        jQuery(document).ready(function () {
+            jQuery('li.dropdown:has(ul:empty)').remove();
+            jQuery('ul.menu-class li:has(ul)').addClass('collapsed');
+            jQuery("ul.menu-class").treeview({
+                collapsed: true,
+                unique: true,
+                persist: "location"
+            });
+            return false;
+        });
+    </script>
+
+    
+
+<style type="text/css" media="screen">
+ html, body{
+
+font-size:100%;
+}
+</style></head>
+<body id="fontSize">
+    <noscript>
+        <div class="nos">
+            <p>Javasript is currently not supported/disabled by this browser. Please enable JavaScript for full functionality !</p>
+            <a target="_blank" title="More about how to enable javascript" href='/EnableJavascript.aspx'>More</a>
+            
+        </div>
+    </noscript>
+    <form method="post" action="./OnlinestateTest1.aspx" id="Form1" class="cf">
+<div class="aspNetHidden">
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="LAwYBS4RWR/N9W7fgmZqrVtXXKfevZiaPWq9VZiZYGHRqqguvK7dP0ri8JC6aIlSZbaCptJyCdkWmTEybxruBqny08bVUqM+5Is+Q97GeS7EN8JZQMKUcccSgXg9erOtOPL+a8Rp10PTp6WgtDNYkSV56yMut82cutIZyI4bBEv2tQoQRu37QqOpED3gGC1HRcvoADzioyQwz4olERH71FIG8b7S89EDmDF2mWWDkOQby/4arTffWipdaZc0tmtI7rAS7k+TTjGxDrjqfygOns2Rpiz/bXfYkzXs8wO0C+QuyKaoLZPNFR7urnHZ2Qei4Dy/1H/l8AbJkae7Jvn/L4LUJ8Cb0YvAthwR2tojp6LKFLLGhHpu5xP7KbDHJxZa0HtofdtujagXoXENjJ1lWNOE1L62tFDL3dcPQK8KMMoOgLm4G1wYuirK5M9Du2n4HUYyvowrSaEgx5UdqRsRG+zN3ETAHhWcveNAIfdkBjQ6jPu0VvCi+6VuTNa+RjsoLoawbupTOVd1YL2Jk5Qp0ir3xLo8J8KlSZLAmwmBgFz+BvucWfXzpCRBHxMJPQCb62MFAO9inysnEbTm9/DOyicILL5fUzebPb5hW+op6LPEqfnHHzPxYbebtCkuREo3rCLLFHmbq9L2MElDb+a5owx75S5qBr42g9JgkL8+9dMI5JQ4VGiN5bDkezgePWXcSo7eDUo6YuwpyDrKJK6vDZFoADE3SDNwM7WeMhrMTMTw9lS57wQlubxtQHvY7rvhHsVgNzgF+YxtN/9EzrtjporHNo3hpxdXPt1QJXhLdDj7wxj11rpQntcHLMOFizFOiz7NbUlsJu0/QnnpmiGzoGi8fxXodi/R9kgcCfaz5uoR5f8GEee/3M8TKN7oOFHBxqxscOy/s/eQKXGjXtv7uyC/2d1C54YYLhvq5EbyszJa/e2FxJ3s9ZW5bbUKo8N+YTRPrwdeeKOYZRZzblZmK+wSwUPMMR5xAaj4m0FTPAiLq1u6qVstP07743ZOUK0xqzCi5zX/jc3nsM5L2iK3a4mhYNI/NAme0aMYdftJSY7PF0c2KqoNgU8M0/xlAhEHR79LRQI7syp9S5QOyGS3K7fllSueGBVxBRjYI313QXfMM+1D8XwOhBByo6EE/HkRDoQkFgXiy1kNj+gJ0j+CeS0CXFkNz1+0tvihY9QDjcATdL4fovyX/0HWSh+4wVXYjpV11scq8PpEXT7d60N104Ut0bIgb4osXeUls3CfTRMAg2yFavJqsrsHUxErBwOQW2q312iZjDKtd6sySEiN6qo3DuSPYwFKLUUtAfgGiSof0crgu4bwe38MZE311yT31uvayouTh11Mr8S+qvaoR3N48vMefx/dfAT7gATrlkJG3BzF9DcT4YThYP7gPMcmniH96ZfJBzkwYUGRVQ+yZfzlv1YEAH7nyLSJDa7tRTUqi2qjzj8Hda4qlx51bQqAOqkAkGPvN8l/SXv7ho/c455/7vmE6NwvAvZXJFTGUL2CXGdPkHQ8jjENFeqEBKDK3oUev2vwmdBWQzMTv4J5piBuUVylyIVuPo6WaboiCcUe62dNpqNYVrVNfYeTiXgWKfHTmpj5QHQMWZY2asMeg3pKd5RNziFZt5SzR8ynFLmrcYHo2Gi9WDFlQfQd5DF5DPfdlRA1+jN6rKMHGjrJDKiNjJTv3B65NNUxuKR9IeFaFFncH5Dn4lYFH/ne0zBdGYW9twR0YBmbQ00iv0IhVwruhjCAMSuhc3B79/RwyLsVBbGP2N+5v4YfywgmapgdIC+6T6UrNQcmfcTCZZVhZ53fP3AmxR0YtXc8sey2yPt68GfR3Ll3SXoKBjFrQGgY7Dvh0SxV+gPEKdNYzzTkrjNb8fP2lWWP+Gvunxs7zo6B1/fFLiZ+ivInVkxoKsGGN6DcpQlZcZp1Kp3YeqnfY19kl9JgidYNiilXmp2ZXii4yyK0E/lZZymF1i/qDzbf4J7Z8/cUygdc7Q/V1yHvM4OFVnibQ7z7a6IAtkyk3FnRBI2ganiA9Xt04GERdbV4zPQ5sekT85QJItDaJIwgnEVS0WnJHLcyVzT1MC6HUV7m/cGLL6qwvxnA8zTIzMvAH1nSNE62xi4wMlfoAdMKSPz8G5NRdJ4t3OoIDa4qxxFnFlyTprQ5IhXfCgwCLY3noXx8QwhbNh5xsi55cjuKfIaK/FgxOkC9YF8IxZaaaCkNU1hHlxRDflytfedAzAMZecKuV3yQynw0bksUqW0FUtOLxWBce221lcnORzpsOp0LzsVssr7lI6myVdZ9T75bmWFvs0H1sB2ePefS7rlgq3US3sNXtGuvF2MGLhWBMin3hcIJlRbYWFEoPM0vMPrdetFY7tFEOM738WLsPtqWZFfD9f+cM7L1zj7gyI+LU7Aunrl8oGbSByUWRohij4UcQycHkClMeWguTfEIENWhNF86kMIWlQiZd0WIdMeFljrT5NwPWLTiDV8Fs85VXUopfq5VBqyUVZk6zekesO4N3pcVLNfSvZ6NWmuibhai+Mrue1wlLvY4PRKiyPWn3tofjrhp//vpwRthlK3o/FrPH4aJgGM3NRTxht+bxi/3w2LroiV2jO3vk+yzT6xj3Ay+jt039CjxD1ND+3+To5tClEx2fOdsaTbju1qarFFfSzdTn3SSJGsNFgJ3ZY526dY7JgEJbADsw5KkQm7EGx28orrShUUjtq19Bq/GDYAtliEw+89Zo1RKO63UDufZUldnIezVCZC0ebzT6YAMNB1W6tHE+hTq5WUmBdFs5u4/0vFv1kSBoNiR3A/Ie2VfZdi+EWZyInDeuJwvJMtV5W9tD3RzHNMJM6sgQihU3xpVtDpDejqFidN5uaRuKZCPxxQEBtZWdqxNoW0WunKu/GsqmAudXU9m3xD+VJZY4KIHPIdi+UGD+X+QtNLZHycwuD/lxAIGRof4qkQkvW/ncoxTluSfuveLn2vuQm7ckmVyL09Pz5RJIrhmBYwMGk2qcI1M7mlJy7wHYM3FvD9h/3H/zyXKNh5iLuH9BCwYDM9Ga7x5pgm7goQaY08em+xxMhRgKJyqFsSfrh0a06Oc7fcybSIOnPX7lLgr7002Dw1+vewKlE715pknrAGcJ4Vb4h14jF1nQB70dpypoAq3QvrVQwL7TCO5fK/+R/ScXo98ywojgZltS9Yso1U3sX9tnWaaRoQq0ijMVlB1Ge4CAvpLVI35dGhP/oxFDBd1a0Hva1D91pEFtTqq1mjr1r/bMmrxiha1oD/okvCLoJgH+eeuChtvyTiKG9d22VlN5mzARXcUr9ClCR40i2xb6TH2hZEpbhcaFQdWrZw1Iv+fpCstRccLbfL4bqMsZAAgb4Fdf3qO8G4JGyZMXGzReagittM2Io/tgNyZzzajz4V1e6DNUmPlF3Xqjvq70kmRy3JRtzG5edtKJH9x0aCRPYE52nbL/tBIDWrv/ddpibdyPbGv8ya2wJOIjf9WkxGFurbuqc1kVASaYfXc5UL9YMLBYCn/avANHu7hcOCBh+lg3b79Y7Bo4Hn4rU1lXgeq0VcR+DWVudPpfdRQFbiCV5dqlfEfqbJhLIEPDDwzHnnvevl1X7yc5WtGs9mQbMnE1IxqV2c6UFYpfNr55Vz+bQF+w8k+RMoGH9oyND5oQx2y6H/DGNSIj35cVnRp5wYJwhwWUr0b9riFqSL9EOBdMPfoDDeJohvfRUeoxZLvFwGRtMGEHFYld8z9A8BcoKpsZ+ZTd0+c4hirxEXNelZJGH63uskfTkP5AxXBcJEDOB9fKsx94t27T3s7wOkjjDSTBLM5HNKwxoNmHHashbhIqW1qvI7wJZ9NC/SNo7mjVFEsZgUXrmp9mcMYAl9HL+Ub6hZunHiKvve1w6OYzPNHuJCRZKcWSP2Qqa+Uj4pXFmMGcDFm9rJH2mDJH8iHzCtVy106nxh6twDVGPqwTvvgfXu5kTa5qgW3aliSRNbINHlt1qc5wWz0LT2Bwa9Fpxu8m6h82/zMESOFXu/1HV45wws/+kj9fop/TkhRoT8vCRMKVAHBjyHy3S2BVG+FoKJ9Bzk+gK/IxYZ8PXRYs3QMiBdwtad1HLK4DBYUSx5w/xbs4+AoXdxc/qbH+ON4D/moqRkw/a6r3Q50OYZVLJZ5xqYYw0Ze8OJ2p2q+ROreopRyVx5hjy6BWv6etTbc0Ha8Ly6XIlCLK4ziub/S/Q7suRSfLy+QYmUMFgwINTOREhFm6mPCu+U9VK0W7E+qCXRxS3P5oDS2A2784Zn1efTAu+eI0+o0cm+MdpYI/1JCXZHKIgsDs7aw5F9UKgkD/LOnv/g8il8tq7Ig9x35t5YCVB8OiWwsUPXx2ohT/YdkFm7htZ3OLHi8Xk7Nhg0DwblIlxqpJMQ3/69M6zMWCj0Bp6zifXcmrbCfRmy3/oCIxTRY9GdiYlrfZ7H5fh6iPXRERxN2oFaZFvzMMiE8fhsViQiYdCM7Zsf7KA==" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['Form1'];
+if (!theForm) {
+    theForm = document.Form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="/WebResource.axd?d=t70osPGnygsH7oFUqvOKU-fMSSmTQf6jXWPtsZCZHJbwrgQHxBG3UciB7E-CJT3npFUYCYpHP7WKJThOI6cKTw1AEAU1&amp;t=638901734248157332" type="text/javascript"></script>
+
+
+<script src="/ScriptResource.axd?d=02pUhL9b6mRRKHFEnI6VN4CooHEpREIdEMu5LvjvnUD18eWWPBdRI86bP6btEhLRcdPuXuW1zXOJcHP7vkZEEbCaHyXgJC4OnkUJ8HuPk687xC3zuYe4d5Uz9HmP9KIYe-Umw-_CDNRlU7VIk4_tZVwDdYklOYyT1B9zfw2Uc_0W3RhT0&amp;t=5c0e0825" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof(Sys) === 'undefined') throw new Error('ASP.NET Ajax client-side framework failed to load.');
+//]]>
+</script>
+
+<script src="/ScriptResource.axd?d=QM7GSansoLFm7hbWPlOI9GcsLgInv_D1eNEhCMcpgXK49L_xXDEYyWgCK5NAk9HeAguLrhfXAREtX6ieVqS8-ZYHvg9Tg0gAW7xWLOItJ7VCwl0I0i_SeLjT45p3oRQS3w9EJXDo5ZZRwGkvj33f8VrBsoJLMqOmF09-23hjiuzKdqn70&amp;t=5c0e0825" type="text/javascript"></script>
+<script src="/ScriptResource.axd?d=x3BrZ5QM2tn14DlvchcjIGD7Ycn1NxjogqPHD0Reag3Tg5pHr6MgHQLir6kUnWU7uG-nVKGcpsUe74opP36UTAaZAwUISZpiqWPp8Tv6BsNme0M5sI1xV6Ey0ZYAcdpz30WzNPD3GcBKDNa9RPFoCBHjcqVLvHr3wNrqcw4JFFNoF6eI0&amp;t=5c0e0825" type="text/javascript"></script>
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="55F2ED1C" />
+	<input type="hidden" name="__SCROLLPOSITIONX" id="__SCROLLPOSITIONX" value="0" />
+	<input type="hidden" name="__SCROLLPOSITIONY" id="__SCROLLPOSITIONY" value="0" />
+</div>
+        <div class="container logo">
+            <div class="col-md-12 background-color-header">
+                <div class="row">
+                    <div class="col-md-7 logo-padding">
+
+                        
+
+                        <h1><a href="Index.aspx">
+                            <img src='/images/Logo_WRLDC.png' title="Logo_WRLDC" alt="Logo_WRLDC" class="img-responsive" /></a></h1>
+
+                        
+                        
+                    </div>
+                    <div class="col-md-5">
+                        <ul class="top-menu" id="example1">
+                            
+
+                            <li class="blue-theme">
+                                <input type="image" name="ctl00$ibBlue" id="ibBlue" src="images/blue-theme.png" />
+                            </li>
+
+
+                            <li class="yellow-theme">
+                                <input type="image" name="ctl00$ibGreen" id="ibGreen" src="images/gray-theme.png" />
+                            </li>
+
+                            
+                            <li>
+
+                                
+                                <a href="/content/Hindi/index.aspx" onclick="javascript:return confirm( 'This link shall take you to a wrldc Hindi version. Click OK to continue. Click Cancel to stop?')" target="_blank">हिन्दी </a>
+                                 
+
+                            </li>
+				<li><a href="/WriteReadData/userfiles/file/IMS-Policy.pdf" title="IMS-POLICY" target="_blank">IMS-POLICY</a></li>
+                        </ul>
+
+                        <div class="iso-logo">
+                            <img class="img4" src='/images/PAS-99-2012.jpg' title="PAS-99-2012" align="PAS-99-2012">
+                            <a href="/WriteReadData/userfiles/file/ISO_9001_2015.pdf" target="_blank" rel="noopener noreferrer"><img class="img1" src='/images/ISO_9001_2015.jpg' title="ISO_9001" align="ISO_9001"></a>
+		            <a href="/WriteReadData/userfiles/file/ISO_14001_2015.pdf" target="_blank" rel="noopener noreferrer"><img class="img1" src='/images/ISO_14001_2015.jpg' title="ISO_14001" align="ISO_14001"></a>
+		            <a href="/WriteReadData/userfiles/file/ISO_27001_2022.pdf" target="_blank" rel="noopener noreferrer"><img class="img1" src='/images/ISO_27001.jpg' title="ISO_27001" align="ISO_27001"></a>
+                            <a href="/WriteReadData/userfiles/file/ISO_45001_2018.pdf" target="_blank" rel="noopener noreferrer"><img class="img1" src='/images/ISO_45001_2018.jpg' title="ISO_45001" align="ISO_45001"></a>
+                        </div>
+                       
+                        <div class="user-link headerlink">
+                            <ul>
+                                <li><a target="_blank" href="https://mail.grid-india.in/owa" title="E-mail">E-mail</a></li>
+                            </ul>
+                        </div>
+                         
+                         <a href="https://pledge.cvc.nic.in/" target="_blank" class="" style="float:left;margin-top:0px;margin-left:4px;display:block;width:105px;height:35px;background:#b200ed;padding:4px;text-align: center;border-radius:8px;color: white;font-weight: bold;font-size:small;border:2px solid white;text-align:center;padding-top:2px">e-Integrity Pledge</a>
+                        <div id="custom-search-input">
+                            <div class="input-group col-md-12">
+
+                                <input type="hidden" name="ctl00$cx" id="cx" value="013829705696268498756:cdwl2bckzde" />
+                                <input type="hidden" name="ctl00$cof" id="cof" value="FORID:9" />
+                                <input type="hidden" name="ctl00$ie" id="ie" value="UTF-8" />
+
+                                <input name="ctl00$txtsearch" type="text" value="Enter Search text" id="txtsearch" class="form-control input-md" onfocus="javascript:if(this.value!=&#39;&#39;){this.value=&#39;&#39;}" onblur="getText()" />
+                                <span class="input-group-btn">
+                                    
+
+                                    <a onclick="return search();" id="btnsearch" class="btn btn-info btn-md" href="javascript:__doPostBack(&#39;ctl00$btnsearch&#39;,&#39;&#39;)">
+       <span aria-hidden="true" class="glyphicon glyphicon-search"></span>
+                                    </a>
+
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="login-section d-none pull-right">
+                            <div class="">
+                                <div class="col-sm-6">
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                                        <input type="text" id="txt_userId" class="form-control input-sm d-inline w-auto" placeholder="Login id">
+                                    </div>
+                                </div>
+
+
+                                <div class="col-sm-6">
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                                        <input type="password" id="txt_Password" class="form-control input-sm d-inline w-auto" placeholder="password">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-12 pull-right m-t-sm">
+                                <input type="submit" name="ctl00$btnCancel" value="Cancel" onclick="return false;" id="btnCancel" class="btn btn-info btn-sm pull-right m-l-sm cancel" />
+                                <input type="submit" name="ctl00$btnLogin" value="Login" id="btnLogin" class="btn btn-info btn-sm pull-right" />
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+        <div id="main-nav" class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <nav class="menu-border">
+
+                    <ul class="clearfix sf-menu" id="example">
+                       <li><a title='HOME / होम'      href='/index.aspx'>HOME / होम</a></li><li><a  title='Data Dashboard / डेटा डैशबोर्ड'    href='/content/2_1_DataDashboard.aspx'>Data Dashboard / डेटा डैशबोर्ड</a></li><li><a  title='Market Operations / बाजार संचालन'    href='/content/78_1_MarketOperations.aspx'>Market Operations / बाजार संचालन</a></li><li><a  title='Metering / पैमाइश'    href='/content/154_1_Metering.aspx'>Metering / पैमाइश</a></li><li><a  title='Regulatory / नियामक'    href='/content/155_1_Regulatory.aspx'>Regulatory / नियामक</a></li><li><a   href='http://14.139.247.5/power/WRLDC/MAIN/MAIN.html'>Weather / मौसम</a></li><li><a  title='Documents / दस्तावेज'    href='/content/9_1_Documents.aspx'>Documents / दस्तावेज</a></li><li><a  title='Workshops / कार्यशाला'    href='/content/81_1_Workshops.aspx'>Workshops / कार्यशाला</a></li><li><a  title='RTI / आरटीआई'    href='/content/82_1_RTI.aspx'>RTI / आरटीआई</a></li><li><a   href='https://wrldc.in:8080'>REMC / आरईएमसी</a></li><li><a   href='https://wrldc.in/viewalltenders.aspx'>Tenders / निविदाओं</a></li><li><a   href='https://posoco.in/en/rd-projects/'>R&amp;D / अनुसंधान एवं विकास</a></li> 
+                    </ul>
+                </nav>
+                </div>
+            </div>
+        </div>
+
+        
+    
+    <div class=" container background-white">
+        <div class="row">
+
+            <div class="col-md-3 for-print">
+
+
+                <div class="left-menu">
+                    <div class="left">
+                        <ul class="menu-class treeview">
+                             
+
+
+                        </ul>
+
+                    </div>
+                </div>
+                <br/>
+            </div>
+
+
+
+            <div class="col-md-9 content-area">
+               
+                
+                
+                 <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('ctl00$cphmain$ScriptManager1', 'Form1', ['tctl00$cphmain$StockPricePanel','cphmain_StockPricePanel'], ['ctl00$cphmain$Timer1','cphmain_Timer1'], [], 90, 'ctl00');
+//]]>
+</script>
+
+        <span id="cphmain_Timer1" style="visibility:hidden;display:none;"></span>
+        <div id="cphmain_StockPricePanel">
+	
+                <div class="row grid-supply-title">
+                    <div class="col-md-4">
+                        <p>WR Grid Frequency</p>
+                        <h2>
+                            <span id="cphmain_lblNRfrequency"></span></h2>
+                    </div>
+
+                    <div class="col-md-4">
+                        <p>Deviation Rate (Rs/Unit)</p>
+                        <h2>
+                            <span id="cphmain_lblUIrate"></span></h2>
+                    </div>
+
+
+                    <div class="col-md-4">
+                        <p>Last Updated at : </p>
+                        <h3>
+                            <span id="cphmain_lblDate"></span></h3>
+                    </div>
+
+                </div>
+                <div  class="table-responsive">
+                
+                    <br />
+                 
+                    <iframe src="http://localhost:50294/wrldc/chart.html" width="860px" style="border:none" height="650px"></iframe>
+                    
+                </div>
+                  </div> 
+
+                 
+            
+</div>
+            </div>
+
+
+        </div>
+    </div>
+
+
+
+
+        
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+
+                    <div class="footer-background">
+
+                        <div class="col-md-9">
+                            <div class="row">
+                                <ul class="footer">
+                                    <li>
+                                        <li><a title='About Us'  href='/content/22_2_AboutUs.aspx'>About Us</a></li><li><a title='Disaster Management'  href='/content/26_2_DisasterManagement.aspx'>Disaster Management</a></li><li><a title='Useful Links'  href='/content/27_2_UsefulLinks.aspx'>Useful Links</a></li><li><a title='Disclaimer'  href='/content/28_2_Disclaimer.aspx'>Disclaimer</a></li><li><a title='Contact Us'  href='/content/30_2_ContactUs.aspx'>Contact Us</a></li><li><a title='Site Map'  href='/content/31_2_SiteMap.aspx'>Site Map</a></li><li><a title='Grievance'  href='/content/32_2_Feedback.aspx'>Grievance</a></li><li><a title='E-Newsletter'  href='/content/429_2_E-Newsletter.aspx'>E-Newsletter</a></li><li><a title='Organization Chart'  href='/content/717_2_OrganizationChart.aspx'>Organization Chart</a></li>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="row">
+                                <div class="social-icons">
+                                    <ul>
+                                        <li><a href="http://india.gov.in" target="_blank" title="india.gov.in">
+                                            <img id="img1" src="images/india-gov.png" /></a></li>
+                                        <li><a href="https://www.facebook.com/GridIndia1" title="facebook"><i class="fa fa-facebook"></i></a></li>
+                                        <li><a href="https://twitter.com/GridIndia1" title="twitter"><i class="fa fa-twitter"></i></a></li>
+                                        <li><a href="https://www.linkedin.com/company/power-system-operation-corporation-ltd/mycompany/" title="linkedin"><i class="fa fa-linkedin"></i></a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="footer-left col-md-3">Last Updated On:01/06/2026</div>
+                        <div class="footer-centre col-md-6">©Content Owned By Western Regional Load Dispatch Centre</div>
+                        <div class="footer-right col-md-3">
+                            Visitor Counter:
+                            1469
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+
+<script type="text/javascript">
+//<![CDATA[
+
+theForm.oldSubmit = theForm.submit;
+theForm.submit = WebForm_SaveScrollPositionSubmit;
+
+theForm.oldOnSubmit = theForm.onsubmit;
+theForm.onsubmit = WebForm_SaveScrollPositionOnSubmit;
+Sys.Application.add_init(function() {
+    $create(Sys.UI._Timer, {"enabled":true,"interval":120000,"uniqueID":"ctl00$cphmain$Timer1"}, null, null, $get("cphmain_Timer1"));
+});
+//]]>
+</script>
+</form>
+     <script type="text/javascript">
+
+         $("input[type='text'],input[type='password']").on("copy cut paste drop", function () {
+             return false;
+         });
+         $("input[type='text'],input[type='password']").on('keypress', function (evt) {
+
+
+             var iKeyCode = (evt.which) ? evt.which : evt.keyCode;
+             var charStr = String.fromCharCode(iKeyCode);
+             if ((charStr == '\"' || charStr == '\'' || charStr == '~' || charStr == '^' || charStr == ';' || charStr == '`' || charStr == '}' || charStr == '{' || charStr == '=' || charStr == '/' || charStr == '\\' || charStr == '>' || charStr == '<' || charStr == '?'))
+                 return false;
+
+             return true;
+
+
+         });
+    </script>
+</body>
