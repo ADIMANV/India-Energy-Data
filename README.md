@@ -20,14 +20,28 @@ and source recon.
 ```sh
 docker compose up -d --wait          # TimescaleDB on localhost:5433
 python3 -m venv .venv
-.venv/bin/pip install -e ./scrapers
-.venv/bin/python -m gridscrapers.run vidyut_pravah   # all-state demand/price → DB
-.venv/bin/python -m gridscrapers.run merit           # live demand/own-gen/import → DB
-.venv/bin/python -m gridscrapers.run merit --dry-run # print JSONL, no DB
+.venv/bin/pip install -e ./scrapers -e ./api
+.venv/bin/python -m gridscrapers.tick                # one full scrape of all sources → DB
+.venv/bin/python -m gridscrapers.run merit --dry-run # single source, print JSONL, no DB
 .venv/bin/python -m pytest scrapers/tests/
+
+# API on :8000
+.venv/bin/uvicorn gridapi.main:app --port 8000
+
+# map on :3000 (needs the API running)
+cd web && npm install && npm run dev
 ```
 
-DSN override: `GRID_DB_DSN=postgresql://grid:grid@localhost:5433/india_grid`
+DSN override: `GRID_DB_DSN=postgresql://grid:grid@localhost:5433/india_grid`.
+Scheduler: `scripts/tick.sh` runs from cron every 15 min (sources `.env`;
+see `.env.example` for the healthchecks.io ping URL — pinged only on fully
+successful ticks, so a missed ping is the alert).
+
+## API
+
+- `GET /v1/zones` — every zone with freshest demand met + timestamp + source
+- `GET /v1/zone/{id}/live` — latest value per metric/fuel (e.g. `IN-MH`, `IN`)
+- `GET /v1/zone/{id}/history?metric=demand_met&hours=24` — timeseries (≤168 h)
 
 ## Iron rules
 

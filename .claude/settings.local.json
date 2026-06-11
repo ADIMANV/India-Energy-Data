@@ -46,7 +46,28 @@
       "Bash(.venv/bin/python -m gridscrapers.tick)",
       "Bash(echo \"exit=$?\")",
       "Bash(echo \"tick exit=$?\")",
-      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Phase 1 \\(scrapers+DB\\): retries, full MERIT coverage, quality gates, 15-min scheduler *)"
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Phase 1 \\(scrapers+DB\\): retries, full MERIT coverage, quality gates, 15-min scheduler *)",
+      "Bash(python3 -m http.server 8911)",
+      "Bash(echo \"listener pid $!\")",
+      "Bash(.venv/bin/uvicorn gridapi.main:app --port 8000)",
+      "Bash(/usr/bin/curl -s localhost:8000/v1/zones)",
+      "Bash(/usr/bin/curl -s \"localhost:8000/v1/zone/IN-MH/live\")",
+      "Bash(/usr/bin/curl -s \"localhost:8000/v1/zone/IN-MH/history?metric=demand_met&hours=24\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('points:', len\\(d['points']\\), '| first:', d['points'][0], '| last:', d['points'][-1]\\)\")",
+      "Bash(/usr/bin/curl -s \"localhost:8000/v1/zone/XX/live\")",
+      "Bash(npm install *)",
+      "Bash(mkdir -p public app)",
+      "Bash(/usr/bin/curl -sL --max-time 60 -o public/india_states.geojson \"https://raw.githubusercontent.com/udit-001/india-maps-data/main/geojson/india.geojson\")",
+      "Bash(python3 -c ' *)",
+      "Bash(/usr/bin/curl -sL --max-time 60 -o public/india_states.geojson \"https://raw.githubusercontent.com/udit-001/india-maps-data/main/geojson/states.geojson\")",
+      "Bash(cp /tmp/states_try.geojson public/india_states.geojson)",
+      "Bash(kill 39389)",
+      "Bash(printf 'node_modules/\\\\n.next/\\\\n')",
+      "Bash(npx next *)",
+      "Bash(/usr/bin/curl -s -o /dev/null -w \"web: HTTP %{http_code}\\\\n\" localhost:3000)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(kill 40008)",
+      "Bash(xargs kill)"
     ]
   }
 }

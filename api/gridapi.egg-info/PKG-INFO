@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: gridapi
+Version: 0.1.0
+Summary: Read-only API for India live grid data
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.111
+Requires-Dist: uvicorn>=0.30
+Requires-Dist: psycopg[binary]>=3.1
+Requires-Dist: psycopg-pool>=3.2

@@ -1,0 +1,160 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import maplibregl from "maplibre-gl";
+import { NAME_TO_ZONE, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
+
+// demand-colored choropleth; grey = no/ stale data
+const NO_DATA_COLOR = "#3a4258";
+const DEMAND_STOPS = [
+  [0, "#1a3a5c"],
+  [2000, "#2e7d6e"],
+  [8000, "#d8b13c"],
+  [18000, "#e06c3a"],
+  [30000, "#c0392b"],
+];
+
+function fillColorExpr() {
+  return [
+    "case",
+    ["boolean", ["feature-state", "stale"], true],
+    NO_DATA_COLOR,
+    ["interpolate", ["linear"], ["to-number", ["feature-state", "demand"], -1],
+      ...DEMAND_STOPS.flat()],
+  ];
+}
+
+export default function GridMap({ zonesData, onSelect, selectedZone }) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const featureIdsRef = useRef({}); // zone -> feature id
+  const [ready, setReady] = useState(false);
+  const [tooltip, setTooltip] = useState(null);
+
+  useEffect(() => {
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: { version: 8, sources: {}, layers: [
+        { id: "bg", type: "background", paint: { "background-color": "#0b1020" } },
+      ]},
+      center: [80.5, 22.5],
+      zoom: 3.6,
+      attributionControl: false,
+      dragRotate: false,
+    });
+    map.addControl(new maplibregl.AttributionControl({
+      customAttribution: "Boundaries: datameet/maps (CC-BY 2.5 IN) · Data: Vidyut Pravah, MERIT",
+      compact: true,
+    }), "bottom-right");
+    mapRef.current = map;
+
+    map.on("load", async () => {
+      const geo = await (await fetch("/india_states.geojson")).json();
+      geo.features.forEach((f, i) => {
+        f.id = i;
+        const zone = NAME_TO_ZONE[f.properties.ST_NM] || null;
+        f.properties.zone = zone;
+        if (zone) featureIdsRef.current[zone] = i;
+      });
+      map.addSource("states", { type: "geojson", data: geo });
+      map.addLayer({
+        id: "states-fill",
+        type: "fill",
+        source: "states",
+        paint: { "fill-color": fillColorExpr(), "fill-opacity": 0.85 },
+      });
+      map.addLayer({
+        id: "states-line",
+        type: "line",
+        source: "states",
+        paint: { "line-color": "#0b1020", "line-width": 1 },
+      });
+      map.addLayer({
+        id: "states-selected",
+        type: "line",
+        source: "states",
+        paint: { "line-color": "#ffb454", "line-width": 2.5 },
+        filter: ["==", ["get", "zone"], "___none___"],
+      });
+      map.fitBounds([[68, 6.5], [97.5, 36]], { padding: 20 });
+
+      map.on("click", "states-fill", (e) => {
+        const zone = e.features[0]?.properties?.zone;
+        if (zone) onSelect(zone);
+      });
+      map.on("mousemove", "states-fill", (e) => {
+        const f = e.features[0];
+        if (!f) return;
+        map.getCanvas().style.cursor = f.properties.zone ? "pointer" : "";
+        setTooltip({
+          x: e.point.x,
+          y: e.point.y,
+          name: f.properties.ST_NM,
+          zone: f.properties.zone,
+        });
+      });
+      map.on("mouseleave", "states-fill", () => {
+        map.getCanvas().style.cursor = "";
+        setTooltip(null);
+      });
+      setReady(true);
+    });
+
+    return () => map.remove();
+  }, [onSelect]);
+
+  // paint demand + staleness as feature-state whenever data refreshes
+  useEffect(() => {
+    if (!ready || !zonesData) return;
+    const map = mapRef.current;
+    const byZone = Object.fromEntries(zonesData.zones.map((z) => [z.zone, z]));
+    for (const [zone, fid] of Object.entries(featureIdsRef.current)) {
+      const z = byZone[zone];
+      const stale = !z || ageMinutes(z.ts) > STALE_AFTER_MIN;
+      map.setFeatureState(
+        { source: "states", id: fid },
+        { demand: z ? z.demand_met_mw : -1, stale }
+      );
+    }
+  }, [ready, zonesData]);
+
+  useEffect(() => {
+    if (!ready) return;
+    mapRef.current.setFilter("states-selected", [
+      "==", ["get", "zone"], selectedZone || "___none___",
+    ]);
+  }, [ready, selectedZone]);
+
+  const tipZone = tooltip?.zone
+    ? zonesData?.zones.find((z) => z.zone === tooltip.zone)
+    : null;
+
+  return (
+    <div className="map-wrap" ref={containerRef}>
+      {tooltip && (
+        <div className="tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+          <div><b>{tooltip.name}</b></div>
+          {tipZone ? (
+            <>
+              <div>{fmtMW(tipZone.demand_met_mw)} demand met</div>
+              <div className={`t-age ${ageMinutes(tipZone.ts) > STALE_AFTER_MIN ? "stale" : ""}`}>
+                updated {ageLabel(tipZone.ts)}
+              </div>
+            </>
+          ) : (
+            <div className="t-age">no live data</div>
+          )}
+        </div>
+      )}
+      <div className="legend">
+        <div>Current demand met</div>
+        <div className="bar" />
+        <div className="ends"><span>0</span><span>30+ GW</span></div>
+        <div className="ends" style={{ marginTop: 4 }}>
+          <span style={{ color: NO_DATA_COLOR }}>■</span>
+          <span>no data / stale &gt;{STALE_AFTER_MIN} min</span>
+        </div>
+      </div>
+    </div>
+  );
+}
