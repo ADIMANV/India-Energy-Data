@@ -8,19 +8,16 @@ values update per 15-minute time block, IST.
 import re
 import time
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 
-import httpx
 from bs4 import BeautifulSoup
 
+from ..http import IST, make_client, request_raw
 from ..schema import Datapoint, Metric, RawResponse, Unit
 from ..zones import NATIONAL, VIDYUT_PRAVAH_SLUGS
 
 SOURCE = "vidyut_pravah"
 PARSER_VERSION = 1
 BASE = "https://vidyutpravah.in"
-IST = ZoneInfo("Asia/Kolkata")
-UA = "india-grid-map/0.1 (open data project; contact: adityamsawant07@gmail.com)"
 REQUEST_GAP_S = 0.5
 
 _NUM = re.compile(r"[-+]?[\d,]*\.?\d+")
@@ -33,30 +30,14 @@ def _num(text: str) -> float | None:
 
 def fetch() -> list[RawResponse]:
     raws: list[RawResponse] = []
-    with httpx.Client(verify=False, headers={"User-Agent": UA}, timeout=30, follow_redirects=True) as client:
+    # verify=False: vidyutpravah.in serves an invalid TLS cert (recon doc)
+    with make_client(verify=False) as client:
         targets = [("/", {"zone": NATIONAL})] + [
             (f"/state-data/{slug}", {"zone": zone, "slug": slug})
             for slug, zone in VIDYUT_PRAVAH_SLUGS.items()
         ]
         for path, meta in targets:
-            url = BASE + path
-            try:
-                resp = client.get(url)
-            except httpx.HTTPError as e:
-                raws.append(RawResponse(
-                    source=SOURCE, endpoint=url, fetched_at=datetime.now(IST),
-                    http_status=None, body=b"", meta={**meta, "error": str(e)},
-                ))
-                continue
-            raws.append(RawResponse(
-                source=SOURCE,
-                endpoint=url,
-                fetched_at=datetime.now(IST),
-                http_status=resp.status_code,
-                content_type=resp.headers.get("content-type"),
-                body=resp.content,
-                meta=meta,
-            ))
+            raws.append(request_raw(client, SOURCE, "GET", BASE + path, meta=meta))
             time.sleep(REQUEST_GAP_S)
     return raws
 
