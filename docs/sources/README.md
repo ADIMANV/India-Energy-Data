@@ -78,7 +78,13 @@ Live grid data lives on the five RLDC sites: `wrldc.in`, `nrldc.in`, `srldc.in`,
   `InterRegionalLinks_Data.aspx/Get_InterRegionalLinks_Region_Wise` (flows).
 - **ERLDC**: `app.erldc.in` no longer resolves. emaps used
   `/api/pspreportpsp/Get/pspreport_psp_*/GetByTwoDate`. TODO: try `erldc.in` directly.
-- **NRLDC/SRLDC/NERLDC**: not probed yet.
+- **NRLDC/SRLDC/NERLDC**: 2026-06-11 follow-up — nrldc.in and srldc.in require
+  **legacy TLS renegotiation** (OpenSSL 3 rejects with
+  `UNSAFE_LEGACY_RENEGOTIATION_DISABLED`; fix: `ssl.OP_LEGACY_SERVER_CONNECT` +
+  `SECLEVEL=1`, see `scripts/probe_rldc.py`). With that, their homepages load
+  fine from outside India; the WRLDC-style `.aspx` API paths 404/405 on them —
+  each RLDC needs its own endpoint recon. `nerldc.in` and `app.erldc.in` don't
+  resolve in public DNS (possibly split-horizon — check from the VPS).
 
 ## NPP (npp.gov.in) & CEA (cea.nic.in)
 

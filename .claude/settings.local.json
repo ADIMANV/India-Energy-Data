@@ -67,7 +67,12 @@
       "Bash(/usr/bin/curl -s -o /dev/null -w \"web: HTTP %{http_code}\\\\n\" localhost:3000)",
       "mcp__Claude_Preview__preview_start",
       "Bash(kill 40008)",
-      "Bash(xargs kill)"
+      "Bash(xargs kill)",
+      "Bash(docker build *)",
+      "Bash(docker run *)",
+      "Bash(POSTGRES_PASSWORD=x API_DOMAIN=api.example.com docker compose -f deploy/docker-compose.prod.yml config --quiet)",
+      "Bash(.venv/bin/python scripts/probe_rldc.py --outdir /tmp/probe-local)",
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Deploy package: VPS bootstrap, prod compose with Caddy TLS, RLDC probe *)"
     ]
   }
 }
