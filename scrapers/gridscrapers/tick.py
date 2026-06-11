@@ -18,6 +18,7 @@ import psycopg
 
 from . import estimation, fuelmix, sources
 from .db import get_dsn
+from .drift import check_drift
 from .quality import cross_check_demand, stale_sources
 from .run import run_source
 
@@ -29,7 +30,7 @@ def main() -> int:
     with psycopg.connect(get_dsn()) as conn:
         for name in sources.PLUGINS:
             try:
-                stats = run_source(sources.load(name), conn)
+                stats, raws = run_source(sources.load(name), conn)
             except Exception as e:
                 failures.append(f"[{name}] run crashed: {e}")
                 print(f"[{name}] RUN CRASHED: {e}", file=sys.stderr)
@@ -39,6 +40,7 @@ def main() -> int:
             print(stats.report(), file=sys.stderr)
             if not stats.ok:
                 failures.append(stats.report())
+            failures.extend(check_drift(conn, raws))
 
         try:
             if not fuelmix.shares_fresh(conn):

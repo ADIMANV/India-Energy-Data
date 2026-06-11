@@ -39,9 +39,16 @@ successful ticks, so a missed ping is the alert).
 
 ## API
 
-- `GET /v1/zones` — every zone with freshest demand met + timestamp + source
+- `GET /v1/zones` — every zone: freshest demand met + carbon intensity (with `estimated` flag)
 - `GET /v1/zone/{id}/live` — latest value per metric/fuel (e.g. `IN-MH`, `IN`)
 - `GET /v1/zone/{id}/history?metric=demand_met&hours=24` — timeseries (≤168 h)
+- `GET /v1/zone/{id}/export.csv?metric=&hours=` — CSV download (≤1 year)
+- `GET /v1/status` — data quality: per-source uptime/gaps, cross-source deltas, schema drift
+  (rendered at `/status` on the web app)
+
+Estimated fuel mix & carbon intensity methodology: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
+Curated plant-name fixes: [data/plant_overrides.json](data/plant_overrides.json)
+(wins over fuzzy matching; review queue dump in `data/plant_review_top30.md`).
 
 ## Iron rules
 

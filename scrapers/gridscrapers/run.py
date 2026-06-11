@@ -44,8 +44,11 @@ class RunStats:
         )
 
 
-def run_source(plugin: ModuleType, conn: psycopg.Connection) -> RunStats:
-    """Run one plugin end-to-end. Raw is archived even when parsing fails."""
+def run_source(plugin: ModuleType, conn: psycopg.Connection) -> tuple[RunStats, list]:
+    """Run one plugin end-to-end. Raw is archived even when parsing fails.
+
+    Returns (stats, raws) — raws feed the schema-drift check in the tick.
+    """
     stats = RunStats(source=plugin.SOURCE)
     raws = plugin.fetch()
     stats.fetched = len(raws)
@@ -70,7 +73,7 @@ def run_source(plugin: ModuleType, conn: psycopg.Connection) -> RunStats:
             )
         stats.inserted += insert_datapoints(conn, ok_points, raw_id=raw_id)
     conn.commit()
-    return stats
+    return stats, raws
 
 
 def main() -> int:
@@ -96,7 +99,7 @@ def main() -> int:
         return 0
 
     with psycopg.connect(get_dsn()) as conn:
-        stats = run_source(plugin, conn)
+        stats, _ = run_source(plugin, conn)
     for line in stats.errors:
         print(f"  {line}", file=sys.stderr)
     print(stats.report(), file=sys.stderr)

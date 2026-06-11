@@ -8,12 +8,15 @@ Endpoints:
     GET /v1/zone/{id}/history?metric=&hours= — timeseries
 """
 
+import csv
+import io
 import os
 import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from psycopg_pool import AsyncConnectionPool
 
 DSN = os.environ.get("GRID_DB_DSN", "postgresql://grid:grid@localhost:5433/india_grid")
@@ -112,6 +115,106 @@ async def zone_live(zone_id: str):
             for m, f, v, u, ts, src, est in rows
         ],
     }
+
+
+@app.get("/v1/status")
+async def status():
+    """Data-quality: per-source health, cross-check deltas, schema drift, gaps."""
+    async with pool.connection() as conn:
+        sources = await (await conn.execute(
+            """
+            SELECT source,
+                   max(inserted_at)                                            AS last_success,
+                   count(*) FILTER (WHERE inserted_at > now() - interval '24 hours') AS points_24h,
+                   count(DISTINCT date_trunc('hour', inserted_at))
+                       FILTER (WHERE inserted_at > now() - interval '24 hours')      AS active_hours_24h
+            FROM datapoints
+            WHERE source <> 'estimate'
+            GROUP BY source ORDER BY source
+            """
+        )).fetchall()
+        checks = await (await conn.execute(
+            """
+            SELECT DISTINCT ON (zone) zone, value_a, value_b, delta_pct, checked_at
+            FROM quality_checks ORDER BY zone, checked_at DESC
+            """
+        )).fetchall()
+        drift = await (await conn.execute(
+            """
+            SELECT source, kind, count(*) AS structures,
+                   max(first_seen) AS newest_structure_seen
+            FROM schema_hashes GROUP BY source, kind ORDER BY source, kind
+            """
+        )).fetchall()
+        gaps = await (await conn.execute(
+            """
+            WITH ticks AS (
+                SELECT source, inserted_at,
+                       inserted_at - lag(inserted_at) OVER (PARTITION BY source ORDER BY inserted_at) AS gap
+                FROM (SELECT DISTINCT source, date_trunc('minute', inserted_at) AS inserted_at
+                      FROM datapoints
+                      WHERE source <> 'estimate' AND inserted_at > now() - interval '24 hours') t)
+            SELECT source, max(gap) AS largest_gap_24h FROM ticks GROUP BY source
+            """
+        )).fetchall()
+    gap_by_source = {s: g for s, g in gaps}
+    return {
+        "sources": [
+            {
+                "source": s,
+                "last_success": last.isoformat() if last else None,
+                "points_24h": pts,
+                # 15-min cadence => up to 24 active hours; uptime = coverage
+                "uptime_24h_pct": round(active / 24 * 100, 1),
+                "largest_gap_24h": str(gap_by_source.get(s)) if gap_by_source.get(s) else None,
+            }
+            for s, last, pts, active in sources
+        ],
+        "cross_checks": [
+            {"zone": z, "vidyut_pravah_mw": a, "merit_mw": b,
+             "delta_pct": round(d, 2), "checked_at": ts.isoformat()}
+            for z, a, b, d, ts in checks
+        ],
+        "schema_structures": [
+            {"source": s, "kind": k, "distinct_structures": int(n),
+             "newest_seen": ts.isoformat()}
+            for s, k, n, ts in drift
+        ],
+    }
+
+
+@app.get("/v1/zone/{zone_id}/export.csv")
+async def export_csv(
+    zone_id: str,
+    metric: str = Query(default="demand_met"),
+    hours: int = Query(default=24, ge=1, le=8760),
+):
+    """CSV download: ts,zone,metric,fuel,value,unit,source,estimated."""
+    zone = _zone_or_400(zone_id)
+    if metric not in METRICS:
+        raise HTTPException(status_code=400, detail=f"metric must be one of {sorted(METRICS)}")
+    async with pool.connection() as conn:
+        rows = await (await conn.execute(
+            """
+            SELECT ts, zone, metric, fuel, value, unit, source, estimated
+            FROM datapoints
+            WHERE zone = %s AND metric = %s AND ts > now() - make_interval(hours => %s)
+            ORDER BY ts
+            """,
+            (zone, metric, hours),
+        )).fetchall()
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["ts", "zone", "metric", "fuel", "value", "unit", "source", "estimated"])
+    for ts, z, m, f, v, u, src, est in rows:
+        w.writerow([ts.isoformat(), z, m, f, v, u, src, str(est).lower()])
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{zone}_{metric}_{hours}h.csv"'},
+    )
 
 
 @app.get("/v1/zone/{zone_id}/history")

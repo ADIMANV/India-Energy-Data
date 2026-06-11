@@ -82,7 +82,13 @@
       "Bash(.venv/bin/python -m gridscrapers.plants load --csv /tmp/gppd.csv)",
       "Bash(.venv/bin/python -m gridscrapers.fuelmix compute)",
       "Bash(.venv/bin/python -c ' *)",
-      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Punjab SLDC live mix + fuel-mix estimation pipeline with carbon intensity *)"
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Punjab SLDC live mix + fuel-mix estimation pipeline with carbon intensity *)",
+      "Bash(/usr/bin/curl -s localhost:8000/v1/status)",
+      "Bash(python3 -m json.tool)",
+      "Bash(/usr/bin/curl -s \"localhost:8000/v1/zone/IN-PB/export.csv?metric=generation&hours=12\")",
+      "Bash(/usr/bin/curl -s -o /dev/null -w \"csv status: %{http_code}, bad metric: \" \"localhost:8000/v1/zone/IN-PB/export.csv?metric=generation\")",
+      "Bash(/usr/bin/curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"localhost:8000/v1/zone/IN-PB/export.csv?metric=nope\")",
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Curated plant overrides, ISGS verification, drift alerts, /status page, CSV export *)"
     ]
   }
 }

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "_doc": [
+    "Curated MERIT-station → fuel mappings. Checked BEFORE fuzzy matching in",
+    "gridscrapers/fuelmix.py: an entry here always wins and never lands in",
+    "plant_match_review. Keys: zone → exact MERIT PowerStationName.",
+    "Survives registry refreshes (keyed on MERIT names, not registry ids).",
+    "'registry' and 'note' are documentation only; 'fuel' is what the pipeline uses."
+  ],
+  "overrides": {
+    "IN-MH": {
+      "GTPS URAN (UNIT 05 TO 10)": {
+        "fuel": "gas",
+        "registry": "URAN GT",
+        "note": "Mahagenco Uran CCGT 672 MW. Fuzzy score 0.63 was below threshold; coal fallback was wrong."
+      },
+      "TROMBAY UNIT-5": {
+        "fuel": "coal",
+        "registry": "TROMBAY_Coal",
+        "note": "Tata Trombay U5 is the 500 MW coal unit. GPPD's station-level 'TROMBAY (oil)' entry is unit-blind."
+      },
+      "TROMBAY UNIT-8": {
+        "fuel": "coal",
+        "registry": "TROMBAY_Coal",
+        "note": "Tata Trombay U8 250 MW coal."
+      },
+      "TROMBAY UNIT-6": {
+        "fuel": "oil",
+        "registry": "TROMBAY_Oil",
+        "note": "U6 500 MW dual oil/gas; scheduled 0 MWh on sampled day. Revisit if it starts dispatching."
+      }
+    }
+  }
+}

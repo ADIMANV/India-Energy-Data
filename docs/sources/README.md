@@ -52,6 +52,11 @@ ASP.NET MVC app, JSON AJAX endpoints, no auth, no cookies needed.
 - `POST /StateWiseDetails/BindCurrentStateStatus` body `{"StateCode":"MHA"}` →
   `[{"Demand":"27,044","ISGS":"16,813","ImportData":"10,231"}]` — **live**, MW,
   page polls it on an interval. Cross-checked vs Vidyut Pravah MH demand (27,055) ✓
+- **"ISGS" field = state's own in-state generation, NOT central allocation.**
+  Verified 2026-06-11 ("Goa test"): Goa & Chandigarh (≈100% central-supplied)
+  return `ISGS: null`; `Demand = ISGS + ImportData` holds to the MW across all
+  states tested; Punjab ISGS matched Punjab SLDC measured in-state generation
+  to 0.7% in the same minute. Mapped to `generation/own_generation`.
 - `POST /StateWiseDetails/GetStateWiseDetailsForPiChart` body
   `{"StateCode":"MHA","date":"09 Jun 2026"}` → daily energy MWh by portfolio type.
   Returns `-3` if params missing/no data for date.

@@ -22,6 +22,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
+from pathlib import Path
 
 import psycopg
 
@@ -32,6 +33,18 @@ from .sources.merit import BASE, STATE_CODES
 
 SOURCE = "merit_dispatch"
 MATCH_THRESHOLD = 0.72
+OVERRIDES_PATH = Path(__file__).parents[2] / "data/plant_overrides.json"
+
+
+def load_overrides() -> dict[str, dict[str, str]]:
+    """zone -> {merit_station: fuel}. Curated, wins over fuzzy matching."""
+    if not OVERRIDES_PATH.exists():
+        return {}
+    data = json.loads(OVERRIDES_PATH.read_text())
+    return {
+        zone: {station: spec["fuel"] for station, spec in stations.items()}
+        for zone, stations in data.get("overrides", {}).items()
+    }
 
 TYPE_FUEL = {
     "hydro": "hydro",
@@ -83,9 +96,15 @@ def _mwh(s: str | None) -> float:
         return 0.0
 
 
-def compute_state(conn: psycopg.Connection, raw: RawResponse, registry: list[tuple]) -> dict | None:
+def compute_state(
+    conn: psycopg.Connection,
+    raw: RawResponse,
+    registry: list[tuple],
+    overrides: dict[str, dict[str, str]] | None = None,
+) -> dict | None:
     """Returns {fuel: share} or None if no usable rows. Writes review rows."""
     zone = raw.meta["zone"]
+    zone_overrides = (overrides or {}).get(zone, {})
     if not raw.body or (raw.http_status or 0) != 200:
         return None
     try:
@@ -104,6 +123,12 @@ def compute_state(conn: psycopg.Connection, raw: RawResponse, registry: list[tup
         if mwh <= 0:
             continue
         total_mwh += mwh
+
+        if name in zone_overrides:
+            fuel = zone_overrides[name]
+            by_fuel[fuel] = by_fuel.get(fuel, 0) + mwh
+            matched_mwh += mwh
+            continue
 
         up = name.upper()
         if "SOLAR" in up and up.startswith("TOTAL"):
@@ -162,17 +187,27 @@ def compute(date_str: str | None = None, conn: psycopg.Connection | None = None)
     if own_conn:
         conn = psycopg.connect(get_dsn())
     registry = conn.execute("SELECT name, fuel FROM india_plants").fetchall()
+    overrides = load_overrides()
+    for zone, stations in overrides.items():
+        conn.execute(
+            "UPDATE plant_match_review SET resolved = TRUE WHERE zone = %s AND merit_station = ANY(%s)",
+            (zone, list(stations)),
+        )
 
     n = 0
     with make_client(verify=False) as client:
         for code, zone in STATE_CODES.items():
             raw = fetch_dispatch(client, code, zone, date_str)
             archive_raw(conn, raw)
-            result = compute_state(conn, raw, registry)
+            result = compute_state(conn, raw, registry, overrides)
             if result is None:
                 print(f"  no dispatch data for {zone} ({date_str})", file=sys.stderr)
                 time.sleep(0.5)
                 continue
+            # full replace: a fuel absent from the new mix must not linger
+            conn.execute(
+                "DELETE FROM state_fuel_shares WHERE zone = %s AND as_of = %s", (zone, as_of)
+            )
             for fuel, share in result["shares"].items():
                 conn.execute(
                     """INSERT INTO state_fuel_shares (zone, as_of, fuel, share, match_rate)

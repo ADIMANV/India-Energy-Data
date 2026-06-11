@@ -67,6 +67,16 @@ body {
 .mix-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
 .mix-row .k { color: var(--muted); flex: 1; }
 .mix-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.status-page { max-width: 880px; margin: 0 auto; padding: 28px 20px 60px; }
+.status-page h1 { font-size: 22px; margin-bottom: 6px; }
+.status-page h1 a { font-size: 13px; color: var(--accent); margin-left: 14px; text-decoration: none; }
+.status-page h2 { font-size: 15px; margin: 26px 0 8px; }
+.status-page .sub { color: var(--muted); font-size: 13px; margin: 4px 0 10px; }
+.status-page table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.status-page th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.status-page td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.status-page tr.bad td { color: #e06c3a; }
 .legend .ends { display: flex; justify-content: space-between; color: var(--muted); }
 
 .panel {
