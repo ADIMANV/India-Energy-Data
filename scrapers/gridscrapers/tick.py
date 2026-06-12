@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import httpx
 import psycopg
 
-from . import estimation, fuelmix, psp, sources
+from . import backtest, cea, estimation, fuelmix, psp, sources
 from .db import get_dsn
 from .drift import check_drift
 from .quality import cross_check_demand, stale_sources
@@ -47,6 +47,15 @@ def main() -> int:
         except Exception as e:
             failures.append(f"psp ingest failed: {e}")
             print(f"PSP INGEST FAILED: {e}", file=sys.stderr)
+
+        try:
+            cea.ensure_current(conn)  # T-1 CEA dgr2 (no-op once ingested)
+            backtest.run_daily(conn)
+            failures.extend(backtest.drift_alerts(conn))
+            failures.extend(backtest.weekly_match_audit(conn))
+        except Exception as e:
+            failures.append(f"cea/backtest failed: {e}")
+            print(f"CEA/BACKTEST FAILED: {e}", file=sys.stderr)
 
         try:
             if not fuelmix.shares_fresh(conn):

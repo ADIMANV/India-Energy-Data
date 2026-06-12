@@ -158,6 +158,20 @@ async def status():
             FROM schema_hashes GROUP BY source, kind ORDER BY source, kind
             """
         )).fetchall()
+        backtests = await (await conn.execute(
+            """
+            SELECT "check",
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY delta_pct) AS median_delta,
+                   round(avg(abs(delta_pct))::numeric, 1) AS mean_abs,
+                   count(*) AS zone_days, max(as_of) AS latest
+            FROM backtest_daily WHERE as_of > current_date - 7
+            GROUP BY "check"
+            """
+        )).fetchall()
+        audit = await (await conn.execute(
+            "SELECT audited_at, mwh_match_rate, review_open, review_total "
+            "FROM match_audit ORDER BY audited_at DESC LIMIT 1"
+        )).fetchone()
         gaps = await (await conn.execute(
             """
             WITH ticks AS (
@@ -192,6 +206,15 @@ async def status():
              "newest_seen": ts.isoformat()}
             for s, k, n, ts in drift
         ],
+        "backtests": [
+            {"check": c, "median_delta_pct_7d": round(med, 1), "mean_abs_delta_pct_7d": float(ma),
+             "zone_days_7d": int(n), "latest": latest.isoformat()}
+            for c, med, ma, n, latest in backtests
+        ],
+        "match_audit": {
+            "audited_at": audit[0].isoformat(), "mwh_match_rate": round(audit[1], 3),
+            "review_open": audit[2], "review_total": audit[3],
+        } if audit else None,
     }
 
 

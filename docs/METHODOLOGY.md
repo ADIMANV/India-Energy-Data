@@ -90,6 +90,30 @@ coal (state thermal + IPPs), hydro, solar, biomass. Its CI is computed from
 the measured mix and stored with `estimated=false`. Where measured data
 exists it always wins over the estimate.
 
+## Source independence (what cross-checks can and cannot catch)
+
+Vidyut Pravah and MERIT both read the **same NLDC backend** — many states'
+demand values are byte-identical between them at the same time block. The
+VP↔MERIT cross-check on /status therefore detects **our parser bugs and
+staleness**, not source errors: if NLDC publishes a wrong number, both
+"sources" agree on it.
+
+Genuinely independent validation comes from sources with separate data
+chains, exercised by the daily backtests (`gridscrapers/backtest.py`,
+surfaced on /status):
+
+| chain | source | used as |
+|---|---|---|
+| State SCADA | SLDC APIs (Punjab live) | measured live mix, `estimated: false` |
+| Regional dispatch | RLDC daily PSP reports (NR, SR) | T-1 actual fuel shares + consumption backtest |
+| Central statistics | CEA/NPP daily generation report (dgr2) | station/state energy backtest vs PSP |
+
+Backtest deltas carry known scope biases (CEA groups stations by plant
+location and omits RE; PSP 2A counts control-area dispatch — Uttarakhand
+reads ~+70% in CEA because its private hydro exports inter-state). Alerts
+fire on a >5pp shift of the 7-day median against the trailing baseline —
+a *change* in the relationship — never on the standing bias itself.
+
 ## Plant registry refresh
 
 ```sh

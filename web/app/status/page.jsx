@@ -72,6 +72,33 @@ export default function StatusPage() {
         </tbody>
       </table>
 
+      <h2>Cross-source backtests (daily, trailing 7 days)</h2>
+      <p className="sub">
+        known scope biases are expected (CEA groups plants by location, RLDC PSP
+        by control area) — alerts fire only when the relationship shifts &gt;5pp.
+      </p>
+      <table>
+        <thead><tr><th>check</th><th>median delta 7d</th><th>mean |delta| 7d</th><th>zone-days</th><th>latest day</th></tr></thead>
+        <tbody>
+          {(data.backtests || []).map((b) => (
+            <tr key={b.check}>
+              <td>{b.check}</td>
+              <td>{b.median_delta_pct_7d > 0 ? "+" : ""}{b.median_delta_pct_7d}%</td>
+              <td>{b.mean_abs_delta_pct_7d}%</td>
+              <td>{b.zone_days_7d}</td>
+              <td>{b.latest}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {data.match_audit && (
+        <p className="sub">
+          MERIT registry match rate (weekly audit): {(data.match_audit.mwh_match_rate * 100).toFixed(1)}%
+          · review queue {data.match_audit.review_open} open / {data.match_audit.review_total}
+          · audited {ageLabel(data.match_audit.audited_at)}
+        </p>
+      )}
+
       <h2>Response structures (drift detection)</h2>
       <table>
         <thead><tr><th>source</th><th>endpoint family</th><th>known structures</th><th>newest first seen</th></tr></thead>
