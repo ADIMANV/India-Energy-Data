@@ -4,6 +4,7 @@ Gov sites drop connections and time out routinely (see docs/sources/README.md);
 every plugin fetch goes through request_raw() so retry behavior is uniform.
 """
 
+import ssl
 import time
 from datetime import datetime
 from typing import Any
@@ -20,11 +21,26 @@ MAX_ATTEMPTS = 3
 BACKOFF_BASE_S = 2.0  # 2s, 4s between attempts
 
 
-def make_client(*, verify: bool = True) -> httpx.Client:
+def gov_ssl_context() -> ssl.SSLContext:
+    """No verification + legacy renegotiation + SECLEVEL=1.
+
+    RLDC servers (nrldc.in, srldc.in, ...) require legacy TLS renegotiation,
+    which OpenSSL 3 disables by default (UNSAFE_LEGACY_RENEGOTIATION_DISABLED),
+    and some present cert chains/ciphers below default security level.
+    """
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    ctx.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
+    ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+    return ctx
+
+
+def make_client(*, verify: bool = True, legacy_tls: bool = False) -> httpx.Client:
     return httpx.Client(
-        verify=verify,
+        verify=gov_ssl_context() if legacy_tls else verify,
         headers={"User-Agent": UA},
-        timeout=30,
+        timeout=60 if legacy_tls else 30,  # report PDFs are slow to serve
         follow_redirects=True,
     )
 

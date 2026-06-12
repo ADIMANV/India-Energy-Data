@@ -226,7 +226,10 @@ def compute(date_str: str | None = None, conn: psycopg.Connection | None = None)
 
 
 def shares_fresh(conn: psycopg.Connection, max_age_days: int = 5) -> bool:
-    row = conn.execute("SELECT max(as_of) FROM state_fuel_shares").fetchone()
+    # merit basis only: psp rows refresh daily and must not mask a stale merit set
+    row = conn.execute(
+        "SELECT max(as_of) FROM state_fuel_shares WHERE basis = 'merit_schedule_t2'"
+    ).fetchone()
     return row[0] is not None and (datetime.now(IST).date() - row[0]).days <= max_age_days
 
 

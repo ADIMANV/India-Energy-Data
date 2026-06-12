@@ -91,6 +91,29 @@ Live grid data lives on the five RLDC sites: `wrldc.in`, `nrldc.in`, `srldc.in`,
   each RLDC needs its own endpoint recon. `nerldc.in` and `app.erldc.in` don't
   resolve in public DNS (possibly split-horizon — check from the VPS).
 
+## RLDC daily PSP reports (PDF) — measured T-1 state fuel energy
+
+The daily "Power Supply Position" reports are the highest-quality fuel-mix
+source: actual (not scheduled) MU by fuel per state, T-1. Parsed by
+`gridscrapers/psp.py` into `daily_state_energy` + `station_daily` with ±2%
+total validation and quarantine. Samples: `NRLDC_daily100626.pdf`,
+`SRLDC_psp_100626.pdf`.
+
+| RLDC | Discovery | Archive depth | Status |
+|---|---|---|---|
+| NRLDC | `GET /get-documents-list/111` (DataTables JSON, needs `X-Requested-With: XMLHttpRequest`) → `download-file?any=...` links | Apr 2024 (747 docs, 2026-06) | ✅ parsing |
+| SRLDC | direct URL `srldc.in/var/ftp/reports/psp/{YYYY}/{MonYY}/{DD-MM-YYYY}-psp.pdf` | ≥ mid-2022 | ✅ parsing |
+| WRLDC | Documents page is JS-routed; no static links on wrldc.in | ? | 🔍 needs devtools/VPS |
+| ERLDC | `report.erldc.in/POSOCO/` is login-walled; main site is a React SPA with no public API strings | ? | 🔍 needs devtools/VPS |
+| NERLDC | `nerldc.in` doesn't resolve in public DNS | ? | 🔍 VPS only |
+
+Layout notes: section numbering is shared (2A state fuel MU, 2B/2C peak
+demand, 3A state stations, 3B central stations) but column orders differ —
+NR: thermal/hydro/gas/solar/wind/others ×13 cols; SR: thermal/hydro/gas/
+**wind/solar**/others ×12 cols, and 3B net-MU column position differs (see
+`RegionCfg`). Full backfill (VPS): `python -m gridscrapers.psp ingest
+--region NR --backfill 750` and `--region SR --backfill 1400`.
+
 ## NPP (npp.gov.in) & CEA (cea.nic.in)
 
 Both alive. NPP is an SPA (redirects to `/landing-home`) — daily plant-wise

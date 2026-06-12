@@ -1,13 +1,42 @@
 {
-  "version": 1,
+  "version": 2,
   "_doc": [
     "Curated MERIT-station → fuel mappings. Checked BEFORE fuzzy matching in",
     "gridscrapers/fuelmix.py: an entry here always wins and never lands in",
     "plant_match_review. Keys: zone → exact MERIT PowerStationName.",
     "Survives registry refreshes (keyed on MERIT names, not registry ids).",
-    "'registry' and 'note' are documentation only; 'fuel' is what the pipeline uses."
+    "'registry' and 'note' are documentation only; 'fuel' is what the pipeline uses.",
+    "v2: top-30 review batch (2026-06-11). 29 of 30 confirmed coal (fallback was",
+    "already right for CI; entries added to claim the match + pin identity)."
   ],
   "overrides": {
+    "IN-MP": {
+      "KHARGONE": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "NTPC Khargone STPP, 2x660 MW ultra-supercritical, Madhya Pradesh. Absent from GPPD (commissioned 2019-20). KAHALGAON candidate is a different NTPC plant in Bihar — correctly rejected."
+      },
+      "SSTPS_II": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Shree Singaji TPS Stage II (MPPGCL, Khandwa), 2x660 MW coal."
+      },
+      "SSTPS_I": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Shree Singaji TPS Stage I, 2x600 MW coal."
+      },
+      "SGTPS -4X210": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Sanjay Gandhi TPS Birsinghpur (MPPGCL), 4x210 MW units, coal."
+      },
+      "SGTPS -1X500": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Sanjay Gandhi TPS Birsinghpur unit 5, 500 MW, coal."
+      }
+    },
     "IN-MH": {
       "GTPS URAN (UNIT 05 TO 10)": {
         "fuel": "gas",
@@ -28,6 +57,141 @@
         "fuel": "oil",
         "registry": "TROMBAY_Oil",
         "note": "U6 500 MW dual oil/gas; scheduled 0 MWh on sampled day. Revisit if it starts dispatching."
+      },
+      "ADANI- TIRODA (UNIT- 1,4,5)": {
+        "fuel": "coal",
+        "registry": "TIRORA TPP",
+        "note": "Adani Power Tiroda 5x660 MW coal. Candidate 1 (TIRORA TPP, 0.56) is correct — spelling variance Tiroda/Tirora defeated the fuzzy threshold."
+      },
+      "ADANI TIRODA (UNIT- 2,3)": {
+        "fuel": "coal",
+        "registry": "TIRORA TPP",
+        "note": "Same station as above, other units."
+      },
+      "RATAN INDIA UNIT-01 TO 05": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "RattanIndia Power Amravati TPP, 5x270 MW coal."
+      },
+      "KHAPERKHEDA UNIT - 01 TO 04": {
+        "fuel": "coal",
+        "registry": "K_KHEDA II",
+        "note": "Mahagenco Khaperkheda TPS, 4x210 MW coal. Candidate 2 (K_KHEDA II) is the same station; candidate 1 (KHAMBERKHERA IPP) is not."
+      }
+    },
+    "IN-AP": {
+      "KRISHNAPATNAM (DSTPP) – I": {
+        "fuel": "coal",
+        "registry": "PAINAMPURAM",
+        "note": "Sri Damodaram Sanjeevaiah TPS (APPDCL Krishnapatnam) Stage I, 2x800 MW coal. Both fuzzy candidates are different plants. NOTE: key contains an en-dash (–), copied exactly from MERIT."
+      },
+      "K.PTNAM U3": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Krishnapatnam (SDSTPS) Unit 3, 800 MW Stage II, coal."
+      },
+      "HINDUJA": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Hinduja National Power, Visakhapatnam, 2x520 MW coal. UCHPINDA candidate (0.67) is a Chhattisgarh plant — wrong identity, right fuel."
+      },
+      "THERMAL POWERTECH CORPORATION OF INDIA LIMITED -1": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "TPCIL / Sembcorp Energy India, Krishnapatnam, 2x660 MW coal."
+      },
+      "VIJAYAWADA TPS (DR NARLA TATA RAO TPS (DR. NTTPS))-I,II&III": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Dr. NTTPS Vijayawada (APGENCO) stages I-III, 6x210 MW coal."
+      },
+      "DR.NTTPS STG-V": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Dr. NTTPS Vijayawada Stage V, 800 MW, coal."
+      },
+      "TELANGANA STPS STAGE-1": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "NTPC Telangana STPP (Ramagundam), 2x800 MW coal. Both gas candidates are wrong — the fuzzy matcher's trap row. Listed under AP allocation in MERIT."
+      }
+    },
+    "IN-RJ": {
+      "CSTPP UNIT5": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Chhabra STPP Unit 5, 660 MW supercritical (RVUNL/Adani), coal."
+      },
+      "SSCTPSUNIT7_8": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Suratgarh Super Critical TPS units 7-8, 2x660 MW (RVUNL), coal."
+      },
+      "RAJWEST LTPS (IPP)": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "JSW Barmer Rajwest Lignite TPS, 8x135 MW. LIGNITE — counted as coal per emission_factors (CEA fleet factor includes lignite); lignite-specific factor is a v2 refinement."
+      }
+    },
+    "IN-TN": {
+      "COASTAL ENERGEN": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Coastal Energen Mutiara TPP, Tuticorin, 2x600 MW coal."
+      },
+      "MTPS STAGE 1&2": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Mettur TPS (TANGEDCO) stages 1-2, coal."
+      },
+      "NCTPS STAGE 1": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "North Chennai TPS Stage 1 (TANGEDCO), 3x210 MW coal. DADRI candidate is NTPC in UP — wrong."
+      },
+      "NCTPS STAGE 2": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "North Chennai TPS Stage 2, 2x600 MW coal."
+      },
+      "TTPS": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Tuticorin TPS (TANGEDCO), 5x210 MW coal."
+      },
+      "JINDAL POWER LIMITED STAGE-2": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Jindal Power Tamnar (Chhattisgarh) Stage II — TN's PPA share. Plant is physically out-of-state but fuel is coal."
+      },
+      "CPP_BIOMASS_COGEN": {
+        "fuel": "biomass",
+        "registry": null,
+        "note": "Aggregate of captive biomass/bagasse cogeneration plants. Was falling back to coal (950g) — now biomass (230g). The one CI-changing fix in this batch."
+      }
+    },
+    "IN-GJ": {
+      "WTPS_1_6": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Wanakbori TPS (GSECL) units 1-6, 6x210 MW coal."
+      },
+      "WTPS 8": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Wanakbori TPS unit 8, 800 MW supercritical, coal."
+      },
+      "ESSAR POWER GUJ": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Essar Power Gujarat = Salaya TPP, 2x600 MW COAL. The 0.67 gas candidate (ESSAR GT, Hazira) is a different Essar plant — confirmed trap, do not 'fix' this to gas."
+      }
+    },
+    "IN-PB": {
+      "RTPS": {
+        "fuel": "coal",
+        "registry": null,
+        "note": "Most likely NPL Rajpura TPS, 2x700 MW; alternatively GGSSTP Ropar — both Punjab, both coal, so fuel is safe either way. Pin exact identity when Punjab SLDC plant names are cross-referenced."
       }
     }
   }

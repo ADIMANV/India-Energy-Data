@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import httpx
 import psycopg
 
-from . import estimation, fuelmix, sources
+from . import estimation, fuelmix, psp, sources
 from .db import get_dsn
 from .drift import check_drift
 from .quality import cross_check_demand, stale_sources
@@ -41,6 +41,12 @@ def main() -> int:
             if not stats.ok:
                 failures.append(stats.report())
             failures.extend(check_drift(conn, raws))
+
+        try:
+            psp.ensure_current(conn)  # T-1 PSP actuals (no-op once ingested)
+        except Exception as e:
+            failures.append(f"psp ingest failed: {e}")
+            print(f"PSP INGEST FAILED: {e}", file=sys.stderr)
 
         try:
             if not fuelmix.shares_fresh(conn):

@@ -76,6 +76,10 @@ async def zones():
             ORDER BY zone, ts DESC, inserted_at DESC
             """
         )).fetchall()
+        bases = await (await conn.execute(
+            "SELECT DISTINCT zone, basis FROM current_fuel_shares"
+        )).fetchall()
+    basis_by_zone = dict(bases)
     ci_by_zone = {z: (v, ts, est) for z, v, ts, est in ci}
     out = []
     for z, v, ts, src in demand:
@@ -85,6 +89,8 @@ async def zones():
             entry["carbon_intensity"] = {
                 "value": cv, "unit": "gCO2/kWh", "ts": cts.isoformat(), "estimated": cest,
             }
+            if cest:
+                entry["carbon_intensity"]["estimation_basis"] = basis_by_zone.get(z)
         out.append(entry)
     return {"zones": out}
 
@@ -103,14 +109,20 @@ async def zone_live(zone_id: str):
             """,
             (zone,),
         )).fetchall()
+        basis_row = await (await conn.execute(
+            "SELECT DISTINCT basis FROM current_fuel_shares WHERE zone = %s", (zone,)
+        )).fetchone()
     if not rows:
         raise HTTPException(status_code=404, detail=f"no recent data for {zone}")
+    basis = basis_row[0] if basis_row else None
     return {
         "zone": zone,
+        "estimation_basis": basis,
         "metrics": [
             {
                 "metric": m, "fuel": f or None, "value": v, "unit": u,
                 "ts": ts.isoformat(), "source": src, "estimated": est,
+                **({"estimation_basis": basis} if est else {}),
             }
             for m, f, v, u, ts, src, est in rows
         ],

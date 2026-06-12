@@ -2,7 +2,27 @@
 
 Honest labeling is the contract: every API value and map color derived from an
 estimate carries `estimated: true`. Measured values (e.g. Punjab SLDC live
-SCADA) carry `estimated: false`.
+SCADA) carry `estimated: false`. Estimated values additionally carry
+`estimation_basis`:
+
+- **`psp_actual_t1`** — daily fuel shares from RLDC PSP reports (measured
+  T-1 energy). Preferred wherever available (NR + SR states currently).
+- **`merit_schedule_t2`** — daily fuel shares from MERIT scheduled dispatch
+  (T-2). Fallback for states without a parsed PSP report.
+
+The preference rule lives in one place (`current_fuel_shares` DB view): PSP
+gets a 2-day recency bonus over MERIT; if PSP ingestion stalls, the freshest
+basis wins again.
+
+## PSP-based shares (`psp_actual_t1`)
+
+From each day's RLDC PSP report (see `gridscrapers/psp.py`):
+`consumption mix = own generation by fuel (2A, actual MU) + actual drawal ×
+central-station mix (3B day energy by fuel)`. The central pool covers only
+part of total state drawal — the uncovered remainder (inter-regional / power
+exchange energy of unknown origin) is assigned to `other` (700 gCO2/kWh,
+near-coal, deliberately conservative). `match_rate` records the fraction of
+consumption MU with a known fuel.
 
 ## Live state fuel mix (estimated)
 

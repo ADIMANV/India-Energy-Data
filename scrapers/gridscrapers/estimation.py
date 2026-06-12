@@ -44,12 +44,9 @@ def _fresh_demand(conn: psycopg.Connection) -> list[tuple]:
 
 
 def _latest_shares(conn: psycopg.Connection) -> dict[str, dict[str, float]]:
+    """Per zone: fuels from current_fuel_shares (PSP actuals beat MERIT)."""
     rows = conn.execute(
-        """
-        SELECT zone, fuel, share
-        FROM state_fuel_shares s
-        WHERE as_of = (SELECT max(as_of) FROM state_fuel_shares s2 WHERE s2.zone = s.zone)
-        """
+        "SELECT zone, fuel, share FROM current_fuel_shares"
     ).fetchall()
     shares: dict[str, dict[str, float]] = {}
     for zone, fuel, share in rows:
