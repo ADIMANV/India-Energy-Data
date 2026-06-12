@@ -103,9 +103,9 @@ total validation and quarantine. Samples: `NRLDC_daily100626.pdf`,
 |---|---|---|---|
 | NRLDC | `GET /get-documents-list/111` (DataTables JSON, needs `X-Requested-With: XMLHttpRequest`) → `download-file?any=...` links | Apr 2024 (747 docs, 2026-06) | ✅ parsing |
 | SRLDC | direct URL `srldc.in/var/ftp/reports/psp/{YYYY}/{MonYY}/{DD-MM-YYYY}-psp.pdf` | ≥ mid-2022 | ✅ parsing |
-| WRLDC | Documents page is JS-routed; no static links on wrldc.in | ? | 🔍 needs devtools/VPS |
-| ERLDC | `report.erldc.in/POSOCO/` is login-walled; main site is a React SPA with no public API strings | ? | 🔍 needs devtools/VPS |
-| NERLDC | `nerldc.in` doesn't resolve in public DNS | ? | 🔍 VPS only |
+| WRLDC | IIS dir tree `reporting.wrldc.in:8081/PSP/{YYYY}/{MonthName}/WRLDC_PSP_Report_{DD-MM-YYYY}.pdf` | 2018 | ✅ parsing 2A+3A. Bilingual headers (mangled CID glyphs, numbers fine); wind-before-solar column order (verified via CG row); Goa's row missing some days (~40%) — falls back to cea_blend. **3B central section unparsed**: mixes a second RE/state-area listing + ISGS/IPP aggregates; shares blend without central pool (uncovered drawal → `other`) |
+| ERLDC | React SPA route `/reports/dailyreport/misreports/dailypspreport`; backing API `erldc.in/api//fetchStandardPageMetaData` returns 500 for every guessed payload | ? | ⏸ skipped — needs the exact request body from a browser devtools capture |
+| NERLDC | `www.nerldc.in` resolves (apex does not). WP `admin-ajax.php` action `template_power_supply_position_reports` (`optionyear`) serves **monthly** PSP PDFs only; `template_daily_reports` returns empty | monthly only | ⏸ skipped — no daily PSP found; CEA dgr2 + RE report cover NER states daily (basis `cea_blend_t1`) |
 
 Layout notes: section numbering is shared (2A state fuel MU, 2B/2C peak
 demand, 3A state stations, 3B central stations) but column orders differ —

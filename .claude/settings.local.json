@@ -99,7 +99,9 @@
       "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'RLDC daily PSP reports: NR+SR PDF parsing, T-1 actual shares, backfill *)",
       "Bash(.venv/bin/python -m gridscrapers.cea ingest --backfill 7)",
       "Bash(tail -2 \"/private/tmp/claude-501/-Users-aditya-India-Energy-Grid/028bb7e9-a7a8-44f1-a099-ac9cbe651b22/tasks/bxqg38nth.output\")",
-      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'CEA dgr2 backtests, source-independence docs, weekly match-rate audit *)"
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'CEA dgr2 backtests, source-independence docs, weekly match-rate audit *)",
+      "Bash(.venv/bin/python -m gridscrapers.psp ingest --region WR --backfill 30)",
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'WRLDC PSP parser, CEA blend basis, RE report ingestion *)"
     ]
   }
 }

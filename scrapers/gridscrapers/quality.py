@@ -27,6 +27,7 @@ BOUNDS: dict[Metric, tuple[float, float]] = {
 }
 
 CROSS_CHECK_WARN_PCT = 10.0
+CROSS_CHECK_WARN_MIN_MW = 100.0  # tiny states: 20 MW of noise is not an alert
 STALENESS_LIMIT_MIN = 20
 
 
@@ -76,7 +77,7 @@ def cross_check_demand(conn: psycopg.Connection, window_min: int = 30) -> list[t
                 """,
                 (zone, va, ta, vb, tb, delta_pct),
             )
-            if abs(delta_pct) > CROSS_CHECK_WARN_PCT:
+            if abs(delta_pct) > CROSS_CHECK_WARN_PCT and abs(va - vb) > CROSS_CHECK_WARN_MIN_MW:
                 offenders.append((zone, va, vb, delta_pct))
                 print(
                     f"QUALITY WARN {zone}: vidyut_pravah={va:.0f} MW vs merit={vb:.0f} MW "

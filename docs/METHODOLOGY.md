@@ -6,13 +6,22 @@ SCADA) carry `estimated: false`. Estimated values additionally carry
 `estimation_basis`:
 
 - **`psp_actual_t1`** — daily fuel shares from RLDC PSP reports (measured
-  T-1 energy). Preferred wherever available (NR + SR states currently).
+  T-1 energy). Preferred wherever available (NR + SR + WR states).
+- **`cea_blend_t1`** — for states without a parsed PSP report: conventional
+  split (coal/gas/oil/hydro/nuclear) from CEA dgr2 + state-wise daily RE
+  (wind/solar/other) from CEA's renewable report (gen-re.cea.gov.in), both
+  T-1 actuals. **Caveats:** this describes the *in-state generation* mix —
+  drawal is unmodeled (unlike the PSP blend), `match_rate` is NULL to mark
+  that; and the RE report counts ISTS-connected parks under their host state
+  (Rajasthan solar reads ~4× its control-area number). Acceptable for the
+  ER/NER states it currently covers, where RE and imports are small.
 - **`merit_schedule_t2`** — daily fuel shares from MERIT scheduled dispatch
-  (T-2). Fallback for states without a parsed PSP report.
+  (T-2). Last-resort fallback.
 
-The preference rule lives in one place (`current_fuel_shares` DB view): PSP
-gets a 2-day recency bonus over MERIT; if PSP ingestion stalls, the freshest
-basis wins again.
+The preference ladder lives in one place (`current_fuel_shares` DB view):
+psp (+2-day recency bonus) > cea_blend (+1 day) > merit. If a higher basis
+stalls, the freshest available wins again — per state, per day (e.g. Goa's
+PSP row goes missing some days and falls back to cea_blend automatically).
 
 ## PSP-based shares (`psp_actual_t1`)
 

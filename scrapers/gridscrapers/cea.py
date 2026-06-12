@@ -153,8 +153,118 @@ def ingest_day(conn: psycopg.Connection, client, day: date, registry=None) -> st
     return None
 
 
+RE_URL = "https://gen-re.cea.gov.in/public/uploads/dailyReport/excel/Report-{iso}.xlsx"
+RE_FUEL_COLS = {1: "wind", 2: "solar", 3: "res_nonsolar"}  # daily MU columns
+
+
+def parse_re_report(xlsx_bytes: bytes, as_of: date) -> list[dict]:
+    """gen-re.cea.gov.in daily RE report, sheet 'Generation': state-wise
+    wind/solar/other-RE MU. Bilingual labels ('पंजाब / Punjab')."""
+    import io
+
+    import openpyxl
+
+    wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes), read_only=True)
+    sh = wb["Generation"]
+    rows = []
+    for row in sh.iter_rows(values_only=True):
+        label = str(row[0] or "")
+        eng = label.split("/")[-1].strip().upper()
+        zone = STATE_NAMES.get(eng)
+        if not zone:
+            continue
+        for col, fuel in RE_FUEL_COLS.items():
+            try:
+                mu = float(row[col])
+            except (TypeError, ValueError):
+                continue
+            rows.append({"zone": zone, "as_of": as_of, "sector": "RE", "fuel": fuel,
+                         "capacity_mw": None, "program_mu": None, "actual_mu": mu})
+    return rows
+
+
+def ingest_re_day(conn: psycopg.Connection, client, day: date) -> str | None:
+    raw = request_raw(client, SOURCE, "GET", RE_URL.format(iso=day.isoformat()),
+                      meta={"kind": "re_report", "as_of": day.isoformat()})
+    raw_id = archive_raw(conn, raw)
+    if (raw.http_status or 0) != 200 or len(raw.body) < 5000:
+        return f"RE download failed: status={raw.http_status}"
+    try:
+        rows = parse_re_report(bytes(raw.body), day)
+    except Exception as e:
+        conn.execute(
+            "INSERT INTO psp_quarantine (source, as_of, raw_id, reason) VALUES (%s,%s,%s,%s)",
+            (SOURCE, day, raw_id, f"RE parse crash: {e}"),
+        )
+        return f"RE parse crash: {e}"
+    if len(rows) < 30:
+        conn.execute(
+            "INSERT INTO psp_quarantine (source, as_of, raw_id, reason) VALUES (%s,%s,%s,%s)",
+            (SOURCE, day, raw_id, f"RE report suspiciously small: {len(rows)} rows"),
+        )
+        return "RE report too small"
+    for row in rows:
+        conn.execute(
+            """
+            INSERT INTO cea_state_energy (zone, as_of, sector, fuel, capacity_mw,
+                program_mu, actual_mu, source, raw_id)
+            VALUES (%(zone)s,%(as_of)s,%(sector)s,%(fuel)s,%(capacity_mw)s,
+                    %(program_mu)s,%(actual_mu)s,%(src)s,%(raw_id)s)
+            ON CONFLICT (zone, as_of, sector, fuel) DO UPDATE SET
+                actual_mu=EXCLUDED.actual_mu, raw_id=EXCLUDED.raw_id, inserted_at=now()
+            """,
+            row | {"src": SOURCE, "raw_id": raw_id},
+        )
+    print(f"  [CEA-RE] {day}: {len(rows)} state×fuel rows", file=sys.stderr)
+    return None
+
+
+def compute_blend_shares(conn: psycopg.Connection, as_of: date) -> int:
+    """basis='cea_blend_t1' for zones without recent PSP shares.
+
+    Conventional split from dgr2 (all sectors); RE MU from the gen-re daily
+    report. Describes in-state GENERATION mix (drawal unmodeled — unlike the
+    PSP blend), match_rate NULL to mark that. docs/METHODOLOGY.md.
+    """
+    psp_zones = {z for (z,) in conn.execute(
+        "SELECT DISTINCT zone FROM state_fuel_shares "
+        "WHERE basis='psp_actual_t1' AND as_of >= %s - 2", (as_of,)
+    ).fetchall()}
+    rows = conn.execute(
+        """
+        SELECT zone, CASE WHEN sector='RE' THEN fuel ELSE fuel END AS fuel, sum(actual_mu)
+        FROM cea_state_energy WHERE as_of = %s GROUP BY zone, 2
+        """,
+        (as_of,),
+    ).fetchall()
+    by_zone: dict[str, dict[str, float]] = {}
+    for zone, fuel, mu in rows:
+        if zone in psp_zones or not mu or mu <= 0:
+            continue
+        by_zone.setdefault(zone, {})[fuel] = mu
+    n = 0
+    for zone, fuels in by_zone.items():
+        total = sum(fuels.values())
+        if total < 1:  # under 1 MU/day of attributable generation: skip
+            continue
+        conn.execute("DELETE FROM state_fuel_shares WHERE zone=%s AND as_of=%s", (zone, as_of))
+        for fuel, mu in fuels.items():
+            share = mu / total
+            if share < 0.0005:
+                continue
+            conn.execute(
+                """INSERT INTO state_fuel_shares (zone, as_of, fuel, share, match_rate, basis)
+                   VALUES (%s,%s,%s,%s,NULL,'cea_blend_t1')""",
+                (zone, as_of, fuel, share),
+            )
+        n += 1
+    return n
+
+
 def latest_ingested(conn: psycopg.Connection) -> date | None:
-    return conn.execute("SELECT max(as_of) FROM cea_state_energy").fetchone()[0]
+    return conn.execute(
+        "SELECT max(as_of) FROM cea_state_energy WHERE sector <> 'RE'"
+    ).fetchone()[0]
 
 
 def ensure_current(conn: psycopg.Connection) -> None:
@@ -178,6 +288,12 @@ def ensure_current(conn: psycopg.Connection) -> None:
         err = ingest_day(conn, client, yesterday)
         if err:
             print(f"[CEA] {yesterday}: {err}", file=sys.stderr)
+            return
+        re_err = ingest_re_day(conn, client, yesterday)
+        if re_err:
+            print(f"[CEA-RE] {yesterday}: {re_err}", file=sys.stderr)
+        n = compute_blend_shares(conn, yesterday)
+        print(f"[CEA] cea_blend_t1 shares for {n} zones", file=sys.stderr)
 
 
 def main() -> int:

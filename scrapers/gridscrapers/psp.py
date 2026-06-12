@@ -75,6 +75,9 @@ class RegionCfg:
     # where NetMU/AvgMW sit in central (3B) rows, from the right
     central_net_idx: int = -2
     central_avg_idx: int = -1
+    # False = 3B layout not yet trustworthy: skip central station rows and
+    # blend shares without a central pool (uncovered drawal → 'other')
+    central_reliable: bool = True
 
 
 NRLDC = RegionCfg(
@@ -101,7 +104,23 @@ SRLDC = RegionCfg(
     # SR 3B tail: Gross Net AvgMW (same as 3A)
 )
 
-REGIONS = {"NR": NRLDC, "SR": SRLDC}
+WRLDC = RegionCfg(
+    source="psp_wrldc",
+    region="WR",
+    state_map={
+        "GUJARAT": "IN-GJ", "MAHARASHTRA": "IN-MH", "MADHYAPRADESH": "IN-MP",
+        "CHHATTISGARH": "IN-CG", "GOA": "IN-GA",
+    },
+    # WR 2A includes embedded industrial control areas + DD/DNH discom rows
+    non_state=("RAILWAYS", "BULKCONSUMER", "REGION", "TOTAL",
+               "BALCO", "AMNSIL", "DNHDDPDCL", "RILJAMNAGAR", "NPCIL"),
+    # WR 3B mixes a second RE/state-area listing (MW tails) and ISGS/IPP
+    # aggregate rows into the same section — net-MU extraction unsafe until
+    # that layout is mapped; shares blend without the central pool
+    central_reliable=False,
+)
+
+REGIONS = {"NR": NRLDC, "SR": SRLDC, "WR": WRLDC}
 
 
 def _norm(s: str) -> str:
@@ -177,7 +196,7 @@ def parse_2a(text: str, cfg: RegionCfg) -> list[dict]:
     sec = _section(text, "2(A)", "2(B)")
     out: list[dict] = []
     pending: list[str] = []
-    n_expected = 13 if cfg.region == "NR" else 12
+    n_expected = {"NR": 13, "SR": 12, "WR": 14}[cfg.region]
     for line in sec.splitlines()[1:]:
         name_toks, nums, _ = _split_line(line)
         if not line.split():
@@ -194,7 +213,7 @@ def parse_2a(text: str, cfg: RegionCfg) -> list[dict]:
                     "drawal_sch_mu": n[7], "act_drawal_mu": n[8], "ui_mu": n[9],
                     "requirement_mu": n[10], "shortage_mu": n[11], "consumption_mu": n[12],
                 }
-            else:
+            elif cfg.region == "SR":
                 # THERMAL HYDRO GAS WIND SOLAR OTHERS SCH ACT UI AVAIL DEMANDMET SHORT
                 row = {
                     "thermal_mu": n[0], "hydro_mu": n[1], "gas_mu": n[2], "wind_mu": n[3],
@@ -202,6 +221,15 @@ def parse_2a(text: str, cfg: RegionCfg) -> list[dict]:
                     "total_gen_mu": round(sum(n[0:6]), 3),
                     "drawal_sch_mu": n[6], "act_drawal_mu": n[7], "ui_mu": n[8],
                     "requirement_mu": n[9], "consumption_mu": n[10], "shortage_mu": n[11],
+                }
+            else:
+                # WR: THERMAL HYDRO GAS WIND SOLAR OTHERS TOTAL SCH ACT UI AVAIL DM SHORT CONS
+                # (wind before solar verified: CG row has 0 wind / 5.3 solar)
+                row = {
+                    "thermal_mu": n[0], "hydro_mu": n[1], "gas_mu": n[2], "wind_mu": n[3],
+                    "solar_mu": n[4], "others_mu": n[5], "total_gen_mu": n[6],
+                    "drawal_sch_mu": n[7], "act_drawal_mu": n[8], "ui_mu": n[9],
+                    "requirement_mu": n[10], "shortage_mu": n[12], "consumption_mu": n[13],
                 }
             out.append(_row_common(zone, name, cfg) | row)
         elif not nums:
@@ -249,6 +277,8 @@ def parse_stations(text: str, cfg: RegionCfg, registry: list[tuple] | None = Non
     central = sec.find("3(B)")
     out: list[dict] = []
     for is_central, chunk in ((False, sec[:central]), (True, sec[central:])):
+        if is_central and not cfg.central_reliable:
+            continue
         zone = f"IN-{cfg.region}" if is_central else None
         pending: list[str] = []
         for line in chunk.splitlines():
@@ -258,11 +288,18 @@ def parse_stations(text: str, cfg: RegionCfg, registry: list[tuple] | None = Non
             if re.match(r"^(Sub-?)?Total", line, re.I):
                 pending = []
                 continue
-            z = _zone_for(line, cfg) if not any(ch.isdigit() for ch in line) else None
-            if z and not is_central:
-                zone = z
-                pending = []
-                continue
+            if not any(ch.isdigit() for ch in line):
+                z = _zone_for(line, cfg)
+                if z and not is_central:
+                    zone = z
+                    pending = []
+                    continue
+                # embedded control areas (BALCO, AMNSIL, RIL Jamnagar...) own
+                # sections in 3A — stop attributing rows to the previous state
+                if not is_central and any(_norm(line).startswith(x) for x in cfg.non_state):
+                    zone = None
+                    pending = []
+                    continue
             name_toks, nums, times = _split_line(line)
             toks = line.split()
             if len(nums) < 4 or zone is None:
@@ -350,12 +387,19 @@ def sr_url(day: date) -> str:
             f"{day.strftime('%b%y')}/{day.strftime('%d-%m-%Y')}-psp.pdf")
 
 
+def wr_url(day: date) -> str:
+    # IIS directory tree, archives back to 2018
+    return (f"https://reporting.wrldc.in:8081/PSP/{day.year}/"
+            f"{day.strftime('%B')}/WRLDC_PSP_Report_{day.strftime('%d-%m-%Y')}.pdf")
+
+
 def report_urls(client, cfg: RegionCfg, n: int) -> list[dict]:
     """Most-recent-first report URLs for a region."""
     if cfg.region == "NR":
         return discover_nr(client, length=max(n, 10))[:n]
+    url_fn = {"SR": sr_url, "WR": wr_url}[cfg.region]
     yesterday = (datetime.now(IST) - timedelta(days=1)).date()
-    return [{"title": f"sr-psp-{d}", "url": sr_url(d)}
+    return [{"title": f"{cfg.region.lower()}-psp-{d}", "url": url_fn(d)}
             for d in (yesterday - timedelta(days=i) for i in range(n))]
 
 
