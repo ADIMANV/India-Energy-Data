@@ -105,7 +105,9 @@
       "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Intra-day solar shaping + national default panel with real charts *)",
       "Bash(node scripts/sync-docs.mjs)",
       "Bash(printf 'content/\\\\n')",
-      "Bash(echo \"content/\")"
+      "Bash(echo \"content/\")",
+      "Bash(sed -n '20,35p;118,180p' scrapers/gridscrapers/estimation.py)",
+      "Bash(.venv/bin/python -c \"import sys; sys.path.insert\\(0,'scrapers'\\); from gridscrapers.estimation import EF, EF_VERSION; print\\(EF_VERSION, EF\\)\")"
     ]
   }
 }

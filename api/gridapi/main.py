@@ -227,6 +227,32 @@ async def status():
             SELECT source, max(gap) AS largest_gap_24h FROM ticks GROUP BY source
             """
         )).fetchall()
+        # CI accuracy backtest: per-state (independent displayed estimates) +
+        # robust headlines (median %, with a small-CI floor so near-zero-carbon
+        # hydro states don't blow up the percentage).
+        ci_states = await (await conn.execute(
+            """
+            SELECT zone, max(estimate_basis) AS basis,
+                   round(avg(abs_error_g)::numeric, 0) AS mean_abs_g,
+                   round(percentile_cont(0.5) WITHIN GROUP (ORDER BY abs(pct_error))::numeric, 1) AS median_abs_pct,
+                   round(avg(pct_error)::numeric, 1) AS signed_bias_pct,
+                   count(*) AS n_days, round(max(ci_actual)::numeric, 0) AS ci_actual
+            FROM ci_backtest
+            WHERE estimate_basis <> 'merit_method' AND independent
+            GROUP BY zone ORDER BY mean_abs_g
+            """
+        )).fetchall()
+
+        async def ci_headline(where):
+            r = await (await conn.execute(
+                f"""SELECT round(percentile_cont(0.5) WITHIN GROUP (ORDER BY abs(pct_error))::numeric,1),
+                           round(avg(abs_error_g)::numeric,0), count(*), count(DISTINCT zone)
+                    FROM ci_backtest WHERE {where} AND ci_actual >= 100""")).fetchone()
+            return {"median_abs_pct": float(r[0]), "mean_abs_g": float(r[1]),
+                    "n": r[2], "zones": r[3]} if r and r[2] else None
+
+        ci_merit = await ci_headline("estimate_basis = 'merit_method'")
+        ci_overall = await ci_headline("estimate_basis <> 'merit_method' AND independent")
     gap_by_source = {s: g for s, g in gaps}
     return {
         "sources": [
@@ -259,6 +285,16 @@ async def status():
             "audited_at": audit[0].isoformat(), "mwh_match_rate": round(audit[1], 3),
             "review_open": audit[2], "review_total": audit[3],
         } if audit else None,
+        "ci_accuracy": {
+            "overall": ci_overall,
+            "merit_method": ci_merit,
+            "per_state": [
+                {"zone": z, "basis": b, "mean_abs_g": float(ag),
+                 "median_abs_pct": float(mp), "signed_bias_pct": float(sb),
+                 "n_days": nd, "ci_actual": float(ca)}
+                for z, b, ag, mp, sb, nd, ca in ci_states
+            ],
+        },
     }
 
 

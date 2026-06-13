@@ -90,6 +90,20 @@ body {
 .status-page th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 10px; border-bottom: 1px solid var(--border); }
 .status-page td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
 .status-page tr.bad td { color: #e06c3a; }
+.status-page h2 a { font-size: 12px; color: var(--accent); margin-left: 12px; text-decoration: none; font-weight: 400; }
+.status-page tr.muted-row td { color: var(--muted); }
+
+.accuracy-headline { margin: 8px 0 14px; }
+.accuracy-headline p { font-size: 14px; line-height: 1.55; margin: 8px 0; color: #d4dae8; }
+.accuracy-headline b { color: var(--text); }
+
+/* live accuracy block appended under the doc's ## Accuracy heading */
+.accuracy-live { max-width: 820px; margin: 4px auto 0; padding: 0 22px; font-size: 14px; }
+.accuracy-live table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+.accuracy-live th { text-align: left; color: var(--muted); font-weight: 600; padding: 7px 9px; border-bottom: 1px solid var(--border); }
+.accuracy-live td { padding: 7px 9px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.accuracy-live tr.muted-row td { color: var(--muted); }
+.accuracy-live .sub { color: var(--muted); font-size: 12.5px; line-height: 1.5; margin-top: 8px; }
 
 /* methodology (markdown-rendered) */
 .doc-page { max-width: 820px; margin: 0 auto; padding: 24px 22px 80px; }

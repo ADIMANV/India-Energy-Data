@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import httpx
 import psycopg
 
-from . import backtest, cea, estimation, fuelmix, psp, sources
+from . import backtest, cea, ci_backtest, estimation, fuelmix, psp, sources
 from .db import get_dsn
 from .drift import check_drift
 from .quality import cross_check_demand, stale_sources
@@ -51,6 +51,7 @@ def main() -> int:
         try:
             cea.ensure_current(conn)  # T-1 CEA dgr2 (no-op once ingested)
             backtest.run_daily(conn)
+            ci_backtest.run(conn)  # CI accuracy vs actual fuel energy
             failures.extend(backtest.drift_alerts(conn))
             failures.extend(backtest.weekly_match_audit(conn))
         except Exception as e:

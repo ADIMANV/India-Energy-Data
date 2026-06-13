@@ -199,3 +199,35 @@ GPPD is a 2021 snapshot (newest plants missing — they surface in
 `plant_match_review`). powerplantmatching's precompiled dataset contained no
 India rows as of v0.8.1 (2026-06-11); revisit if that changes. Review queue:
 `SELECT * FROM plant_match_review WHERE NOT resolved ORDER BY schedule_mwh DESC;`
+
+## Accuracy
+
+We backtest the estimated carbon intensity against CI recomputed from *actual*
+fuel energy, per state per day (`gridscrapers/ci_backtest.py`, table
+`ci_backtest`). The actual CI uses the **same emission factors** as the live
+pipeline, so any gap is fuel-SHARE error, not a factor dispute.
+
+- **`ci_actual`** = actual fuel-energy split — from the RLDC PSP 2A report or
+  the CEA dgr2 + renewable report — times the live emission factors.
+- **`ci_estimated`** = the demand-weighted daily mean of our archived live CI
+  for that state-day (demand-weighted so it matches the energy-weighted actual
+  and isolates share error from time-of-day weighting).
+- **Independence.** A check is only meaningful if the estimate and the actual
+  come from *different* data chains. A `psp_actual_t1` state checked against the
+  PSP report is circular (≈0 by construction) — those are marked
+  `independent=false` and excluded from headlines. The meaningful cells are the
+  measured states (full-pipeline, SLDC vs PSP/CEA) and estimated states checked
+  against a different actual than their basis.
+- **Worst case (`merit_method`).** For every state with actuals we also
+  reconstruct what the pure MERIT-T-2 schedule estimate would have produced and
+  compare to actual — always independent. This bounds trust for the merit-only
+  and grey (unestimated) states.
+
+Headlines use the **median** absolute percentage error over cells whose actual
+CI clears 100 gCO₂/kWh: percentage error is unstable for near-zero-carbon hydro
+states (a 30 g miss on a 25 g actual is 120% but trivial), so those are
+reported in absolute grams and kept out of the percentage headline. States
+cross-checked against CEA inherit CEA's conventional-scope bias (it
+under-weights renewables), a standing negative bias visible in the table below.
+
+Live results (auto-updated; backfilled across all archived history):

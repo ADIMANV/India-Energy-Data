@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ageLabel } from "../../lib/zones";
+import AccuracyTable from "../../components/AccuracyTable";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -71,6 +72,9 @@ export default function StatusPage() {
             ))}
         </tbody>
       </table>
+
+      <h2>Carbon-intensity accuracy <a href="/methodology#accuracy">methodology →</a></h2>
+      <AccuracyTable ci={data.ci_accuracy} />
 
       <h2>Cross-source backtests (daily, trailing 7 days)</h2>
       <p className="sub">

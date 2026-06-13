@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import MarkdownDoc from "../../components/MarkdownDoc";
+import AccuracyLive from "../../components/AccuracyLive";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export default function MethodologyPage() {
         <a href="/status">data quality →</a>
       </div>
       <MarkdownDoc markdown={markdown} />
+      <AccuracyLive />
     </main>
   );
 }
