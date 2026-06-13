@@ -36,15 +36,15 @@ export default function Home() {
   return (
     <div className="app">
       <header className="header">
-        <h1>⚡ India Electricity Data</h1>
+        <h1><span className="spark">⚡</span> India Electricity Data</h1>
         <div className="header-stats">
           <div className="stat">
             <span className="label">National demand met</span>
-            <span className="value">{fmtMW(natDemand?.value)}</span>
+            <span className="value mono">{fmtMW(natDemand?.value)}</span>
           </div>
           <div className="stat">
             <span className="label">States reporting</span>
-            <span className="value">{stateCount}</span>
+            <span className="value mono">{stateCount}</span>
           </div>
         </div>
         <div className="header-controls">

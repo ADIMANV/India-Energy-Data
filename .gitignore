@@ -1,7 +1,26 @@
 .venv/
 __pycache__/
 *.pyc
-.env
 logs/
 node_modules/
 .next/
+
+# secrets — never commit; keep only the template
+.env
+.env.*
+!.env.example
+
+# DB dumps and any bulk archive
+*.dump
+*.sql.gz
+
+# recon sample binaries are kept on disk, not in git — except the two small
+# fixtures the parser tests load
+docs/sources/*.pdf
+docs/sources/*.jpg
+docs/sources/*.jpeg
+docs/sources/*.png
+docs/sources/*.xls
+docs/sources/*.xlsx
+!docs/sources/NRLDC_daily100626.pdf
+!docs/sources/NPP_dgr2_100626.xls

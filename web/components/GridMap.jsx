@@ -4,22 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { NAME_TO_ZONE, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
 
-// choropleth; grey = no/ stale data
-const NO_DATA_COLOR = "#3a4258";
+// muted monochromatic slate→teal base; states must read on the matte field
+const NO_DATA_COLOR = "#262626";
 const DEMAND_STOPS = [
-  [0, "#1a3a5c"],
-  [2000, "#2e7d6e"],
-  [8000, "#d8b13c"],
-  [18000, "#e06c3a"],
-  [30000, "#c0392b"],
+  [0, "#2a3431"],
+  [2000, "#33514a"],
+  [8000, "#437468"],
+  [18000, "#69b394"],
+  [30000, "#c4e6d2"],
 ];
-// carbon intensity, gCO2/kWh: green (clean) -> dark brown (coal)
+// carbon intensity, gCO2/kWh: muted teal (clean) → muted rust (coal)
 const CARBON_STOPS = [
-  [0, "#1f9e55"],
-  [250, "#8fbf4d"],
-  [500, "#d8b13c"],
-  [750, "#c0653a"],
-  [1000, "#6e2f1f"],
+  [0, "#1f5c52"],
+  [250, "#4f7a4a"],
+  [500, "#8a8a3c"],
+  [750, "#b07a3a"],
+  [1000, "#8a4a2c"],
 ];
 
 function fillColorExpr(mode) {
@@ -44,12 +44,13 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: { version: 8, sources: {}, layers: [
-        { id: "bg", type: "background", paint: { "background-color": "#0b1020" } },
+        { id: "bg", type: "background", paint: { "background-color": "#0a0a0a" } },
       ]},
       center: [80.5, 22.5],
       zoom: 3.6,
       attributionControl: false,
       dragRotate: false,
+      preserveDrawingBuffer: true,  // so headless screenshots capture the WebGL canvas
     });
     map.addControl(new maplibregl.AttributionControl({
       customAttribution: "Boundaries: datameet/maps (CC-BY 2.5 IN) · Data: Vidyut Pravah, MERIT",
@@ -57,7 +58,14 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     }), "bottom-right");
     mapRef.current = map;
 
+    // the map lives in a flex child that often has no measured size at init,
+    // so maplibre falls back to 400×300 and renders blank. Observe the
+    // container and resize once it has real dimensions.
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(containerRef.current);
+
     map.on("load", async () => {
+      map.resize();
       const geo = await (await fetch("/india_states.geojson")).json();
       geo.features.forEach((f, i) => {
         f.id = i;
@@ -70,19 +78,19 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         id: "states-fill",
         type: "fill",
         source: "states",
-        paint: { "fill-color": fillColorExpr(), "fill-opacity": 0.85 },
+        paint: { "fill-color": fillColorExpr(), "fill-opacity": 0.9 },
       });
       map.addLayer({
         id: "states-line",
         type: "line",
         source: "states",
-        paint: { "line-color": "#0b1020", "line-width": 1 },
+        paint: { "line-color": "#0a0a0a", "line-width": 0.5 },
       });
       map.addLayer({
         id: "states-selected",
         type: "line",
         source: "states",
-        paint: { "line-color": "#ffb454", "line-width": 2.5 },
+        paint: { "line-color": "#ffd60a", "line-width": 2.5 },
         filter: ["==", ["get", "zone"], "___none___"],
       });
       map.fitBounds([[68, 6.5], [97.5, 36]], { padding: 20 });
@@ -109,7 +117,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
       setReady(true);
     });
 
-    return () => map.remove();
+    return () => { ro.disconnect(); map.remove(); };
   }, [onSelect]);
 
   // paint demand + carbon intensity + staleness as feature-state on refresh
@@ -184,7 +192,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         ) : (
           <>
             <div>Current demand met</div>
-            <div className="bar" />
+            <div className="bar demand" />
             <div className="ends"><span>0</span><span>30+ GW</span></div>
           </>
         )}

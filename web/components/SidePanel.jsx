@@ -3,48 +3,39 @@
 import { useEffect, useState } from "react";
 import { fetchLive, fetchPanelHistory } from "../lib/api";
 import { ZONE_TO_NAME, ageLabel, ageMinutes, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
-import { CIChart, DemandChart, FUEL_COLORS, FUEL_LABELS, GenerationChart } from "./charts";
+import { CIChart, FuelBars, SupplyChart, yesterdayDelta } from "./charts";
 
-// The estimated/measured badge is the credibility marker — one click explains it.
+// the estimated/measured badge is the credibility marker — one click explains it
 function BasisBadge({ estimated, basis }) {
   const label = estimated ? `estimated${basis ? ` · ${basis}` : ""}` : "measured";
   return (
     <a className={`badge ${estimated ? "" : "measured"}`} href="/methodology#freshness-ladder"
-       title="How this is computed">
-      {label}
-    </a>
+       title="How this is computed">{label}</a>
   );
 }
 
-function Donut({ mix }) {
-  const total = mix.reduce((s, m) => s + m.value, 0);
-  if (total <= 0) return null;
-  const r = 40, cx = 50, cy = 50, w = 18;
-  let angle = -Math.PI / 2;
-  const arcs = mix.map((m) => {
-    const frac = m.value / total;
-    const a0 = angle, a1 = (angle += frac * 2 * Math.PI);
-    const large = a1 - a0 > Math.PI ? 1 : 0;
-    const p0 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
-    const p1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
-    return (
-      <path key={m.fuel}
-        d={`M${p0[0]},${p0[1]} A${r},${r} 0 ${large} 1 ${p1[0]},${p1[1]}`}
-        fill="none" stroke={FUEL_COLORS[m.fuel] || "#888"} strokeWidth={w} />
-    );
-  });
+// "▲ 3.2% vs yesterday" — same clock-time delta, restrained styling
+function Delta({ d, unit }) {
+  if (!d) return null;
+  const up = d.delta >= 0;
   return (
-    <div className="mix">
-      <svg viewBox="0 0 100 100" className="donut">{arcs}</svg>
-      <div className="mix-legend">
-        {mix.map((m) => (
-          <div key={m.fuel} className="mix-row">
-            <span className="dot" style={{ background: FUEL_COLORS[m.fuel] || "#888" }} />
-            <span className="k">{FUEL_LABELS[m.fuel] || m.fuel}</span>
-            <span>{((m.value / total) * 100).toFixed(0)}% · {fmtMW(m.value)}</span>
-          </div>
-        ))}
+    <span className="delta">
+      <span className="mono">{up ? "▲" : "▼"} {Math.abs(d.pct).toFixed(1)}%</span>
+      <span className="delta-basis">vs same time yesterday</span>
+    </span>
+  );
+}
+
+function Figure({ label, value, unit, delta, badge }) {
+  return (
+    <div className="figure">
+      <div className="figure-label">{label}</div>
+      <div className="figure-value">
+        <span className="mono">{value}</span>
+        {unit && <span className="figure-unit">{unit}</span>}
+        {badge}
       </div>
+      {delta && <Delta d={delta} unit={unit} />}
     </div>
   );
 }
@@ -67,12 +58,7 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
 
   const title = isNational ? "All India" : ZONE_TO_NAME[zone] || zone;
   if (error) {
-    return (
-      <aside className="panel">
-        <h2>{title}</h2>
-        <p className="hint">No recent data. ({error})</p>
-      </aside>
-    );
+    return <aside className="panel"><h2>{title}</h2><p className="hint">No recent data. ({error})</p></aside>;
   }
   if (!live) {
     return <aside className="panel"><h2>{title}</h2><p className="hint">Loading…</p></aside>;
@@ -90,7 +76,6 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
   const purchase = byMetric["exchange_purchase"];
   const ci = byMetric["carbon_intensity"];
   const stale = demand && ageMinutes(demand.ts) > STALE_AFTER_MIN;
-  const splitTotal = (ownGen?.value || 0) + (imp?.value || 0);
 
   const mix = live.metrics
     .filter((m) => m.metric === "generation" && m.fuel && m.fuel !== "own_generation")
@@ -99,7 +84,9 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
   const mixEstimated = mix.some((m) => m.estimated);
   const mixBasis = mix.find((m) => m.estimation_basis)?.estimation_basis;
   const points = history?.points || [];
-  const hasGenHistory = points.some((p) => p.metric === "generation" || p.metric === "net_import");
+  const hasSupply = points.some((p) => p.metric === "generation");
+  const demandDelta = yesterdayDelta(points, "demand_met");
+  const ciDelta = yesterdayDelta(points, "carbon_intensity");
 
   return (
     <aside className="panel">
@@ -108,73 +95,52 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
       )}
       <h2>{title}</h2>
       <div className={`age ${stale ? "stale" : ""}`}>
-        updated {demand ? ageLabel(demand.ts) : "—"}{stale ? " (STALE)" : ""}
+        updated {demand ? ageLabel(demand.ts) : "—"}{stale ? " · STALE" : ""}
       </div>
 
-      {/* a. Generation mix — the differentiated thing, leads the panel */}
-      {mix.length > 0 && (
-        <section className="card">
-          <h3>Generation mix <BasisBadge estimated={mixEstimated} basis={mixBasis} /></h3>
-          <Donut mix={mix} />
-        </section>
-      )}
-
-      {/* headline figures */}
-      <section className="card stats">
-        <div className="big">{fmtMW(demand?.value)}</div>
-        <div className="row"><span className="k">Demand met</span>
-          <span>{fmtMW(demand?.value)}<span className="src">{demand?.source}</span></span></div>
+      <div className="figures">
+        <Figure label="Demand met" value={fmtMW(demand?.value)} delta={demandDelta} />
         {ci && (
-          <div className="row"><span className="k">Carbon intensity</span>
-            <span>{Math.round(ci.value)} gCO₂/kWh
-              <BasisBadge estimated={ci.estimated} basis={ci.estimation_basis} /></span></div>
+          <Figure
+            label="Carbon intensity"
+            value={Math.round(ci.value)} unit="gCO₂/kWh" delta={ciDelta}
+            badge={<BasisBadge estimated={ci.estimated} basis={ci.estimation_basis} />}
+          />
         )}
-        {!isNational && splitTotal > 0 && (
-          <>
-            <div className="splitbar">
-              <div className="own" style={{ width: `${((ownGen?.value || 0) / splitTotal) * 100}%` }} />
-              <div className="imp" style={{ width: `${((imp?.value || 0) / splitTotal) * 100}%` }} />
-            </div>
-            <div className="splitlabels">
-              <span>own gen {fmtMW(ownGen?.value)}</span>
-              <span>import {fmtMW(imp?.value)}</span>
-            </div>
-          </>
-        )}
-      </section>
+      </div>
 
-      {/* b. demand 24h */}
-      <section className="card">
-        <h3>Demand, 24 h</h3>
-        <DemandChart points={points} />
-      </section>
-
-      {/* c. stacked generation 24h */}
-      {hasGenHistory && (
-        <section className="card">
-          <h3>Generation, 24 h</h3>
-          <GenerationChart points={points} />
+      {/* generation mix — the differentiated thing, leads the data */}
+      {mix.length > 0 && (
+        <section className="block">
+          <h3>Generation mix <BasisBadge estimated={mixEstimated} basis={mixBasis} /></h3>
+          <FuelBars mix={mix} />
         </section>
       )}
 
-      {/* d. carbon intensity + exchange */}
+      {hasSupply && (
+        <section className="block">
+          <h3>Supply</h3>
+          <SupplyChart points={points} />
+        </section>
+      )}
+
       {points.some((p) => p.metric === "carbon_intensity") && (
-        <section className="card">
-          <h3>Carbon intensity, 24 h</h3>
+        <section className="block">
+          <h3>Carbon intensity</h3>
           <CIChart points={points} />
         </section>
       )}
 
       {(price || purchase) && (
-        <section className="card">
+        <section className="block">
           <h3>Power exchange</h3>
           {price && (
             <div className="row"><span className="k">Price</span>
-              <span>₹{price.value.toFixed(2)}/kWh<span className="src">{ageLabel(price.ts)}</span></span></div>
+              <span className="mono">₹{price.value.toFixed(2)}/kWh</span></div>
           )}
           {purchase && (
             <div className="row"><span className="k">Purchased</span>
-              <span>{fmtMW(purchase.value)}<span className="src">{ageLabel(purchase.ts)}</span></span></div>
+              <span className="mono">{fmtMW(purchase.value)}</span></div>
           )}
         </section>
       )}

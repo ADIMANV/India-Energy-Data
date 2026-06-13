@@ -1,19 +1,38 @@
 "use client";
 
 import {
-  Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer,
+  Area, AreaChart, CartesianGrid, Line, ComposedChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
 } from "recharts";
 
+// Deliberate fuel palette: earthy/muted for fossil, cool/clean for low-carbon.
+// Consistent across bars and the supply chart.
 export const FUEL_COLORS = {
-  coal: "#6e6e6e", gas: "#e0a030", oil: "#a0522d", hydro: "#4f9cd6",
-  nuclear: "#b06fc9", solar: "#f5d33c", wind: "#7fd4c1", biomass: "#8a9a4a",
-  res_nonsolar: "#6fbf73", other: "#888", own_generation: "#2e7d6e", import: "#5470c6",
+  coal: "#6b6560",          // warm graphite
+  gas: "#b5673c",           // muted ember
+  oil: "#7c5230",           // lignite brown
+  other: "#55504b",         // unattributed → dark warm grey (near-coal)
+  nuclear: "#8f78c4",       // violet
+  hydro: "#2f9c93",         // teal
+  wind: "#9ad7df",          // pale cyan
+  solar: "#e3ab32",         // warm gold
+  biomass: "#6f8a4a",       // moss
+  res_nonsolar: "#4f9e84",  // moss-teal (other RE)
+  own_generation: "#6b6560",
+  import: "#3a3a3a",        // imported gap — muted, hatched in the chart
 };
-export const FUEL_LABELS = { res_nonsolar: "other RE", own_generation: "own gen" };
+export const FUEL_LABELS = { res_nonsolar: "other RE", own_generation: "own gen", import: "imported" };
+
+// fossil first (descending carbon), then low-carbon — stable stack order
+export const FUEL_ORDER = [
+  "coal", "oil", "gas", "other", "nuclear", "hydro", "biomass", "res_nonsolar", "wind", "solar",
+];
 
 const BUCKET_MS = 15 * 60 * 1000;
 const HOUR_MS = 3600 * 1000;
+const ACCENT = "#ffd60a";
+const INK = "#8a8a8a";
+const GRID = "#1e1e1e";
 
 const bucket = (iso) => Math.round(new Date(iso).getTime() / BUCKET_MS) * BUCKET_MS;
 
@@ -24,16 +43,14 @@ export function fmtIST(ms, withDay = false) {
 }
 
 function hourTicks(t0, t1, everyH = 3) {
-  // ticks on round IST hours (IST = UTC+5:30, so hour marks sit at :30 UTC)
   const step = everyH * HOUR_MS;
-  const off = 5.5 * HOUR_MS;
+  const off = 5.5 * HOUR_MS; // round IST hours sit at :30 UTC
   const ticks = [];
   for (let t = Math.ceil((t0 + off) / step) * step - off; t <= t1; t += step) ticks.push(t);
   return ticks;
 }
 
-const axisStyle = { fontSize: 10, fill: "#8a93ab" };
-const gridStroke = "#26304f";
+const axisStyle = { fontSize: 10, fill: INK, fontFamily: "var(--font-mono)" };
 
 function ChartTip({ active, payload, label, unit, digits = 1 }) {
   if (!active || !payload?.length) return null;
@@ -43,117 +60,142 @@ function ChartTip({ active, payload, label, unit, digits = 1 }) {
       {payload.filter((p) => p.value != null && p.value !== 0).map((p) => (
         <div key={p.dataKey}>
           <span className="dot" style={{ background: p.stroke || p.fill }} />
-          {FUEL_LABELS[p.dataKey] || p.dataKey}: <b>{Number(p.value).toFixed(digits)} {unit}</b>
-          {p.payload[`${p.dataKey}_src`] ? <span className="src"> {p.payload[`${p.dataKey}_src`]}</span> : null}
+          {FUEL_LABELS[p.dataKey] || p.dataKey}:{" "}
+          <b>{Number(p.value).toFixed(digits)} {unit}</b>
         </div>
       ))}
     </div>
   );
 }
 
-/** Demand, GW: today solid + yesterday dashed overlay. */
-export function DemandChart({ points }) {
-  const now = Date.now();
-  const t0 = now - 24 * HOUR_MS;
-  const rows = new Map();
-  for (const p of points) {
-    if (p.metric !== "demand_met" || p.fuel) continue;
-    const t = bucket(p.ts);
-    const gw = p.value / 1000;
-    if (t >= t0) {
-      const r = rows.get(t) || { t };
-      r.today = gw;
-      r.today_src = p.source;
-      rows.set(t, r);
-    } else {
-      const ts = t + 24 * HOUR_MS; // overlay yesterday on today's axis
-      const r = rows.get(ts) || { t: ts };
-      r.yesterday = gw;
-      rows.set(ts, r);
-    }
+/** Value now vs the same clock-time ~24h ago. Returns {delta, pct} or null. */
+export function yesterdayDelta(points, metric) {
+  const pts = points.filter((p) => p.metric === metric && !p.fuel)
+    .sort((a, b) => new Date(a.ts) - new Date(b.ts));
+  if (pts.length < 2) return null;
+  const now = pts[pts.length - 1];
+  const target = new Date(now.ts).getTime() - 24 * HOUR_MS;
+  let best = null, bestGap = Infinity;
+  for (const p of pts) {
+    const gap = Math.abs(new Date(p.ts).getTime() - target);
+    if (gap < bestGap) { bestGap = gap; best = p; }
   }
-  const data = [...rows.values()].sort((a, b) => a.t - b.t);
-  if (!data.length) return <p className="age">no demand history</p>;
+  if (!best || bestGap > 90 * 60 * 1000) return null; // need a point within 90 min
+  const delta = now.value - best.value;
+  return { delta, pct: best.value ? (delta / best.value) * 100 : 0 };
+}
+
+/** Horizontal percentage bars, ranked descending. Replaces the donut. */
+export function FuelBars({ mix }) {
+  const total = mix.reduce((s, m) => s + m.value, 0);
+  if (total <= 0) return null;
   return (
-    <>
-      <ResponsiveContainer width="100%" height={150}>
-        <LineChart data={data} margin={{ top: 4, right: 6, left: -14, bottom: 0 }}>
-          <CartesianGrid stroke={gridStroke} vertical={false} />
-          <XAxis dataKey="t" type="number" domain={[t0, now]} ticks={hourTicks(t0, now)}
-                 tickFormatter={(t) => fmtIST(t)} tick={axisStyle} />
-          <YAxis domain={[0, "auto"]} tick={axisStyle} width={44}
-                 label={{ value: "GW", angle: -90, position: "insideLeft", fill: "#8a93ab", fontSize: 10 }} />
-          <Tooltip content={<ChartTip unit="GW" />} />
-          <Line dataKey="yesterday" stroke="#8a93ab" strokeDasharray="4 4" dot={false}
-                strokeWidth={1} isAnimationActive={false} connectNulls />
-          <Line dataKey="today" stroke="#ffb454" dot={false} strokeWidth={2}
-                isAnimationActive={false} connectNulls />
-        </LineChart>
-      </ResponsiveContainer>
-      <div className="chart-caption">demand met, last 24 h (IST) · dashed = yesterday</div>
-    </>
+    <div className="fuelbars">
+      {mix.map((m) => {
+        const pct = (m.value / total) * 100;
+        return (
+          <div className="fuelbar" key={m.fuel}>
+            <span className="fuelbar-label">{FUEL_LABELS[m.fuel] || m.fuel}</span>
+            <span className="fuelbar-track">
+              <span className="fuelbar-fill"
+                    style={{ width: `${pct}%`, background: FUEL_COLORS[m.fuel] || "#555" }} />
+            </span>
+            <span className="fuelbar-pct mono">{pct < 1 ? "<1" : pct.toFixed(0)}%</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-/** Generation, stacked GW by fuel; falls back to own-gen vs import. */
-export function GenerationChart({ points }) {
+/** Supply: stacked generation by fuel + an "imported" gap to demand, with the
+ *  demand line overlaid dashed. For self-supplied states the line hugs the
+ *  stack top; for importers the imported band fills the gap. */
+export function SupplyChart({ points }) {
   const now = Date.now();
   const t0 = now - 24 * HOUR_MS;
   const fuels = new Set();
-  let anyEstimated = false;
+  let anyEstimated = false, anyImport = false;
   const rows = new Map();
-  const fuelPoints = points.filter(
-    (p) => p.metric === "generation" && p.fuel && p.fuel !== "own_generation"
-      && bucket(p.ts) >= t0
-  );
-  let mode = "fuel";
-  let series = fuelPoints;
-  if (!fuelPoints.length) {
-    mode = "ownimport";
+
+  const fuelPts = points.filter(
+    (p) => p.metric === "generation" && p.fuel && p.fuel !== "own_generation" && bucket(p.ts) >= t0);
+  let series = fuelPts;
+  if (!fuelPts.length) {
     series = points.filter(
       (p) => bucket(p.ts) >= t0 &&
-        ((p.metric === "generation" && p.fuel === "own_generation") || p.metric === "net_import")
-    ).map((p) => ({ ...p, fuel: p.metric === "net_import" ? "import" : "own_generation" }));
+        ((p.metric === "generation" && p.fuel === "own_generation") || p.metric === "net_import"))
+      .map((p) => ({ ...p, fuel: p.metric === "net_import" ? "_skip_import" : "own_generation" }))
+      .filter((p) => p.fuel !== "_skip_import");
   }
   for (const p of series) {
     const t = bucket(p.ts);
     const r = rows.get(t) || { t };
     r[p.fuel] = (p.value > 0 ? p.value : 0) / 1000;
-    r[`${p.fuel}_src`] = p.source;
     if (p.estimated) anyEstimated = true;
     fuels.add(p.fuel);
     rows.set(t, r);
   }
+  // overlay demand + compute the imported gap (demand − generation, clamped ≥0)
+  for (const p of points) {
+    if (p.metric !== "demand_met" || p.fuel) continue;
+    const t = bucket(p.ts);
+    if (t < t0) continue;
+    const r = rows.get(t) || { t };
+    r.demand = p.value / 1000;
+    rows.set(t, r);
+  }
   const data = [...rows.values()].sort((a, b) => a.t - b.t);
-  if (!data.length) return <p className="age">no generation history</p>;
-  const order = ["coal", "other", "gas", "oil", "nuclear", "hydro", "wind", "solar",
-                 "biomass", "res_nonsolar", "own_generation", "import"].filter((f) => fuels.has(f));
+  for (const r of data) {
+    const gen = [...fuels].reduce((s, f) => s + (r[f] || 0), 0);
+    if (r.demand != null && gen > 0) {
+      const gap = r.demand - gen;
+      if (gap > 0.05) { r.imported = gap; anyImport = true; }
+    }
+  }
+  if (!data.length) return <p className="muted">no supply history</p>;
+  const order = FUEL_ORDER.filter((f) => fuels.has(f));
+  if (fuels.has("own_generation")) order.push("own_generation");
+
   return (
     <>
-      <ResponsiveContainer width="100%" height={170}>
-        <AreaChart data={data} margin={{ top: 4, right: 6, left: -14, bottom: 0 }}>
-          <CartesianGrid stroke={gridStroke} vertical={false} />
+      <ResponsiveContainer width="100%" height={184}>
+        <ComposedChart data={data} margin={{ top: 6, right: 4, left: -16, bottom: 0 }}>
+          <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis dataKey="t" type="number" domain={[t0, now]} ticks={hourTicks(t0, now)}
-                 tickFormatter={(t) => fmtIST(t)} tick={axisStyle} />
-          <YAxis domain={[0, "auto"]} tick={axisStyle} width={44}
-                 label={{ value: "GW", angle: -90, position: "insideLeft", fill: "#8a93ab", fontSize: 10 }} />
-          <Tooltip content={<ChartTip unit="GW" digits={2} />} />
+                 tickFormatter={(t) => fmtIST(t)} tick={axisStyle} stroke={GRID} />
+          <YAxis domain={[0, "auto"]} tick={axisStyle} width={42} stroke={GRID} unit="" />
+          <Tooltip content={<ChartTip unit="GW" digits={2} />} cursor={{ stroke: INK }} />
           {order.map((f) => (
-            <Area key={f} dataKey={f} stackId="g" stroke={FUEL_COLORS[f]}
-                  fill={FUEL_COLORS[f]} fillOpacity={anyEstimated ? 0.45 : 0.75}
-                  strokeWidth={1} isAnimationActive={false} connectNulls />
+            <Area key={f} dataKey={f} stackId="g" stroke="none"
+                  fill={FUEL_COLORS[f]} fillOpacity={anyEstimated ? 0.55 : 0.85}
+                  isAnimationActive={false} connectNulls />
           ))}
-        </AreaChart>
+          {anyImport && (
+            <Area dataKey="imported" stackId="g" stroke="none" fill="url(#importedHatch)"
+                  isAnimationActive={false} connectNulls />
+          )}
+          <Line dataKey="demand" stroke={ACCENT} strokeWidth={1.5} strokeDasharray="5 3"
+                dot={false} isAnimationActive={false} connectNulls />
+          <defs>
+            <pattern id="importedHatch" width="6" height="6" patternUnits="userSpaceOnUse"
+                     patternTransform="rotate(45)">
+              <rect width="6" height="6" fill="#222" />
+              <line x1="0" y1="0" x2="0" y2="6" stroke="#4a4a4a" strokeWidth="1.5" />
+            </pattern>
+          </defs>
+        </ComposedChart>
       </ResponsiveContainer>
       <div className="chart-caption">
-        {mode === "fuel" ? "generation by fuel" : "own generation vs import"}, last 24 h (IST)
-        {anyEstimated ? " · estimated (lighter fill)" : " · measured"}
+        GW · generation mix, last 24 h IST · dashed = demand
+        {anyImport ? " · hatched = imported" : ""}
+        {anyEstimated ? " · estimated" : " · measured"}
       </div>
     </>
   );
 }
 
-/** Carbon intensity line, gCO2/kWh. */
+/** Carbon intensity line, gCO₂/kWh. Dashed where estimated. */
 export function CIChart({ points }) {
   const now = Date.now();
   const t0 = now - 24 * HOUR_MS;
@@ -163,7 +205,7 @@ export function CIChart({ points }) {
     if (p.metric !== "carbon_intensity") continue;
     const t = bucket(p.ts);
     if (t < t0) continue;
-    rows.set(t, { t, ci: p.value, ci_src: p.source });
+    rows.set(t, { t, ci: p.value });
     if (p.estimated) anyEstimated = true;
   }
   const data = [...rows.values()].sort((a, b) => a.t - b.t);
@@ -171,19 +213,25 @@ export function CIChart({ points }) {
   return (
     <>
       <ResponsiveContainer width="100%" height={130}>
-        <LineChart data={data} margin={{ top: 4, right: 6, left: -14, bottom: 0 }}>
-          <CartesianGrid stroke={gridStroke} vertical={false} />
+        <AreaChart data={data} margin={{ top: 6, right: 4, left: -16, bottom: 0 }}>
+          <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis dataKey="t" type="number" domain={[t0, now]} ticks={hourTicks(t0, now)}
-                 tickFormatter={(t) => fmtIST(t)} tick={axisStyle} />
-          <YAxis domain={[0, "auto"]} tick={axisStyle} width={44}
-                 label={{ value: "g/kWh", angle: -90, position: "insideLeft", fill: "#8a93ab", fontSize: 10 }} />
-          <Tooltip content={<ChartTip unit="gCO₂/kWh" digits={0} />} />
-          <Line dataKey="ci" stroke="#8fbf4d" dot={false} strokeWidth={2}
-                strokeDasharray={anyEstimated ? "6 3" : "0"} isAnimationActive={false} connectNulls />
-        </LineChart>
+                 tickFormatter={(t) => fmtIST(t)} tick={axisStyle} stroke={GRID} />
+          <YAxis domain={[0, "auto"]} tick={axisStyle} width={42} stroke={GRID} />
+          <Tooltip content={<ChartTip unit="gCO₂/kWh" digits={0} />} cursor={{ stroke: INK }} />
+          <defs>
+            <linearGradient id="ciFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={ACCENT} stopOpacity={0.18} />
+              <stop offset="100%" stopColor={ACCENT} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Area dataKey="ci" stroke={ACCENT} strokeWidth={1.5} fill="url(#ciFill)"
+                strokeDasharray={anyEstimated ? "5 3" : "0"} dot={false}
+                isAnimationActive={false} connectNulls />
+        </AreaChart>
       </ResponsiveContainer>
       <div className="chart-caption">
-        carbon intensity gCO₂/kWh, last 24 h (IST){anyEstimated ? " · estimated (dashed)" : ""}
+        gCO₂/kWh · carbon intensity, last 24 h IST{anyEstimated ? " · estimated (dashed)" : ""}
       </div>
     </>
   );
