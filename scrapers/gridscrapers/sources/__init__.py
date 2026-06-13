@@ -9,7 +9,11 @@ Each plugin module exposes:
 from importlib import import_module
 from types import ModuleType
 
-PLUGINS = ["vidyut_pravah", "merit", "punjab_sldc"]
+PLUGINS = ["vidyut_pravah", "merit", "punjab_sldc", "delhi_sldc", "karnataka_sldc"]
+
+# sources that publish real measured in-state generation by fuel; their mix
+# outranks every estimated basis (psp / cea / merit) in the freshness ladder
+MEASURED_MIX_SOURCES = ("punjab_sldc", "delhi_sldc", "karnataka_sldc")
 
 
 def load(name: str) -> ModuleType:

@@ -100,15 +100,41 @@ async def zone_live(zone_id: str):
     """Latest value per (metric, fuel) for one zone, freshest source wins."""
     zone = _zone_or_400(zone_id)
     async with pool.connection() as conn:
+        # non-generation metrics: freshest per metric over 24h
         rows = await (await conn.execute(
             """
             SELECT DISTINCT ON (metric, fuel) metric, fuel, value, unit, ts, source, estimated
             FROM datapoints
-            WHERE zone = %s AND ts > now() - interval '24 hours'
+            WHERE zone = %s AND metric <> 'generation' AND ts > now() - interval '24 hours'
             ORDER BY metric, fuel, ts DESC, estimated ASC, inserted_at DESC
             """,
             (zone,),
         )).fetchall()
+        # live generation mix: one authoritative class — if any real measured
+        # fuel row exists in the window use measured, else estimated; never
+        # union fuels across the two. own_generation (MERIT aggregate) is kept
+        # separate and always passes through.
+        has_measured = (await (await conn.execute(
+            """
+            SELECT EXISTS(
+                SELECT 1 FROM datapoints WHERE zone = %s AND metric = 'generation'
+                  AND fuel NOT IN ('', 'own_generation') AND estimated = FALSE
+                  AND ts > now() - interval '40 minutes')
+            """,
+            (zone,),
+        )).fetchone())[0]
+        gen_rows = await (await conn.execute(
+            """
+            SELECT DISTINCT ON (fuel) metric, fuel, value, unit, ts, source, estimated
+            FROM datapoints
+            WHERE zone = %s AND metric = 'generation'
+              AND ts > now() - interval '40 minutes'
+              AND (fuel = 'own_generation' OR estimated = %s)
+            ORDER BY fuel, ts DESC, inserted_at DESC
+            """,
+            (zone, not has_measured),
+        )).fetchall()
+        rows = list(rows) + list(gen_rows)
         basis_row = await (await conn.execute(
             "SELECT DISTINCT basis FROM current_fuel_shares WHERE zone = %s", (zone,)
         )).fetchone()

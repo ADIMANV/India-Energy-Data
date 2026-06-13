@@ -18,6 +18,7 @@ import psycopg
 from . import solar
 from .schema import Datapoint, Metric, Unit
 from .db import insert_datapoints
+from .sources import MEASURED_MIX_SOURCES
 from .zones import NATIONAL
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -30,9 +31,6 @@ EF: dict[str, float] = {k: v for k, v in _EF_CONFIG["factors"].items() if v is n
 EF_VERSION: int = _EF_CONFIG["version"]
 
 FRESH_MIN = 30  # demand/mix older than this is not estimated against
-
-# sources that report a real measured fuel mix; estimates never override them
-MEASURED_MIX_SOURCES = ("punjab_sldc",)
 
 
 def _fresh_demand(conn: psycopg.Connection) -> list[tuple]:
@@ -141,6 +139,14 @@ def run(conn: psycopg.Connection) -> int:
             mix, mts = measured[zone]
             total = sum(mix.values())
             if total > 0:
+                # purge stale estimated generation so the donut shows only the
+                # measured mix (a freshly-measured zone may still have estimate
+                # rows inside the fresh window from before its plugin landed)
+                conn.execute(
+                    """DELETE FROM datapoints WHERE zone = %s AND metric = 'generation'
+                       AND source = 'estimate' AND ts > now() - make_interval(mins => %s)""",
+                    (zone, FRESH_MIN),
+                )
                 ci = _ci_from_shares({f: v / total for f, v in mix.items()})
                 if ci is not None:
                     n += insert_datapoints(conn, [Datapoint(
