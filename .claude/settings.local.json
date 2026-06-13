@@ -102,7 +102,10 @@
       "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'CEA dgr2 backtests, source-independence docs, weekly match-rate audit *)",
       "Bash(.venv/bin/python -m gridscrapers.psp ingest --region WR --backfill 30)",
       "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'WRLDC PSP parser, CEA blend basis, RE report ingestion *)",
-      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Intra-day solar shaping + national default panel with real charts *)"
+      "Bash(git -c user.email=adityamsawant07@gmail.com -c 'user.name=Aditya Sawant' commit -q -m 'Intra-day solar shaping + national default panel with real charts *)",
+      "Bash(node scripts/sync-docs.mjs)",
+      "Bash(printf 'content/\\\\n')",
+      "Bash(echo \"content/\")"
     ]
   }
 }

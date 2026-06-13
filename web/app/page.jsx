@@ -36,36 +36,47 @@ export default function Home() {
   return (
     <div className="app">
       <header className="header">
-        <h1>⚡ India Live Grid</h1>
-        <div className="stat">
-          <span className="label">National demand met</span>
-          <span className="value">{fmtMW(natDemand?.value)}</span>
+        <h1>⚡ India Electricity Data</h1>
+        <div className="header-stats">
+          <div className="stat">
+            <span className="label">National demand met</span>
+            <span className="value">{fmtMW(natDemand?.value)}</span>
+          </div>
+          <div className="stat">
+            <span className="label">States reporting</span>
+            <span className="value">{stateCount}</span>
+          </div>
         </div>
-        <div className="stat">
-          <span className="label">States reporting</span>
-          <span className="value">{stateCount}</span>
-        </div>
-        <div className="toggle" role="group" aria-label="map color mode">
-          <button className={colorMode === "demand" ? "on" : ""} onClick={() => setColorMode("demand")}>
-            Demand
-          </button>
-          <button className={colorMode === "carbon" ? "on" : ""} onClick={() => setColorMode("carbon")}>
-            Carbon
-          </button>
-        </div>
-        {selectedZone !== "IN" && (
-          <button className="allindia" onClick={() => setSelectedZone("IN")}>All India</button>
-        )}
-        <div className="freshness">
-          {apiError
-            ? `API unreachable: ${apiError}`
-            : natDemand ? `national data ${ageLabel(natDemand.ts)} · auto-refresh 5 min` : "loading…"}
+        <div className="header-controls">
+          <div className="toggle" role="group" aria-label="map color mode">
+            <button className={colorMode === "demand" ? "on" : ""} onClick={() => setColorMode("demand")}>
+              Demand
+            </button>
+            <button className={colorMode === "carbon" ? "on" : ""} onClick={() => setColorMode("carbon")}>
+              Carbon
+            </button>
+          </div>
+          {selectedZone !== "IN" && (
+            <button className="allindia" onClick={() => setSelectedZone("IN")}>All India</button>
+          )}
+          <div className="freshness">
+            {apiError
+              ? `API unreachable: ${apiError}`
+              : natDemand ? `updated ${ageLabel(natDemand.ts)} · refresh 5 min` : "loading…"}
+          </div>
         </div>
       </header>
       <main className="main">
         <GridMap zonesData={zonesData} onSelect={setSelectedZone} selectedZone={selectedZone} colorMode={colorMode} />
         <SidePanel zone={selectedZone} onSelect={setSelectedZone} refreshKey={refreshKey} />
       </main>
+      <footer className="footer">
+        <span>Open electricity data for India · estimates labelled, never faked</span>
+        <nav>
+          <a href="/methodology">Methodology</a>
+          <a href="/status">Data quality</a>
+        </nav>
+      </footer>
     </div>
   );
 }

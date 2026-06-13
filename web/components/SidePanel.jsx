@@ -5,6 +5,17 @@ import { fetchLive, fetchPanelHistory } from "../lib/api";
 import { ZONE_TO_NAME, ageLabel, ageMinutes, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
 import { CIChart, DemandChart, FUEL_COLORS, FUEL_LABELS, GenerationChart } from "./charts";
 
+// The estimated/measured badge is the credibility marker — one click explains it.
+function BasisBadge({ estimated, basis }) {
+  const label = estimated ? `estimated${basis ? ` · ${basis}` : ""}` : "measured";
+  return (
+    <a className={`badge ${estimated ? "" : "measured"}`} href="/methodology#freshness-ladder"
+       title="How this is computed">
+      {label}
+    </a>
+  );
+}
+
 function Donut({ mix }) {
   const total = mix.reduce((s, m) => s + m.value, 0);
   if (total <= 0) return null;
@@ -86,7 +97,9 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
     .filter((m) => ageMinutes(m.ts) <= STALE_AFTER_MIN)
     .sort((a, b) => b.value - a.value);
   const mixEstimated = mix.some((m) => m.estimated);
+  const mixBasis = mix.find((m) => m.estimation_basis)?.estimation_basis;
   const points = history?.points || [];
+  const hasGenHistory = points.some((p) => p.metric === "generation" || p.metric === "net_import");
 
   return (
     <aside className="panel">
@@ -98,64 +111,72 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
         updated {demand ? ageLabel(demand.ts) : "—"}{stale ? " (STALE)" : ""}
       </div>
 
-      <div className="big">{fmtMW(demand?.value)}</div>
-      <div className="row"><span className="k">Demand met</span>
-        <span>{fmtMW(demand?.value)}<span className="src">{demand?.source}</span></span></div>
-      {ci && (
-        <div className="row"><span className="k">Carbon intensity</span>
-          <span>
-            {Math.round(ci.value)} gCO₂/kWh
-            {ci.estimated
-              ? <span className="badge">estimated{ci.estimation_basis ? ` · ${ci.estimation_basis}` : ""}</span>
-              : <span className="badge measured">measured</span>}
-          </span></div>
-      )}
-
-      <h3>Demand</h3>
-      <DemandChart points={points} />
-
+      {/* a. Generation mix — the differentiated thing, leads the panel */}
       {mix.length > 0 && (
-        <>
-          <h3>
-            Generation mix
-            {mixEstimated
-              ? <span className="badge">estimated</span>
-              : <span className="badge measured">measured</span>}
-          </h3>
+        <section className="card">
+          <h3>Generation mix <BasisBadge estimated={mixEstimated} basis={mixBasis} /></h3>
           <Donut mix={mix} />
-        </>
+        </section>
       )}
-      {points.some((p) => p.metric === "generation" || p.metric === "net_import") && (
-        <>
+
+      {/* headline figures */}
+      <section className="card stats">
+        <div className="big">{fmtMW(demand?.value)}</div>
+        <div className="row"><span className="k">Demand met</span>
+          <span>{fmtMW(demand?.value)}<span className="src">{demand?.source}</span></span></div>
+        {ci && (
+          <div className="row"><span className="k">Carbon intensity</span>
+            <span>{Math.round(ci.value)} gCO₂/kWh
+              <BasisBadge estimated={ci.estimated} basis={ci.estimation_basis} /></span></div>
+        )}
+        {!isNational && splitTotal > 0 && (
+          <>
+            <div className="splitbar">
+              <div className="own" style={{ width: `${((ownGen?.value || 0) / splitTotal) * 100}%` }} />
+              <div className="imp" style={{ width: `${((imp?.value || 0) / splitTotal) * 100}%` }} />
+            </div>
+            <div className="splitlabels">
+              <span>own gen {fmtMW(ownGen?.value)}</span>
+              <span>import {fmtMW(imp?.value)}</span>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* b. demand 24h */}
+      <section className="card">
+        <h3>Demand, 24 h</h3>
+        <DemandChart points={points} />
+      </section>
+
+      {/* c. stacked generation 24h */}
+      {hasGenHistory && (
+        <section className="card">
           <h3>Generation, 24 h</h3>
           <GenerationChart points={points} />
-        </>
+        </section>
       )}
 
-      <CIChart points={points} />
-
-      {!isNational && splitTotal > 0 && (
-        <>
-          <h3>Own generation vs import</h3>
-          <div className="splitbar">
-            <div className="own" style={{ width: `${((ownGen?.value || 0) / splitTotal) * 100}%` }} />
-            <div className="imp" style={{ width: `${((imp?.value || 0) / splitTotal) * 100}%` }} />
-          </div>
-          <div className="splitlabels">
-            <span>own {fmtMW(ownGen?.value)}</span>
-            <span>import {fmtMW(imp?.value)}</span>
-          </div>
-        </>
+      {/* d. carbon intensity + exchange */}
+      {points.some((p) => p.metric === "carbon_intensity") && (
+        <section className="card">
+          <h3>Carbon intensity, 24 h</h3>
+          <CIChart points={points} />
+        </section>
       )}
 
-      {(price || purchase) && <h3>Exchange</h3>}
-      {price && (
-        <div className="row"><span className="k">Price</span>
-          <span>₹{price.value.toFixed(2)}/kWh<span className="src">{ageLabel(price.ts)}</span></span></div>
-      )}
-      {purchase && (
-        <div className="row"><span className="k">Purchased</span>
-          <span>{fmtMW(purchase.value)}<span className="src">{ageLabel(purchase.ts)}</span></span></div>
+      {(price || purchase) && (
+        <section className="card">
+          <h3>Power exchange</h3>
+          {price && (
+            <div className="row"><span className="k">Price</span>
+              <span>₹{price.value.toFixed(2)}/kWh<span className="src">{ageLabel(price.ts)}</span></span></div>
+          )}
+          {purchase && (
+            <div className="row"><span className="k">Purchased</span>
+              <span>{fmtMW(purchase.value)}<span className="src">{ageLabel(purchase.ts)}</span></span></div>
+          )}
+        </section>
       )}
     </aside>
   );
