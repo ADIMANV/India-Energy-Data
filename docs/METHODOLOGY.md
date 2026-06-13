@@ -93,8 +93,11 @@ consumption MU with a known fuel.
 ## Carbon intensity
 
 `CI(zone, t) = Σ_fuel share_fuel × EF_fuel`, in gCO2eq/kWh, stored as
-`carbon_intensity` datapoints. National CI = demand-weighted mean over states
-with a CI value.
+`carbon_intensity` datapoints. National CI = generation-weighted mean over
+states with a CI value — i.e. total emissions ÷ total generation,
+`Σ_zone CI_zone × gen_zone / Σ_zone gen_zone`. (Weighting by generation, not
+demand, is the energy-correct blend; for import/export-heavy states the two
+differ, though at the national level demand ≈ generation so the gap is ~1%.)
 
 Emission factors are versioned in
 [`scrapers/gridscrapers/emission_factors.json`](../scrapers/gridscrapers/emission_factors.json)

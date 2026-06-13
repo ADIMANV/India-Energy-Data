@@ -4,7 +4,8 @@ Runs inside the tick after sources. For each state with fuel shares and fresh
 demand: writes `generation` datapoints (source='estimate', estimated=true)
 and a `carbon_intensity` datapoint. States with measured live mix (Punjab
 SLDC) get CI from the measured mix instead, estimated=false. National CI is
-the demand-weighted mean of state CIs.
+the generation-weighted mean of state CIs (= total emissions / total
+generation), i.e. Σ(CI_z·gen_z)/Σ(gen_z).
 """
 
 import json
@@ -130,7 +131,7 @@ def run(conn: psycopg.Connection) -> int:
     measured = _measured_mix(conn)
     d_avg = _avg_demand_24h(conn)
     n = 0
-    ci_by_zone: dict[str, tuple[float, float]] = {}  # zone -> (ci, demand_mw)
+    ci_by_zone: dict[str, tuple[float, float]] = {}  # zone -> (ci, gen_mw)
 
     for zone, demand_mw, ts in demand:
         common = dict(zone=zone, ts=ts, source="estimate", parser_version=EF_VERSION)
@@ -154,7 +155,9 @@ def run(conn: psycopg.Connection) -> int:
                         unit=Unit.GCO2_PER_KWH, estimated=False,
                         zone=zone, ts=mts, source="estimate", parser_version=EF_VERSION,
                     )])
-                    ci_by_zone[zone] = (ci, demand_mw)
+                    # weight by measured generation, not demand (they differ for
+                    # import/export-heavy states); CI is a per-kWh-generated figure
+                    ci_by_zone[zone] = (ci, total)
             continue  # measured mix exists: never write estimated generation
 
         zshares = shares.get(zone)
@@ -170,12 +173,14 @@ def run(conn: psycopg.Connection) -> int:
         if ci is not None:
             points.append(Datapoint(metric=Metric.CARBON_INTENSITY, value=round(ci, 1),
                                     unit=Unit.GCO2_PER_KWH, estimated=True, **common))
-            ci_by_zone[zone] = (ci, demand_mw)
+            # shaped_mix sums to demand_mw, so gen == demand for estimated zones
+            ci_by_zone[zone] = (ci, sum(mix.values()))
         n += insert_datapoints(conn, points)
 
     if ci_by_zone:
-        total_mw = sum(d for _, d in ci_by_zone.values())
-        nat_ci = sum(ci * d for ci, d in ci_by_zone.values()) / total_mw
+        # national = total emissions / total generation = Σ(CI_z·gen_z)/Σ(gen_z)
+        gen_mw = sum(g for _, g in ci_by_zone.values())
+        nat_ci = sum(ci * g for ci, g in ci_by_zone.values()) / gen_mw
         n += insert_datapoints(conn, [Datapoint(
             zone=NATIONAL, ts=datetime.now(timezone.utc).replace(second=0, microsecond=0),
             metric=Metric.CARBON_INTENSITY, value=round(nat_ci, 1),

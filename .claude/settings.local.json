@@ -120,7 +120,18 @@
       "Bash(python3 -c \"import sys; sys.path.insert\\(0,'scrapers'\\); from gridscrapers import sources; print\\([s for s in dir\\(sources\\) if not s.startswith\\('_'\\)]\\)\")",
       "Bash(.venv/bin/python -c \"from gridscrapers import sources; print\\(list\\(sources.PLUGINS.keys\\(\\)\\)\\)\")",
       "Bash(.venv/bin/python -c \"from gridscrapers import sources; print\\(sources.PLUGINS\\)\")",
-      "Bash(../.venv/bin/python -m gridscrapers.run vidyut_pravah)"
+      "Bash(../.venv/bin/python -m gridscrapers.run vidyut_pravah)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(git remote *)",
+      "Bash(grep -iE '\\\\.env\\($|\\\\.\\)|\\\\.dump$|\\\\.sql\\\\.gz$|secret|credential')",
+      "Bash(git rev-list *)",
+      "Bash(git cat-file *)",
+      "Bash(awk '$1==\"blob\"{print $2, $3}')",
+      "Bash(git push *)",
+      "Bash(curl -s http://localhost:8000/v1/zone/IN/live)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\([m for m in d['metrics'] if m['metric']=='carbon_intensity']\\)\")",
+      "Bash(../.venv/bin/python -c ' *)",
+      "Bash(../.venv/bin/python -m pytest tests/ -q)"
     ]
   }
 }
