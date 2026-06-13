@@ -48,9 +48,21 @@ consumption MU with a known fuel.
    Shares = scheduled MWh by fuel / total scheduled MWh, stored per
    `(zone, as_of)` in `state_fuel_shares` with the MWh-weighted match rate.
 
-2. **Live estimate.** `estimated_mix(zone, t) = latest_shares(zone) ×
-   demand_met(zone, t)`. Stored as `generation` datapoints,
-   `source='estimate'`, `estimated=true`.
+2. **Live estimate with intra-day solar shaping.** Daily shares alone would
+   smear solar across the night, so per 15-min block
+   (`estimation.shaped_mix`, curve in `solar.py`):
+   - solar MW = daily-average solar MW × clear-sky weight (state centroid
+     lat/lon, IST; weight is energy-preserving — daily mean 1, 0 at night);
+   - wind + other RE run flat at their daily-average MW (capped together
+     with solar at 95% of instantaneous demand);
+   - conventional fuels absorb the residual `demand − RE` in proportion to
+     their daily energy split.
+   Geometry only — no clouds; monsoon haze makes real solar flatter than
+   the curve, which the conventional residual absorbs. Stored as
+   `generation` datapoints, `source='estimate'`, `estimated=true`.
+   Verified 2026-06-12: Rajasthan CI went from a flat 543 g profile to
+   695 g (night) → ~305 g (11:00–12:00 IST trough) with the same daily
+   energy — the expected solar duck curve.
 
 ### Known limitations (v1)
 

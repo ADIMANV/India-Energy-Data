@@ -77,6 +77,34 @@ body {
 .status-page th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 10px; border-bottom: 1px solid var(--border); }
 .status-page td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
 .status-page tr.bad td { color: #e06c3a; }
+
+.breadcrumb {
+  background: transparent; border: 0; color: var(--accent); cursor: pointer;
+  font-size: 12px; padding: 0 0 6px; text-align: left;
+}
+.allindia {
+  background: transparent; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); cursor: pointer; font-size: 13px; padding: 6px 14px;
+  align-self: center;
+}
+.chart-caption { font-size: 10px; color: var(--muted); margin: 2px 0 12px; }
+.chart-tip {
+  background: rgba(19, 26, 48, 0.96); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 9px; font-size: 11px; line-height: 1.6;
+}
+.chart-tip .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+.chart-tip .src { color: var(--muted); font-size: 10px; }
+
+/* responsive: panel below the map on narrow screens */
+@media (max-width: 760px) {
+  .main { flex-direction: column; overflow-y: auto; }
+  .map-wrap { min-height: 45vh; flex: none; }
+  .panel { width: 100%; border-left: 0; border-top: 1px solid var(--border); }
+  .header { gap: 12px; padding: 10px 12px; }
+  .header .freshness { display: none; }
+  .legend { top: 12px; left: 12px; bottom: auto; padding: 7px 9px; font-size: 10px; }
+  .legend .bar { width: 120px; }
+}
 .legend .ends { display: flex; justify-content: space-between; color: var(--muted); }
 
 .panel {

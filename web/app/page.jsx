@@ -11,7 +11,7 @@ const REFRESH_MS = 5 * 60 * 1000;
 export default function Home() {
   const [zonesData, setZonesData] = useState(null);
   const [national, setNational] = useState(null);
-  const [selectedZone, setSelectedZone] = useState(null);
+  const [selectedZone, setSelectedZone] = useState("IN");
   const [refreshKey, setRefreshKey] = useState(0);
   const [apiError, setApiError] = useState(null);
   const [colorMode, setColorMode] = useState("demand");
@@ -53,6 +53,9 @@ export default function Home() {
             Carbon
           </button>
         </div>
+        {selectedZone !== "IN" && (
+          <button className="allindia" onClick={() => setSelectedZone("IN")}>All India</button>
+        )}
         <div className="freshness">
           {apiError
             ? `API unreachable: ${apiError}`
@@ -61,7 +64,7 @@ export default function Home() {
       </header>
       <main className="main">
         <GridMap zonesData={zonesData} onSelect={setSelectedZone} selectedZone={selectedZone} colorMode={colorMode} />
-        <SidePanel zone={selectedZone} refreshKey={refreshKey} />
+        <SidePanel zone={selectedZone} onSelect={setSelectedZone} refreshKey={refreshKey} />
       </main>
     </div>
   );

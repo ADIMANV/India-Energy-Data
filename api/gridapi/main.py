@@ -112,21 +112,39 @@ async def zone_live(zone_id: str):
         basis_row = await (await conn.execute(
             "SELECT DISTINCT basis FROM current_fuel_shares WHERE zone = %s", (zone,)
         )).fetchone()
+        nat_gen = []
+        if zone == "IN":
+            # national fuel mix = freshest per (state, fuel) summed across states
+            nat_gen = await (await conn.execute(
+                """
+                SELECT fuel, sum(value) AS mw, max(ts) AS ts, bool_or(estimated) AS est
+                FROM (
+                    SELECT DISTINCT ON (zone, fuel) zone, fuel, value, ts, estimated
+                    FROM datapoints
+                    WHERE metric = 'generation' AND fuel <> '' AND fuel <> 'own_generation'
+                      AND zone <> 'IN' AND ts > now() - interval '30 minutes'
+                    ORDER BY zone, fuel, ts DESC, estimated ASC, inserted_at DESC
+                ) latest
+                GROUP BY fuel ORDER BY mw DESC
+                """
+            )).fetchall()
     if not rows:
         raise HTTPException(status_code=404, detail=f"no recent data for {zone}")
     basis = basis_row[0] if basis_row else None
-    return {
-        "zone": zone,
-        "estimation_basis": basis,
-        "metrics": [
-            {
-                "metric": m, "fuel": f or None, "value": v, "unit": u,
-                "ts": ts.isoformat(), "source": src, "estimated": est,
-                **({"estimation_basis": basis} if est else {}),
-            }
-            for m, f, v, u, ts, src, est in rows
-        ],
-    }
+    metrics_out = [
+        {
+            "metric": m, "fuel": f or None, "value": v, "unit": u,
+            "ts": ts.isoformat(), "source": src, "estimated": est,
+            **({"estimation_basis": basis} if est else {}),
+        }
+        for m, f, v, u, ts, src, est in rows
+    ]
+    for f, mw, ts, est in nat_gen:
+        metrics_out.append({
+            "metric": "generation", "fuel": f, "value": round(mw, 1), "unit": "MW",
+            "ts": ts.isoformat(), "source": "state_aggregate", "estimated": est,
+        })
+    return {"zone": zone, "estimation_basis": basis, "metrics": metrics_out}
 
 
 @app.get("/v1/status")
@@ -255,29 +273,31 @@ async def export_csv(
 @app.get("/v1/zone/{zone_id}/history")
 async def zone_history(
     zone_id: str,
-    metric: str = Query(default="demand_met"),
+    metric: str = Query(default="demand_met", description="single metric or comma-list"),
     hours: int = Query(default=24, ge=1, le=168),
 ):
     zone = _zone_or_400(zone_id)
-    if metric not in METRICS:
-        raise HTTPException(status_code=400, detail=f"metric must be one of {sorted(METRICS)}")
+    metrics = [m.strip() for m in metric.split(",") if m.strip()]
+    bad = [m for m in metrics if m not in METRICS]
+    if bad or not metrics:
+        raise HTTPException(status_code=400, detail=f"metric must be among {sorted(METRICS)}")
     async with pool.connection() as conn:
         rows = await (await conn.execute(
             """
-            SELECT ts, fuel, value, unit, source, estimated
+            SELECT ts, metric, fuel, value, unit, source, estimated
             FROM datapoints
-            WHERE zone = %s AND metric = %s AND ts > now() - make_interval(hours => %s)
+            WHERE zone = %s AND metric = ANY(%s) AND ts > now() - make_interval(hours => %s)
             ORDER BY ts
             """,
-            (zone, metric, hours),
+            (zone, metrics, hours),
         )).fetchall()
     return {
         "zone": zone,
         "metric": metric,
         "hours": hours,
         "points": [
-            {"ts": ts.isoformat(), "fuel": f or None, "value": v, "unit": u,
+            {"ts": ts.isoformat(), "metric": m, "fuel": f or None, "value": v, "unit": u,
              "source": src, "estimated": est}
-            for ts, f, v, u, src, est in rows
+            for ts, m, f, v, u, src, est in rows
         ],
     }
