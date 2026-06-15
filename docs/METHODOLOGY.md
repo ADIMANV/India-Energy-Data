@@ -137,6 +137,13 @@ outranks the estimate:
   from the dashboard image by a vision parser, with a ±10% fuel-sum-vs-demand
   reconciliation gate (a value that fails is quarantined, never written).
 
+**Reconcile guard.** Before a measured mix is trusted, its total generation must
+land within 50–200% of the state's demand. A full-mix feed far outside that band
+has almost certainly dropped rows or doubled a unit, so the mix is discarded and
+the state falls back to its estimate for that tick (self-healing: the plugin
+re-inserts next tick and wins again once it recovers). Own-generation feeds
+(Delhi) report only a slice of supply by design and are exempt from this check.
+
 **Caveat — measured CI is *generation* CI, not *consumption* CI.** The
 measured mix is what the state *generates*, not what it *consumes*; imports
 carry the seller's mix, which an SLDC's own-generation feed doesn't see. For

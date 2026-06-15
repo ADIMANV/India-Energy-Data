@@ -19,12 +19,18 @@ import psycopg
 from . import solar
 from .schema import Datapoint, Metric, Unit
 from .db import insert_datapoints
-from .sources import MEASURED_MIX_SOURCES
+from .sources import MEASURED_MIX_SOURCES, OWN_GENERATION_SOURCES
 from .zones import NATIONAL
 
 IST = ZoneInfo("Asia/Kolkata")
 RE_FLAT_FUELS = ("wind", "res_nonsolar", "biomass")
 RE_CAP_FRAC = 0.95  # RE never exceeds 95% of instantaneous demand
+
+# A full-mix measured source (one that reports a state's whole generation, not
+# just its own fleet) should produce a total within this band of demand. Outside
+# it the parser has almost certainly dropped rows or doubled a unit — distrust
+# the mix, drop it, and fall back to the estimate so it can't skew national CI.
+RECONCILE_BAND = (0.5, 2.0)  # measured gen / demand
 
 EF_PATH = Path(__file__).parent / "emission_factors.json"
 _EF_CONFIG = json.loads(EF_PATH.read_text())
@@ -59,11 +65,11 @@ def _latest_shares(conn: psycopg.Connection) -> dict[str, dict[str, float]]:
     return shares
 
 
-def _measured_mix(conn: psycopg.Connection) -> dict[str, tuple[dict[str, float], datetime]]:
-    """zone -> ({fuel: mw}, ts) from sources with real per-fuel SCADA."""
+def _measured_mix(conn: psycopg.Connection) -> dict[str, tuple[dict[str, float], datetime, str]]:
+    """zone -> ({fuel: mw}, ts, source) from sources with real per-fuel SCADA."""
     rows = conn.execute(
         """
-        SELECT DISTINCT ON (zone, fuel) zone, fuel, value, ts
+        SELECT DISTINCT ON (zone, fuel) zone, fuel, value, ts, source
         FROM datapoints
         WHERE metric = 'generation' AND source = ANY(%s) AND fuel <> ''
           AND ts > now() - make_interval(mins => %s)
@@ -71,10 +77,11 @@ def _measured_mix(conn: psycopg.Connection) -> dict[str, tuple[dict[str, float],
         """,
         (list(MEASURED_MIX_SOURCES), FRESH_MIN),
     ).fetchall()
-    out: dict[str, tuple[dict[str, float], datetime]] = {}
-    for zone, fuel, value, ts in rows:
-        mix, _ = out.setdefault(zone, ({}, ts))
-        mix[fuel] = value
+    out: dict[str, tuple[dict[str, float], datetime, str]] = {}
+    for zone, fuel, value, ts, source in rows:
+        if zone not in out:
+            out[zone] = ({}, ts, source)
+        out[zone][0][fuel] = value
     return out
 
 
@@ -116,6 +123,21 @@ def shaped_mix(zone: str, zshares: dict[str, float], demand_mw: float,
     return mix
 
 
+def _mix_trusted(src: str, total_mw: float, demand_mw: float) -> bool:
+    """Reconcile guard. A measured mix is trusted when it has generation and —
+    for full-mix sources — its total lands within RECONCILE_BAND of demand.
+    Own-generation sources (Delhi) report a partial fleet by design and are
+    exempt. With no demand to check against we don't reject. A full-mix total
+    far from demand means the parser dropped rows / doubled a unit, so the mix
+    is distrusted and the caller falls back to the estimate."""
+    if total_mw <= 0:
+        return False
+    if src in OWN_GENERATION_SOURCES or demand_mw <= 0:
+        return True
+    lo, hi = RECONCILE_BAND
+    return lo * demand_mw <= total_mw <= hi * demand_mw
+
+
 def _ci_from_shares(shares: dict[str, float]) -> float | None:
     known = {f: s for f, s in shares.items() if f in EF}
     total = sum(known.values())
@@ -137,9 +159,9 @@ def run(conn: psycopg.Connection) -> int:
         common = dict(zone=zone, ts=ts, source="estimate", parser_version=EF_VERSION)
 
         if zone in measured:
-            mix, mts = measured[zone]
+            mix, mts, src = measured[zone]
             total = sum(mix.values())
-            if total > 0:
+            if _mix_trusted(src, total, demand_mw):
                 # purge stale estimated generation so the donut shows only the
                 # measured mix (a freshly-measured zone may still have estimate
                 # rows inside the fresh window from before its plugin landed)
@@ -158,7 +180,22 @@ def run(conn: psycopg.Connection) -> int:
                     # weight by measured generation, not demand (they differ for
                     # import/export-heavy states); CI is a per-kWh-generated figure
                     ci_by_zone[zone] = (ci, total)
-            continue  # measured mix exists: never write estimated generation
+                continue  # trusted measured mix: never write estimated generation
+            if total > 0:
+                # a measured mix arrived but failed the reconcile guard: drop it
+                # so /live + the donut fall back to the estimate too; the plugin
+                # re-inserts next tick and wins again if it recovers (self-healing)
+                conn.execute(
+                    """DELETE FROM datapoints WHERE zone = %s AND metric = 'generation'
+                       AND source = ANY(%s) AND estimated = FALSE
+                       AND ts > now() - make_interval(mins => %s)""",
+                    (zone, list(MEASURED_MIX_SOURCES), FRESH_MIN),
+                )
+                lo, hi = RECONCILE_BAND
+                print(f"[estimate] {zone}: {src} measured mix failed reconcile "
+                      f"(gen {total:.0f} MW vs demand {demand_mw:.0f} MW, "
+                      f"band {lo:.0%}-{hi:.0%}) — dropped, using estimate", file=sys.stderr)
+            # fall through to the estimated path below
 
         zshares = shares.get(zone)
         if not zshares:

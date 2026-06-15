@@ -131,7 +131,31 @@
       "Bash(curl -s http://localhost:8000/v1/zone/IN/live)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\([m for m in d['metrics'] if m['metric']=='carbon_intensity']\\)\")",
       "Bash(../.venv/bin/python -c ' *)",
-      "Bash(../.venv/bin/python -m pytest tests/ -q)"
+      "Bash(../.venv/bin/python -m pytest tests/ -q)",
+      "WebFetch(domain:mahasldc.in)",
+      "WebFetch(domain:upsldc.org)",
+      "WebFetch(domain:sldcguj.org.in)",
+      "WebFetch(domain:tnsldc.tn.gov.in)",
+      "WebFetch(domain:sldc.telangana.gov.in)",
+      "WebFetch(domain:sldcmpindia.com)",
+      "WebFetch(domain:wbsldc.in)",
+      "WebFetch(domain:apsldc.in)",
+      "WebFetch(domain:keralasldc.com)",
+      "WebFetch(domain:sldccg.com)",
+      "WebFetch(domain:sldcmpindia.in)",
+      "WebFetch(domain:sldcorissa.org.in)",
+      "WebFetch(domain:jusnl.in)",
+      "WebFetch(domain:uksldc.in)",
+      "WebFetch(domain:sldc.rajasthan.gov.in)",
+      "WebFetch(domain:www.bsptcl.in)",
+      "WebFetch(domain:sldchry.gov.in)",
+      "Bash(curl -s --max-time 25 -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\)\" https://mahasldc.in/ -k -o mahasldc.html -w \"HTTP %{http_code}  size %{size_download}\\\\n\")",
+      "Bash(grep -oiE \"\\(url:|\\\\.get\\\\\\(|\\\\.post\\\\\\(|\\\\.load\\\\\\(|fetch\\\\\\(|ajax\\)[^;]{0,120}\" mahasldc.html)",
+      "Bash(grep -oiE \"base_url[ ]*=[^;]{0,120}\" mahasldc.html)",
+      "Bash(curl -s --max-time 25 -k -A \"Mozilla/5.0\" \"https://mahasldc.in/assets/public/scada/mvrreport3.jpg\" -o mh.jpg -w \"HTTP %{http_code} type %{content_type} size %{size_download}\\\\n\")",
+      "Bash(curl -s --max-time 25 -k -A \"Mozilla/5.0\" \"https://sldccg.com/gen.php\" -o cg.html -w \"HTTP %{http_code} size %{size_download}\\\\n\")",
+      "mcp__Apify__apify--rag-web-browser",
+      "Bash(../.venv/bin/python -m pytest tests/test_estimation.py -v)"
     ]
   }
 }

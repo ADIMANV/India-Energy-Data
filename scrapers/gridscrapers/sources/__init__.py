@@ -16,6 +16,12 @@ PLUGINS = ["vidyut_pravah", "merit", "punjab_sldc", "delhi_sldc",
 # outranks every estimated basis (psp / cea / merit) in the freshness ladder
 MEASURED_MIX_SOURCES = ("punjab_sldc", "delhi_sldc", "karnataka_sldc", "maha_vision")
 
+# measured sources that report ONLY the state's own (partial) fleet, not its
+# whole supply — their generation is a small slice of demand by design (the
+# rest is central imports), so their mix must NOT be reconciled against demand.
+# Their CI is explicitly in-state-generation, not consumption.
+OWN_GENERATION_SOURCES = ("delhi_sldc",)
+
 
 def load(name: str) -> ModuleType:
     if name not in PLUGINS:
