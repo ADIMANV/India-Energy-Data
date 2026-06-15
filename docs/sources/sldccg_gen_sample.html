@@ -1,0 +1,1088 @@
+<!doctype html>
+<html>
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <title>State Load Despatch Centre | Chhattisgarh</title>
+
+<style>
+    body {
+    user-select:none;  
+    background-repeat: repeat;
+    background-size: 4px;
+    //background-image: linear-gradient(rgb(0 0 0 / 0%), rgb(0 0 0 / 0%)),url(/images/images.jpg);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+html {
+  --scrollbarBG: #c1c1c1;
+  --thumbBG: #036896;
+}
+body::-webkit-scrollbar {
+  width: 7px;
+}
+body::-webkit-scrollbar-track {
+  background: var(--scrollbarBG);
+}
+body::-webkit-scrollbar-thumb {
+  background-color: var(--thumbBG) ;
+
+}
+
+.backcol{
+  background: #03608c;
+}
+
+
+/*=== Trigger  ===*/
+.animate {
+  -webkit-animation-duration: 1s;
+  animation-duration: 1s;
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+}
+
+/*=== FADE IN LEFT ===*/
+@-webkit-keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(-100%, 0, 0);
+    transform: translate3d(-100%, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    -webkit-transform: none;
+    transform: none;
+  }
+}
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(-100%, 0, 0);
+    transform: translate3d(-100%, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    -webkit-transform: none;
+    transform: none;
+  }
+}
+
+.fadeInLeft {
+  -webkit-animation-name: fadeInLeft;
+  animation-name: fadeInLeft;
+}
+
+
+
+
+/*==== FADE IN RIGHT ===*/
+@-webkit-keyframes fadeInRight {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(100%, 0, 0);
+    transform: translate3d(100%, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    -webkit-transform: none;
+    transform: none;
+  }
+}
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(100%, 0, 0);
+    transform: translate3d(100%, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    -webkit-transform: none;
+    transform: none;
+  }
+}
+
+.fadeInRight {
+  -webkit-animation-name: fadeInRight;
+  animation-name: fadeInRight;
+}
+
+/*==== FADE IN UP ===*/
+@-webkit-keyframes fadeInUp {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(0, 100%, 0);
+    transform: translate3d(0, 100%, 0);
+  }
+
+  to {
+    opacity: 1;
+    -webkit-transform: none;
+    transform: none;
+  }
+}
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(0, 100%, 0);
+    transform: translate3d(0, 100%, 0);
+  }
+
+  to {
+    opacity: 1;
+    -webkit-transform: none;
+    transform: none;
+  }
+}
+
+.fadeInUp {
+  -webkit-animation-name: fadeInUp;
+  animation-name: fadeInUp;
+}
+
+.mycontainera{
+    padding-right:200px;
+    padding-left:200px;
+  }
+select{
+    background: #fff;
+    box-shadow: rgb(4 105 153 / 44%) 0px 2px 8px 0px, rgb(3 104 148 / 43%) 0px 2px 16px 0px;
+    border-radius: 10px;
+    border: 1px solid #225FA2;
+    cursor: pointer;
+}
+.cg img {
+    padding: 0px;
+    width: 100%;
+}
+.mymarquee marquee{
+  margin-left: -152px;
+    cursor: pointer;
+    margin-top: 5px;
+    color :#FFFF00;
+    font-size:17px;
+}
+.mynav li{
+    font-weight: 500;
+    font-size: 15px;
+    padding: 0px 5px;
+}
+.navbar-dark .navbar-nav .nav-link{
+    color:#fff;
+}
+.latest h4{
+    font-size:20px;
+    margin-top: 10px;
+    color:#fff;
+}
+.bgmar{
+    background:#80011e;
+}
+.mynava{
+    top: 0;
+    position: sticky;
+    z-index: 1025;
+    padding-top:0px;
+    padding-bottom:0px;
+}
+.mymenu{
+    box-shadow: rgb(4 105 153 / 44%) 0px 2px 8px 0px, rgb(3 104 148 / 43%) 0px 2px 16px 0px;
+    border-radius: 10px;
+    border: 2px solid #225FA2;
+}
+.cgg{
+display:none;
+}
+@media only screen and (max-width: 768px) {
+  .mymarquee marquee{
+  margin-left: -30px!important;
+  }
+
+  .latest img{
+    display: block!important;
+}
+
+  /* .rowa{
+    display:flex;
+  } */
+  .rowa img{
+    border-radius: 15px;
+    width: 60%;
+    margin-bottom:5px;
+  }
+  .cgg {
+    display: block;
+  }
+  .cg img {
+    display:none;
+  }
+.sataa p{
+  margin-bottom:0px;
+      color: white;
+    font-size: 20px;
+    font-weight: 600;
+}
+  .navbar-dark .navbar-toggler-icon {
+    padding:15px;
+    filter: invert(1);
+    background-image: url('/images/menuicom.png');
+}
+
+  .mynava{
+    top:-1px;
+  }
+  .latest h4{
+    display:none;
+}
+.mycontainera{
+    overflow:hidden;
+    padding-right:12px;
+    padding-left:12px;
+  }
+  .navbar-toggler:focus{
+    box-shadow:none;
+  }
+  .navbar-dark .navbar-toggler {
+    color: rgba(255,255,255,.55);
+    border-color: rgb(255 255 255 / 0%);
+}
+.mynav li{
+    padding: 2px 0px;
+}
+.nav-link{
+    padding: 0.7rem 1rem;
+}
+body::-webkit-scrollbar {
+  width: 2px;
+}
+}
+
+@media only screen and (min-width: 768px) and (max-width: 1024px) {
+  .mymarquee marquee{
+  margin-left: -30px!important;
+  }
+
+  .latest img{
+    display: block!important;
+}
+
+  .navbar-dark .navbar-toggler-icon {
+    padding:15px;
+    filter: invert(1);
+    background-image: url('/images/menuicom.png');
+}
+/* .rowa{
+    display:flex;
+  } */
+  .rowa img{
+    border-radius: 15px;
+    width: 50%;
+    margin-bottom:5px;
+  }
+  .cgg {
+    display: block;
+    width: 100%;
+  }
+  .cg img {
+    display:none;
+  }
+.sataa p{
+  margin-bottom:0;
+  margin-left:5px;
+      color: white;
+    font-size: 31px;
+    font-weight: 600;
+}
+  .mycontainera {
+    padding-right: 100px;
+    padding-left: 100px;
+}
+}
+@media only screen and (min-width: 1200px)  and (max-width: 1400px){
+
+.mynav li {
+    padding: 0px 0px;
+    font-size: 12px;
+}
+.latest h4 {
+    font-size: 11px;
+    margin-top: 9px;
+}
+.mymarquee marquee {
+    font-size: 12px;
+}
+}
+@media only screen and (min-width: 1401px)  and (max-width: 1599px){
+  .mynav li {
+    font-size: 14px;
+    padding: 0px 0px;
+}
+.latest h4 {
+    font-size: 13px;
+    margin-top: 12px;
+}
+.navbar-dark .navbar-brand {
+    font-size: 16px;
+}
+}
+
+
+@media only screen and (min-width: 1600px)  and (max-width: 1800px){
+  .navbar-brand {
+    font-size: 14px;
+}
+.mynav li {
+    font-size: 14px;
+}
+.latest h4 {
+    font-size: 16px;
+    margin-top: 9px;
+}
+
+}
+.latest{
+  display:flex;
+}
+
+.mysldc1{
+    display: flex;
+  }
+  .mysldc{
+    font-size:12px;
+  }
+
+</style>
+
+
+
+
+  </head>
+  <body>
+    <div id="overlay"></div>
+    <div class="container-fluid mycontainera backcol">
+        <div class="row cg">
+            <img src="/images/newBK1.png" width="99%">
+        </div>
+        <div class="row cgg moblog">
+          <div class="rowa">
+             <div class="col-12 text-center"><img src="/images/bkkk.png"></div>
+             <div class="col-12 sataa text-center"><p>STATE LOAD DESPATCH CENTRE</p></div>
+</div>
+        </div>
+     </div>
+
+<div class="container-fluid bgmar">
+    <div class="row">
+        <div class="col-2 col-lg-2 latest">
+           <h4>Latest Updates</h4>
+           <img src="/images/megaphone4.png" width="30">
+        </div>
+        <div class="col-10 col-lg-10 mymarquee">
+        <marquee direction="left" scrollamount="12" onmouseover="this.stop();"  onmouseout="this.start();">
+            
+                                                    </marquee>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+  <nav class=" navbar navbar-expand-lg navbar-dark bg-dark mynava">
+  <div class="container-fluid">
+  <a class="navbar-brand" href="/index.php"><img src="/images/home.png" alt="" width="40"></a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+      <ul class="navbar-nav mynav">
+       
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown"  aria-expanded="false">
+          About&nbsp;Us
+          </a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" href="/sldc_wsp__overview.php">Overview</a></li>
+            <li><a class="dropdown-item" href="/griddiagram.php">Grid Diagram</a></li>
+            <li><a class="dropdown-item" href="/constitution.php">Constitution</a></li>
+            <li><a class="dropdown-item" href="/function.php">Function</a></li>
+            <li><a class="dropdown-item" href="/scada.php">SCADA</a></li>
+            <li><a class="dropdown-item" href="/gallery.php">Photo Gallery</a></li>
+            <li><a class="dropdown-item" href="/faq.php">FAQ</a></li>
+            <li><a class="dropdown-item" href="/availability_based_tariff.php">Availability Based Tariff</a></li> 
+            <li><a class="dropdown-item" href="/code_of_ethics.php">Code Of Ethics</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">Open&nbsp;Access </a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" href="/regulation.php">Regulations & Procedures</a></li>
+            <li><a class="dropdown-item" target="_blank" href="/open_access/STOA Bank-Account-Information.pdf">STOA Bank Details</a></li>
+            <li><a class="dropdown-item" href="/ltoa.php">LTOA & MTOA Information</a></li>
+            <li><a class="dropdown-item" href="/intrastate.php">Intrastate Appr. for CSPDCL</a></li>
+            <li><a class="dropdown-item" href="/open.php">Open Access Charges</a></li>
+            <li><a class="dropdown-item" href="/sldc_approved_noc_stoa.php">Monthly Approved NOC(STOA)</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">Real&nbsp;Time&nbsp;Data</a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" target="_blank"  href="/gen.php">CG System Overview</a></li>
+            <li><a class="dropdown-item" target="_blank"  href="/trans.php">Transformers & Lines Loading</a></li>
+            <li><a class="dropdown-item" href="#">WRLDC Schedule VS Actual</a></li>
+            <li><a class="dropdown-item" href="#">Flows on Inter-regional Links</a></li>
+          </ul>
+        </li>
+
+
+        <li class="nav-item">
+          <a class="nav-link" target="_blank" href="https://web.sldccg.com/">Web&nbsp;Scheduling</a>
+        </li>
+        
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">Schedules</a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" href="/entitlements.php">DC / Entitlements</a></li>
+            <li><a class="dropdown-item" href="/available_capacity.php">Available Capacity</a></li>
+            <li><a class="dropdown-item" href="/drawl_schedules.php">Drawl Schedules</a></li>
+            <li><a class="dropdown-item" href="/implemented_schedule.php">Injection Schedules</a></li>
+            <li><a class="dropdown-item" href="/33KV_Schedule_Revise_GD_Procedures.php">33KV Sch.Rev.GD Procedure</a></li>
+            <li><a class="dropdown-item" href="/33KV_Schedule_Revise_GD_Procedures_1st_amendment.php">33KV Sch.Rev.GD Procedure (1<sup>st</sup> Amendment)<img width="30px;" height="25px;" src="/images/nev.gif"></a></li>
+            <li><a class="dropdown-item" href="#">WR Bilateral Schedules</a></li>
+            <li><a class="dropdown-item" href="#">Power Exchange Schedules</a></li>
+          </ul>
+        </li>
+         
+        <li class="nav-item">
+          <a class="nav-link" href="/sldc_tenders.php">Tenders</a>
+        </li>
+        
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">Downloads</a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" href="/33KV_Schedule_Revise_GD_Procedure.php">33KV Sch.Rev.GD Procedure</a></li>
+            <li><a class="dropdown-item" href="/33KV_Schedule_Revise_GD_Procedures_1st_amendment.php">33KV Sch.Rev.GD Procedure (1<sup>st</sup> Amendment)<img  width="30px;" height="25px;" src="/images/nev.gif"></a></li>
+            <li><a class="dropdown-item" href="/grid_code.php">CSERC Operating Proce-2011</a></li>
+            <li><a class="dropdown-item" href="/oa_procedure.php">CSERC OA Procedure-2011</a></li>
+            <li><a class="dropdown-item" href="/sldc_tenders.php">Tenders</a></li>
+            <li><a class="dropdown-item" href="/public_notice.php">Public Notice</a></li>
+            <li><a class="dropdown-item" href="/telemetry.php">Telemetry Guideline</a></li>
+          </ul>
+        </li>
+
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">Acts&nbsp;&&nbsp;Regulations</a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" href="/electricity.php">Electricity Act</a></li>
+            <li><a class="dropdown-item" href="/grid1.php">CERC Grid Code</a></li>
+            <li><a class="dropdown-item" href="/csrc_grid.php">CSERC Grid Code</a></li>
+            <li><a class="dropdown-item" href="/sldc_fee.php">SLDC Fee&Charges Regs.</a></li>
+            <li><a class="dropdown-item" href="/cerc_open.php">CERC Open Access Regs.</a></li>
+            <li><a class="dropdown-item" href="/cserc_access.php">CSERC Open Access Regs.</a></li>
+            <li><a class="dropdown-item" href="/cerc_ui.php">CERC UI/DSM Regs.</a></li>
+            <li><a class="dropdown-item" href="/cserc_dsm.php">CSERC DSM Regs.</a></li>
+            <li><a class="dropdown-item" href="/cea_metering.php">CEA Metering Regs.</a></li>
+            <li><a class="dropdown-item" href="/applicable.php">Applicable Tariff Order</a></li>
+          </ul>
+        </li>
+
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">Commercial</a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" href="/sldc_wsp__sea.php">Schedule Energy Accounts</a></li>
+            <li><a class="dropdown-item" href="/dsmcharge.php">DSM charges of OAC</a></li>
+            <li><a class="dropdown-item" href="/cspgcl_monthly.php">DSM charges of CSPGCL</a></li>
+            <li><a class="dropdown-item" href="/regenerator_monthly.php">SDSMA of RE Generator</a></li>
+            <li><a class="dropdown-item" href="/sldc_dev_report_upg_monthly.php">SDSMA of UPG Generator</a></li>
+            <li><a class="dropdown-item" href="/sldc_report__oac_weekly.php">UI Charges Report</a></li>
+            <li><a class="dropdown-item" href="/sldc_wsp__reactiveenergycharges.php">Reactive Energy Charges</a></li>
+            <li><a class="dropdown-item" href="/wheeling.php">Wheeling Charges</a></li>
+            <li><a class="dropdown-item" href="/certificate.php">Energy Injection Report(REC)</a></li>
+            <li><a class="dropdown-item" href="/sldc_wsp_state_energy_account.php">State Energy Account</a></li>
+          </ul>
+        </li>
+
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">Meetings</a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" href="/soap_notice.php">SOAP Notice/Agenda</a></li>
+            <li><a class="dropdown-item" href="/mom.php">SOAP MOM</a></li>
+            <li><a class="dropdown-item" href="/sgcc_notice.php">SGCC Notice/Agenda</a></li>
+            <li><a class="dropdown-item" href="/sgcc_mom.php">SGCC MOM</a></li>
+            <li><a class="dropdown-item" href="/other_notice.php">OTHERS Notice/Agenda</a></li>
+            <li><a class="dropdown-item" href="/other_mom.php">OTHERS MOM</a></li>
+            <li><a class="dropdown-item" href="/oac_meeting.php">OCCM Meeting</a></li>
+            <li><a class="dropdown-item" href="/mea_meeting.php">MEA Meeting</a></li>
+            <li><a class="dropdown-item" href="/fold_meeting.php">FOLD Meeting</a></li>
+          </ul>
+        </li>
+
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">Report </a>
+          <ul class="dropdown-menu mymenu" aria-labelledby="navbarDropdownMenuLink">
+            <li><a class="dropdown-item" href="/dialy_report.php">Daily Progress Report</a></li>
+            <li><a class="dropdown-item" href="/frequency.php">Frequency Profile</a></li>
+            <li><a class="dropdown-item" href="/sldc_wsp__devaccount_reports.php">Deviation Accounts </a></li>
+            <li><a class="dropdown-item" href="/schedule_report.php">Avg Schedule Open Access</a></li>
+            <li><a class="dropdown-item" href="/deviation_report.php">Deviation Report </a></li>
+            <li><a class="dropdown-item" href="/weekly_report.php">Weekly SLDC Report</a></li>
+            <li><a class="dropdown-item" href="/monthly_report.php">Monthly SLDC Report</a></li>
+            <li><a class="dropdown-item" href="/annual_report.php">Annual SLDC Report</a></li>
+            <li><a class="dropdown-item" href="/grid_disturbance1.php">Grid Disturbance in CSPTCL</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item"><a class="nav-link" href="/format.php">FTC</a></li>
+
+        <li class="nav-item"><a class="nav-link" href="/usefullink.php">Useful&nbsp;Links</a></li>
+        
+        <li class="nav-item"><a class="nav-link" href="/sldc_wsp__contact_us.php">Contact&nbsp;Us</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <!-- Optional JavaScript; choose one of the two! -->
+
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="./js/bootstrap.bundle.min.js"></script>
+    <script src="./js/jquery.js"></script>
+    
+
+    <script>
+      $(document).ready(function () {
+$('.navbar .dropdown').hover(function () {
+        $(this).find('.dropdown-menu').first().stop(true, false).slideDown(150);
+    }, function () {
+        $(this).find('.dropdown-menu').first().stop(true, true).slideUp(105)
+    });
+});
+    </script>
+
+  </body>
+</html>
+<meta http-equiv="refresh" content="30">
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+
+
+<script type="text/javascript">
+  document.onkeydown = function(e) {
+if(event.keyCode == 123) {
+return false;
+}
+if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)){
+return false;
+}
+if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)){
+return false;
+}
+if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)){
+return false;
+}
+}
+</script>
+
+<style>
+    .mycontainer{
+    padding-right:200px;
+    padding-left:200px;
+  } 
+  .system{
+    margin:-55px;
+}
+ .mytable{
+    border:2px solid #000;
+ }
+ .korba{
+    font-size:18px;
+    color:#000;
+    background: #d6ebff!important;
+ }
+ .dspm{
+    font-size:18px;
+    font-weight:600;
+    color:#000;
+    background: #d6ebff!important;
+ }
+ .update{
+    background: #fff;
+    box-shadow: rgb(4 105 153 / 44%) 0px 2px 8px 0px, rgb(3 104 148 / 43%) 0px 2px 16px 0px;
+    border-radius: 20px;
+    border: 2px solid #225FA2;
+    padding: 35px;
+ }
+ .updatea{
+    background: #fff;
+    box-shadow: rgb(4 105 153 / 44%) 0px 2px 8px 0px, rgb(3 104 148 / 43%) 0px 2px 16px 0px;
+    border-radius: 20px;
+    border: 2px solid #225FA2;
+    padding: 35px;
+ }
+
+.value h2{
+   font-size:26px;
+   font-weight:600;
+   color:#333399;
+}
+.generation{
+    font-size:18px;
+    font-weight:600;
+}
+
+ @media only screen and (max-width: 767px) {
+
+.mycontainer{
+    overflow: hidden;
+padding-right:0px;
+padding-left:0px;
+}
+.system{
+    margin:10px;
+}
+.up{
+    margin-top:10px;
+    background: #fff;
+    box-shadow: rgb(4 105 153 / 44%) 0px 2px 8px 0px, rgb(3 104 148 / 43%) 0px 2px 16px 0px;
+    border-radius: 20px;
+    border: 2px solid #225FA2;
+    padding: 35px;
+}
+.updatea{
+    display: contents;
+}
+}
+
+
+@media (min-width: 768px) and (max-width: 1024px){
+  .mycontainer {
+    padding-right: 100px;
+    padding-left: 100px;
+}
+.update{
+  margin-bottom:50px;
+}
+}
+
+
+</style>
+
+
+
+
+<div class="container-fluid mycontainer mt-5 pt-5 mb-5 pb-5">
+<form method="post" action="" id="form1" >
+    <div class="row system mb-5">
+        <div class="col-12 text-center mb-4 value">
+            <h2>CG System Overview (ALL VALUES IN MW)  </h2>
+        </div>
+        
+        <div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE0MjQzODE5NzAPZBYCAgMPZBZEAhEPDxYCHgRUZXh0BQ4xMzoxNyAxNC0wNy0yMWRkAh0PDxYCHwAFATBkZAIhDw8WAh8ABQEwZGQCJQ8PFgIfAAUBMGRkAikPDxYCHwAFBTUwLjIyZGQCLQ8PFgIfAAUBMGRkAjEPDxYCHwAFBDM4NjdkZAI3Dw8WAh8ABQQzOTYyZGQCOw8PFgIfAAUDMTUwZGQCPw8PFgIfAAUEMjAyOGRkAkMPDxYCHwAFAzEzOGRkAkcPDxYCHwAFBDIxMjNkZAJLDw8WAh8ABQMxMzhkZAJPDw8WAh8ABQI5NWRkAlMPDxYCHwAFAzEzNWRkAlcPDxYCHwAFAzI0M2RkAlsPDxYCHwAFAzQxOWRkAl8PDxYCHwAFAzQwNmRkAmMPDxYCHwAFAzk1OGRkAmcPDxYCHwAFATBkZAJtDw8WAh8ABQQzOTYyZGQCcQ8PFgIfAAUDMjIzZGQCdQ8PFgIfAAUDMjEzZGQCeQ8PFgIfAAUDNDMxZGQCfw8PFgIfAAUBMGRkAoMBDw8WAh8ABQEwZGQChwEPDxYCHwAFAjQwZGQCiwEPDxYCHwAFAjQxZGQCkQEPDxYCHwAFAzI4NWRkApUBDw8WAh8ABQEwZGQCmQEPDxYCHwAFAzI2MWRkAp0BDw8WAh8ABQQxNjkxZGQCoQEPDxYCHwAFAzE0OGRkAqUBDw8WAh8ABQQxODM5ZGRk4m+xTNrennmscofbXDWT+QK1ZcEfR2fieCd7a1GgNgE=">
+</div>
+<div class="aspNetHidden">
+
+  <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="0B4C1B2A">
+  <input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAAJC2bw3vRlG2Vm9NSznEwEvZN0RZXDwjczqaYWSPVPx1sszdzcFf8xoxmz14/vjxHan8dJ201T2oVRQe4jA1IQX">
+</div>
+        <div class="col-12 col-lg-6  update">
+        <table class="table table-bordered mytable">
+  <thead>
+    <tr>
+      <th class="text-center generation" colspan="2">Updates Latest by &nbsp;&nbsp; <strong>15-Jun-2026 16:02</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="text-center generation" colspan="2"><b>CSPGCL GENERATION</b></td>
+   </tr>
+   <tr>
+      <td class="text-center korba" colspan="2"><b>KORBA WEST BANK TPS</b></td>
+   </tr>
+   <tr>
+      <td>KWB # 1</td>
+      <td><strong>130</strong></td>
+    </tr>
+    <tr>
+      <td>KWB # 2</td>
+      <td><strong>141</strong></td>
+    </tr>
+    <tr>
+      <td>KWB # 3</td>
+      <td><strong>0</strong></td>
+    </tr>
+    <tr>
+      <td>KWB # 4</td>
+      <td><strong>0</strong></td>
+    </tr>
+    <tr>
+      <td>KWB # 5</td>
+      <td><strong>415</strong></td>
+    </tr>
+    <tr>
+      <td>TOTAL</td>
+      <td><strong>672</strong></td>
+    </tr>
+    <tr>
+      <td class="text-center dspm" colspan="2">DSPM TPS</td>
+   </tr>
+   <tr>
+      <td>DSPMTPS #1</td>
+      <td><strong>233</strong></td>
+    </tr>
+    <tr>
+      <td>DSPMTPS # 2</td>
+      <td><strong>229</strong></td>
+    </tr>
+    <tr>
+      <td>TOTAL</td>
+      <td><strong>455</strong></td>
+    </tr>
+    <tr>
+      <td class="text-center dspm" colspan="2">BANGO HPS</td>
+   </tr>
+   <tr>
+      <td>BANGO # 1</td>
+      <td><strong>0</strong></td>
+    </tr>
+    <tr>
+      <td>BANGO # 2</td>
+      <td><strong>0</strong></td>
+    </tr>
+    <tr>
+      <td>BANGO # 3</td>
+      <td><strong>0</strong></td>
+    </tr>
+    <tr>
+      <td>TOTAL</td>
+      <td><strong>0</strong></td>
+    </tr>
+    <tr>
+      <td class="text-center dspm" colspan="2">MARWA TPS</td>
+    </tr>
+    <tr>
+      <td>MARWA # 1</td>
+      <td><strong>480</strong></td>
+    </tr>
+    <tr>
+      <td>MARWA # 2</td>
+      <td><strong>478</strong></td>
+    </tr>
+    <tr>
+      <td>TOTAL</td>
+      <td><strong>945</strong></td>
+    </tr>
+    <tr>
+      <td><b>TOTAL OF CSPGCL</b></td>
+      <td><strong>2075</strong></td>
+    </tr>
+    <tr>
+      <td><b>Other Intrastate Injection</b></td>
+      <td><strong>387</strong></td>
+    </tr>
+    <tr>
+      <td><b>TOTAL OF CSPGCL &amp; IPP/CPP</b></td>
+      <td><strong>2462</strong></td>
+    </tr>
+  </tbody>
+</table>
+        </div>
+        <div class="col-12 col-lg-6 up ">
+            <div class="updatea">
+        <table class="table table-bordered mytable">
+  <thead>
+    <tr>
+      <th class="text-center generation" colspan="2"><b>REFRESH RATE -30 SEC.</b></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="text-center generation" colspan="2"><b>CG SYSTEM SUMMARY</b></td>
+    </tr>
+    <tr>
+      <td>Normal Rate of Charge for Deviation</td>
+      <td><strong>0</strong></td>
+    </tr>
+    <tr>
+      <td>WR Frequency</td>
+      <td><strong>49.99</strong></td>
+    </tr>
+    <tr>
+      <td>Power Availability</td>
+      <td><strong>5445</strong></td>
+    </tr>
+    <tr>
+      <td>CG Demand</td>
+      <td><strong>5480</strong></td>
+    </tr>
+    <tr>
+      <td>CG Schedule</td>
+      <td><strong>2983</strong></td>
+    </tr>
+    <tr>
+      <td>CG Drawl from Central Sector</td>
+      <td><strong>3018</strong></td>
+    </tr>
+    <tr>
+      <td>CG Under Drawl(-)/ Over Drawl(+)</td>
+      <td><strong>35</strong></td>
+    </tr>
+    <tr>
+      <td>Solar & Bess Injection at 132 Level</td>
+      <td><strong>279</strong></td>
+    </tr>
+    <tr>
+      <td>Biomass Injection</td>
+      <td><strong>43</strong></td>
+    </tr>
+    <tr>
+      <td>Load Sheeding MW</td>
+      <td><strong>0</strong></td>
+    </tr>
+    <tr>
+      <td>Unrestricted Demand</td>
+      <td><strong>5480</strong></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+        </div>
+    </div>
+</form>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <style>
+.footer{
+  color:#fff;
+  background-color: #03608c;
+}
+
+/* .tops{
+  padding:15px;
+} */
+.address img{
+  filter: invert(1);
+}
+
+.list-style{
+  list-style-type:none!important;
+  cursor:pointer;
+  font-size:16px;
+  opacity:.8;
+}
+.copy-right{
+  font-size:.75rem;
+  opacity:.8;
+}
+.Analyst {
+  width: 87.7px;
+  height: 23.7px;
+  margin: 10.7px 0 5.2px 10.2px;
+  color: #fff;
+}
+.logo img{
+    border-radius:15px;
+}
+.map img{
+    border-radius:20px;
+    width:65%;
+}
+.boot{
+    font-size:10px;
+    margin-bottom: -38px;
+}
+.copy p{
+  font-size:10px;
+  margin-bottom: 0px;
+}
+.address{
+  margin: 22px 116px 0px 117px;
+  text-align: justify;
+}
+.meee li a{
+  color:#fff;
+  text-decoration:none;
+}
+
+@media only screen and (max-width: 767px) {
+    .logo img{
+    width:100%;
+    border-radius:15px;
+}
+.address img{
+  width:30px;
+}
+.address{
+  margin: 22px 0px 22px 0px;
+  text-align: justify;
+}
+.map img {
+    width: 100%;
+}
+}
+
+@media only screen and (min-width: 1200px)  and (max-width: 1400px){
+  .address {
+    margin: 22px 25px 0px 25px;
+}
+.logo img{
+  margin-top: -16px;
+  width:90%;
+}
+.quick{
+  font-size:20px;
+}
+.address img{
+  width:30px;
+}
+}
+
+
+@media (min-width: 768px) and (max-width: 1024px){
+  .linka{
+    text-align: center;
+    margin-top: 50px;
+  }
+  .address {
+    margin: 22px 173px 0px 180px;
+}
+}
+
+
+@media only screen and (min-width: 1600px)  and (max-width: 1800px){
+  .address {
+    margin: 17px 87px 0px 79px;
+}
+}
+
+
+@media only screen and (min-width: 1401px)  and (max-width: 1599px){
+  .address {
+    margin: 17px 45px 0px 45px;
+}
+}
+
+
+</style>
+
+  </head>
+  <body>
+  
+  <footer class="text-center footer text-center">
+  <div class="container-fluid p-4">
+    
+      <div class="row  text-md-start mt-5">
+        
+          <!--Logo Start-->
+        <div class="col-12 col-lg-4 pt-3 logo text-center">
+          
+          <img src="/images/cglogo.jpg" alt="">
+          <p class="address"><img src="/images/location.png" width="25px">Chhattisgarh State Power Transmission Co. Ltd.(A Successor Company Of CSEB) Danganiya, Raipur, C.G., 490024, India.</p>
+          
+        
+        </div>
+        <!--Logo end-->
+        
+          <!--Solutions Start-->
+        <div class="col-12 col-lg-2 linka">
+         <h3 class="pb-3 quick">Quick Links</h3>
+          <ul class="list-style ps-0 meee ">
+            <li class="pb-3"><a href="/index.php">Home</a></li>
+            <li class="pb-3"><a href="/sldc_wsp__overview.php">About</a></li>
+            <li class="pb-3"><a href="/gallery.php">Photo Gallery</a></li>
+            <li class="pb-3"><a href="/faq.php">Faq</a></li>
+            <li class="pb-3"><a target="_blank" href="https://web.sldccg.com/">Web Scheduling</a></li>
+            <li class="pb-3"><a href="/sldc_wsp__contact_us.php">Contact Us</a></li>
+          </ul>
+        </div>
+        <!--Solutions end-->
+        
+          
+          <!--Quick links Start-->
+        <div class="col-12 col-lg-2 linka">
+         <h3 class="pb-3 quick"> Important links </h3>
+          <ul class="list-style ps-0 meee ">
+            <li class="pb-3"><a href="/sldc_wsp__terms_conditions.php">Terms & Conditions<a> </li>
+            <li class="pb-3"><a href="/sldc_wsp__disclaimer.php" >Disclaimer</a> </li>
+            <li class="pb-3"><a href="/feedback.php">Feedback </a></li>
+            <li class="pb-3"><a href="/sldc_sitemap.php">Sitemap</a></li>
+            <li class="pb-3"><a  target="_blank" href="http://gmail.com">Mail</a></li>
+            <li class="pb-3">EITC Load Schedding</li>
+          </ul>
+        </div>
+        <!--QUick links end-->
+       
+        <!--Other Start-->
+        <div class="col-12 col-lg-4 map linka">
+         <h3 class="pb-3 quick"> Map</h3>
+         <img src="/images/mmap.png" alt="">
+        </div>
+        <!--Other end-->
+      </div>
+      <div class="col-12 text-center copy"><p>Copyright @ State Load Despatch Centre, Chhattisgarh, 2009.</p></div>
+  <div class="col-12 text-center boot"><p>This website is best viewed in Google Chrome</p></div>
+  </div>
+  
+
+  <button class="btn  btn-primary position-fixed bottom-0 end-0 translate-middle d-none tops" onclick="scrollToTop()" id="back-to-up">
+  <img src="/images/arrow.png" alt="" width="20" style="filter: invert(1);">
+</button>
+
+<script>
+  window.onscroll = () => {
+  toggleTopButton();
+}
+function scrollToTop(){
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function toggleTopButton() {
+  if (document.body.scrollTop > 20 ||
+      document.documentElement.scrollTop > 20) {
+    document.getElementById('back-to-up').classList.remove('d-none');
+  } else {
+    document.getElementById('back-to-up').classList.add('d-none');
+  }
+}
+</script>
+</footer>
+
+
+

@@ -10,17 +10,19 @@ from importlib import import_module
 from types import ModuleType
 
 PLUGINS = ["vidyut_pravah", "merit", "punjab_sldc", "delhi_sldc",
-           "karnataka_sldc", "maha_vision"]
+           "karnataka_sldc", "maha_vision", "chhattisgarh_sldc"]
 
 # sources that publish real measured in-state generation by fuel; their mix
 # outranks every estimated basis (psp / cea / merit) in the freshness ladder
-MEASURED_MIX_SOURCES = ("punjab_sldc", "delhi_sldc", "karnataka_sldc", "maha_vision")
+MEASURED_MIX_SOURCES = ("punjab_sldc", "delhi_sldc", "karnataka_sldc",
+                        "maha_vision", "chhattisgarh_sldc")
 
-# measured sources that report ONLY the state's own (partial) fleet, not its
-# whole supply — their generation is a small slice of demand by design (the
-# rest is central imports), so their mix must NOT be reconciled against demand.
-# Their CI is explicitly in-state-generation, not consumption.
-OWN_GENERATION_SOURCES = ("delhi_sldc",)
+# measured sources that report ONLY a slice of the state's supply, not its
+# whole demand — their generation is well under demand by design (Delhi: just
+# its own gas+waste fleet; Chhattisgarh: in-state generation only, ~half its
+# demand is central-sector drawl generated elsewhere). Their mix must NOT be
+# reconciled against demand; their CI is in-state-generation, not consumption.
+OWN_GENERATION_SOURCES = ("delhi_sldc", "chhattisgarh_sldc")
 
 
 def load(name: str) -> ModuleType:

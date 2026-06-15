@@ -155,7 +155,11 @@
       "Bash(curl -s --max-time 25 -k -A \"Mozilla/5.0\" \"https://mahasldc.in/assets/public/scada/mvrreport3.jpg\" -o mh.jpg -w \"HTTP %{http_code} type %{content_type} size %{size_download}\\\\n\")",
       "Bash(curl -s --max-time 25 -k -A \"Mozilla/5.0\" \"https://sldccg.com/gen.php\" -o cg.html -w \"HTTP %{http_code} size %{size_download}\\\\n\")",
       "mcp__Apify__apify--rag-web-browser",
-      "Bash(../.venv/bin/python -m pytest tests/test_estimation.py -v)"
+      "Bash(../.venv/bin/python -m pytest tests/test_estimation.py -v)",
+      "Bash(.venv/bin/python /tmp/cg_inspect.py)",
+      "Bash(awk '{print \"fixture saved:\", $5, \"bytes\"}')",
+      "Bash(../.venv/bin/python -m pytest tests/test_chhattisgarh_sldc.py -v)",
+      "Bash(../.venv/bin/python -m gridscrapers.run chhattisgarh_sldc)"
     ]
   }
 }
