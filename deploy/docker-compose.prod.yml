@@ -64,6 +64,8 @@ services:
     environment:
       GRID_DB_DSN: postgresql://grid:${POSTGRES_PASSWORD}@db:5432/india_grid
       HEALTHCHECK_URL: ${HEALTHCHECK_URL:-}
+      # enables the Maharashtra vision parser; unset → maha_vision soft-skips
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy
