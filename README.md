@@ -4,6 +4,8 @@ Electricity-Maps-for-India: state-wise live demand, generation mix, and carbon
 intensity on a map, with free history and API. See `docs/` for the build plan
 and source recon.
 
+![India Electricity Data — live demand choropleth with per-state generation mix and carbon intensity](docs/screenshot.png)
+
 ## Layout
 
 - `scrapers/` — Python package (`gridscrapers`): one plugin per source under
