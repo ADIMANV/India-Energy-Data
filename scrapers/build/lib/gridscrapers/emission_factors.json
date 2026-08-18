@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "unit": "gCO2eq/kWh",
+  "method": "Direct combustion factors from CEA for Indian fossil fleet; IPCC AR5 lifecycle medians for non-fossil. See docs/METHODOLOGY.md for sources and caveats.",
+  "factors": {
+    "coal": 950,
+    "gas": 450,
+    "oil": 800,
+    "hydro": 24,
+    "nuclear": 12,
+    "solar": 48,
+    "wind": 11,
+    "biomass": 230,
+    "res_nonsolar": 100,
+    "other": 700,
+    "own_generation": null
+  },
+  "notes": {
+    "coal": "CEA CO2 Baseline Database v19 fleet-weighted average ~0.95 tCO2/MWh (includes lignite)",
+    "gas": "CEA baseline, Indian CCGT fleet average",
+    "oil": "diesel/HFO peakers, IPCC direct",
+    "hydro": "IPCC AR5 lifecycle median",
+    "nuclear": "IPCC AR5 lifecycle median",
+    "solar": "IPCC AR5 lifecycle median (utility PV)",
+    "wind": "IPCC AR5 lifecycle median (onshore)",
+    "biomass": "IPCC AR5 lifecycle median (dedicated)",
+    "res_nonsolar": "MERIT 'TOTAL NON SOLAR' = wind + biomass + small hydro blend; midpoint estimate",
+    "other": "conservative: unidentified thermal treated near coal",
+    "own_generation": "MERIT aggregate, not a fuel — never used for CI"
+  }
+}

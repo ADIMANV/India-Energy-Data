@@ -8,10 +8,19 @@ dependencies = [
     "beautifulsoup4>=4.12",
     "pydantic>=2.7",
     "psycopg[binary]>=3.1",
+    # imported lazily inside parsers, so a missing one fails at scrape time
+    # rather than import time: xlrd -> CEA .xls, openpyxl -> CEA RE .xlsx,
+    # pdfplumber -> RLDC PSP reports (the fuel-share source for ~20 states).
+    "xlrd>=2.0",
+    "openpyxl>=3.1",
+    "pdfplumber>=0.11",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+# Maharashtra SCADA-image parsing. Without it maha_vision soft-skips, so this
+# stays optional; install with `pip install ./scrapers[vision]`.
+vision = ["anthropic>=0.40"]
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -19,3 +28,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["gridscrapers*"]
+
+# emission_factors.json is read at import time by estimation.py. Without this a
+# non-editable install (i.e. the Docker image) drops it and every entrypoint
+# dies with FileNotFoundError; editable dev installs hide the bug.
+[tool.setuptools.package-data]
+gridscrapers = ["*.json"]
