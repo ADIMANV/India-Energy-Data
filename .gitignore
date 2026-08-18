@@ -19,6 +19,12 @@ vessel_data.csv
 .env.*
 !.env.example
 
+# SSH / TLS private keys (e.g. an EC2 .pem left in the project folder)
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
 # DB dumps and any bulk archive
 *.dump
 *.sql.gz
