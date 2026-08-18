@@ -59,7 +59,9 @@ CRON_LINE="*/15 * * * * cd $APP_DIR && $COMPOSE run --rm tick >> $APP_DIR/logs/t
 crontab -l | tail -1
 
 echo "==> 7/7 first tick + smoke test"
-$COMPOSE run --rm tick || echo "WARN: first tick reported issues (see output above)"
+# --build is required: `compose run` only builds when the image is *absent*, so
+# on a re-run after a code change it would silently use the stale tick image.
+$COMPOSE run --build --rm tick || echo "WARN: first tick reported issues (see output above)"
 sleep 1
 curl -s "http://127.0.0.1:8000/v1/zones" | head -c 200 && echo
 echo
