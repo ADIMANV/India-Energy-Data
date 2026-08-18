@@ -47,7 +47,9 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      API_DOMAIN: ${API_DOMAIN:?set in .env (DNS A record must point here)}
+      # With a domain: Let's Encrypt TLS automatically. Without one: plain :80,
+      # for the setup where Vercel proxies /api/* to this box server-side.
+      CADDY_SITE: ${API_DOMAIN:-:80}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

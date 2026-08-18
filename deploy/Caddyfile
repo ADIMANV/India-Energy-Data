@@ -1,3 +1,8 @@
-{$API_DOMAIN} {
+# CADDY_SITE is set by docker-compose.prod.yml from API_DOMAIN:
+#   API_DOMAIN set   -> "api.example.com": Caddy gets a Let's Encrypt cert automatically.
+#   API_DOMAIN unset -> ":80": plain HTTP, no cert (Let's Encrypt cannot issue for a
+#     bare IP). Use this when Vercel proxies /api/* to the backend server-side, so the
+#     browser only ever talks to Vercel over HTTPS.
+{$CADDY_SITE} {
 	reverse_proxy api:8000
 }
