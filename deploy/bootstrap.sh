@@ -52,7 +52,10 @@ fi
 
 echo "==> 6/7 cron (every 15 min)"
 CRON_LINE="*/15 * * * * cd $APP_DIR && $COMPOSE run --rm tick >> $APP_DIR/logs/tick-cron.log 2>&1"
-( crontab -l 2>/dev/null | grep -vF "india-grid" | grep -vF "$APP_DIR" ; echo "$CRON_LINE" ) | crontab -
+# `|| true` matters: on a fresh box there is no crontab, so `crontab -l` yields
+# no lines and grep -v exits 1 — which under `set -euo pipefail` would abort the
+# script here, silently skipping the cron install and the first tick.
+{ crontab -l 2>/dev/null | grep -vF "india-grid" | grep -vF "$APP_DIR" || true ; echo "$CRON_LINE" ; } | crontab -
 crontab -l | tail -1
 
 echo "==> 7/7 first tick + smoke test"
