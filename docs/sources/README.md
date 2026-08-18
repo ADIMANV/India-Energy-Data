@@ -123,8 +123,12 @@ CEA serves daily fuel-wise reports as PDF/Excel. Both are Phase 3 inputs
 
 ## electricitymaps-contrib reference
 
-India parsers copied to `docs/reference/emaps-parsers/` (MIT-licensed; commit from
-2026-06-11 clone). Useful per-state endpoints they use (verify before building on):
+Endpoints below were noted from the India parsers in
+[electricitymaps-contrib](https://github.com/electricitymaps/electricitymaps-contrib)
+(**AGPL-3.0**) during 2026-06-11 recon. That code is *not* vendored here — the
+copyleft terms are incompatible with this repo's MIT license, so consult it
+upstream. Only the endpoint URLs (public facts) are recorded. Verify before
+building on them:
 
 | State | Source | Note |
 |---|---|---|

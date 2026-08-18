@@ -1,0 +1,2350 @@
+<!-- JavaScript for handling external link clicks -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NRLDC</title>
+
+    <link rel="shortcut icon" href="https://nrldc.in/images/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="https://nrldc.in/images/favicon.ico" type="image/x-icon">
+
+    <meta name="csrf_token" content="xZmNi8ahpSvdF8EG9VS9kJqQetro5rYi4JcBhxim" />
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://nrldc.in/css/fontawesome.min.css">
+    <!-- icheck bootstrap -->
+    <link rel="stylesheet" href="https://nrldc.in/css/icheck-bootstrap.min.css">
+    <link rel="stylesheet" href="https://nrldc.in/css/bootstrap-datepicker.css">
+    <link rel="stylesheet" href="https://nrldc.in/css/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://nrldc.in/css/dataTables.dataTables.min.css">
+
+    <!-- Theme style -->
+    <link rel="stylesheet" href="https://nrldc.in/css/adminlte.min.css">
+    <link rel="stylesheet" type="text/css" href="https://nrldc.in/css/slick.css" />
+    <link rel="manifest" href="https://nrldc.in/manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <link rel="preload" as="style" href="https://nrldc.in/build/assets/app-8288c820.css" /><link rel="stylesheet" href="https://nrldc.in/build/assets/app-8288c820.css" />
+    <style>
+        mark {
+            background-color: yellow;
+            color: inherit;          
+            padding: 0;             
+            margin: 0;                
+            font-weight: inherit;     
+            line-height: inherit;     
+            border: none;             
+            box-shadow: none;         
+        }
+
+        .dataTables_filter {
+            display: none;
+        }
+
+        .searchBoxFilter {
+            border-right: 1px solid #ced4da !important;
+        }
+        .table-responsive.users-table .dt-layout-row .dt-length{
+            display: block;
+        }
+        .slick-slider .slick-slide img{
+            object-fit: inherit;
+        }
+    </style>
+    </head>
+<body class="primaryBackground" id="cstbody-hi">
+        
+    <header>
+        <!-- Top Header (Page header) -->
+<section class="top-header">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-4 col-sm-4 col-lg-3">
+                <div class="m-0 d-flex align-items-center">
+                    <span class="mr-sm-2 d-flex align-items-center">
+                                            <a rel="noopener" class="d-flex" href="#" data-bs-toggle="modal"
+                        data-bs-target="#staticBackdrop">
+                        <img class="mr-1" src="https://nrldc.in/images/home/login.svg" alt="Login" />
+                        लॉग इन</span>
+                    </a>
+                                        <span class="saperater mr-2 ml-2"></span>
+                    <span class="ml-sm-2 d-flex align-items-center">
+                        <a target="_blank" rel="noopener"
+                            href="https://mail.grid-india.in/owa/auth/logon.aspx?replaceCurrent=1&url=https%3a%2f%2fmail.grid-india.in%2fowa">
+                            <i class="far fa-envelope mr-sm-2" aria-hidden="true"></i>
+                            ईमेल
+                        </a>
+                </div>
+            </div>
+            <div class="col-sm-8 col-lg-9 col-8 d-flex justify-content-end align-items-center">
+                <div class="mr-4 cin-number d-lg-block"> सीआईएन: U40105DL2009GOI88682</div>
+                <a href="https://nrldc.in/images/home/GST REG CERTIFICATE.pdf" target="_blank" rel="noopener noreferrer">
+                    <div class="mr-4 cin-number d-lg-block mbitem2" style="color: white;
+                    text-decoration: underline;"> GSTIN: 07AAFCP2086B1ZO</div>
+                </a>
+                <div class="d-flex color-box mr-4">
+                    <a rel="noopener" href="javascript:void(0)" class="bg-blue-color mr-2" id="bgBlueColor"></a>
+                    <a rel="noopener" href="javascript:void(0)" class="bg-brown mr-2" id="bgBrown"></a>
+                    <a rel="noopener" href="javascript:void(0)" class="bg-black" id="bgBlack"></a>
+                </div>
+                <div class="mr-2 font-weight-700 screen-reader">
+                    <a target="_blank" rel="noopener" href="https://nrldc.in/screen-reader">
+                        <i class="fa fa-volume-up mr-2" aria-hidden="true"></i>
+                        <span class="d-none d-sm-inline-block">स्क्रीन रीडर एक्सेस</span>
+                    </a>
+                </div>
+                <span class="saperater"></span>
+                <div class="text-selector">
+                    <nav class="text_size_selector">
+                        <ul>
+                            <li class="text_resize" aria-expanded="false">
+                                <a rel="noopener" href="javascript:void(0)">T<sub>T</sub></a>
+                                <ul class="text_resize_options">
+                                    <li aria-label="Small Font" id="decrease"><a rel="noopener"
+                                            href="javascript:void(0)">A-</a></li>
+                                    <li aria-label="Normal Font" id="reset"><a rel="noopener"
+                                            href="javascript:void(0)">A</a></li>
+                                    <li aria-label="Large Font" id="increase"><a rel="noopener"
+                                            href="javascript:void(0)">A+</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                <span class="saperater mr-3"></span>
+                <div class="d-flex align-items-center">
+                    <span class="mr-3 language">भाषा:</span>
+                    <div class="mr-3 dropdown">
+                        <button class="btn btn-secondary btn-sm dropdown-toggle language-btn p-0" type="button"
+                            id="dropdownMenuButton" data-bs-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            हिंदी
+                        </button>
+                        <div class="dropdown-menu lang-menu" aria-labelledby="dropdownMenuButton">
+                            <a rel="noopener" class="dropdown-item"
+                                href="https://nrldc.in/lang/hi">हिंदी</a>
+                            <a class="dropdown-item" rel="noopener"
+                                href="https://nrldc.in/lang/en">English</a>
+                        </div>
+                    </div>
+                                    </div>
+            </div><!-- /.col -->
+        </div><!-- /.row -->
+    </div><!-- /.container -->
+</section> <!-- /.Top-header -->
+        <section class="heading-main">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-5 col-7 pr-0">
+                <div class="nrldc-logo d-flex">
+                    <a href="https://nrldc.in">
+
+                        <img src="https://nrldc.in/images/GridIndiaLogofooter.jpg" alt="Logo Name">
+                        <div class="brand_title">
+                            <span>ग्रिड कंट्रोलर ऑफ इंडिया लिमिटेड</span>
+                            <span>पूर्व में पावर सिस्टम ऑपरेशन कॉर्पोरेशन लिमिटेड (POSOCO)</span>
+                            <span>(भारत सरकार का उपक्रम)</span>
+                            <span>उत्तरी क्षेत्रीय भार प्रेषण केंद्र</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+    
+            <div class="col-md-7 col-5 pl-0 d-flex d-flex justify-content-end align-items-center">
+                <div class="logoes mr-2 d-none d-md-flex d-xl-flex">
+                    <div class="input-group">
+                        <form action="https://nrldc.in/search" method="GET">
+                            <input type="text" class="form-control searchPageField" name="search" placeholder="Search...">
+                        </form>
+                    </div>
+                </div>
+                <div class="logoes mr-2 d-none d-xl-flex">
+                                                            <div class="header-img-logo"><img src="https://nrldc.in/view-file?any=uploads%2Flogo-images%2F3q8IGc2PQA-w-ISO_9001_2015.png" alt="Logo" /></div>
+                                            <div class="header-img-logo"><img src="https://nrldc.in/view-file?any=uploads%2Flogo-images%2FkzblelaIdh-w-ISO_27001.png" alt="Logo" /></div>
+                                            <div class="header-img-logo"><img src="https://nrldc.in/view-file?any=uploads%2Flogo-images%2F89GG0yxy4d-w-ISO_14001_2015.png" alt="Logo" /></div>
+                                            <div class="header-img-logo"><img src="https://nrldc.in/view-file?any=uploads%2Flogo-images%2FdqWhk5bmOb-w-ISO_45001_2018.png" alt="Logo" /></div>
+                                                    </div>
+                <a target="blank" href="https://nrldc.in/images/home/ims-policy.pdf" class="ims-policy">आई.एम.एस. नीति - 2022</a>
+                
+            </div><!-- /.col -->
+        </div><!-- /.row -->
+        <div class="logoes mr-2 d-md-none mt-4">
+        <form action="https://nrldc.in/search" method="GET">
+            <div class="input-group">
+                <input type="text" class="form-control searchPageFieldMobile" name="search" placeholder="Search...">
+                <button class="btn btn-primary searchButton">Search</button>
+            </div>
+            </form>
+        </div>
+    </div><!-- /.container -->
+</section> <!-- /.header -->
+        <!-- Top Header (Page header) -->
+      <section class="top-navbar topNav">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-12 d-flex justify-content-between">
+                <nav class="main-navbar align-items-center">
+                    <button class="navigation-toggler headerMenu">
+                        <i class="fa fa-bars" aria-hidden="true"></i>
+                    </button>
+                    <ul class="top-navbar-nav m-0 p-0">
+                        <li class="nav-close">
+                            <button class="btn-nav-close">
+                                <img src="https://nrldc.in/images/delete_remove.svg" alt="search" />
+                            </button>
+                        </li>
+                        <li class="item home">
+                            <a class="nav-link" href="https://nrldc.in">
+                                <i class="fas fa-home"></i>
+                                <span class="mobile-visible">Home</span>
+                            </a>
+                        </li>
+                                                                        <li class="item icon">
+                            <a class="item-link external-link" href="#">हमारे बारे में</a>
+                                                        <ul class="dropdown">
+                                                                <li class="item" data-menu-item="हमारे बारे में">
+                                    <a href="/about-us#whoWeAre" class="item-link external-link">हमारे बारे में</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="विज़न">
+                                    <a href="/about-us#vision" class="item-link external-link">विज़न</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="मिशन">
+                                    <a href="/about-us#mission" class="item-link external-link">मिशन</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="मूल्य/महत्व">
+                                    <a href="/about-us#values" class="item-link external-link">मूल्य/महत्व</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="एन आर एल डी सी के कार्य">
+                                    <a href="/about-us#funcRLDC" class="item-link external-link">एन आर एल डी सी के कार्य</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="अन्य कार्य">
+                                    <a href="/about-us#othrFunctions" class="item-link external-link">अन्य कार्य</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="उत्तरी क्षेत्र की प्रमुखताएँ">
+                                    <a href="/about-us#highLightsOfNorReg" class="item-link external-link">उत्तरी क्षेत्र की प्रमुखताएँ</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="हमारा इतिहास">
+                                    <a href="/about-us#ourHistory" class="item-link external-link">हमारा इतिहास</a>
+                                                                    </li>
+                                                            </ul>
+                                                    </li>
+                                                <li class="item icon">
+                            <a class="item-link external-link" href="#">मार्किट ऑपरेशन</a>
+                                                        <ul class="dropdown">
+                                                                <li class="item" data-menu-item="ओपन एक्सेस">
+                                    <a href="#" class="item-link external-link">ओपन एक्सेस</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="https://noar.in/landing" class="item-link external-link">नेशनल ओपन एक्सेस रजिस्ट्री</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://greenopenaccess.in/landing" class="item-link external-link">ग्रीन ओपन एक्सेस रजिस्ट्री</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">संवितरण एवं प्रतिदाय</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="/openAccess/stu-sldc-disbursement-report" class="item-link external-link">एस.टी.यू./एस.एल.डी.सी. संवितरण विवरण</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/openAccess/applicant-refund-report" class="item-link external-link">आवेदक प्रतिदाय विवरण</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/openAccess/ctu-disbursement-report" class="item-link external-link">सीटीयू संवितरण रिपोर्ट</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">रीकॉनसीलेशन</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="/openAccess/stu-sldc" class="item-link external-link">एस.टी.यू./एस.एल.डी.सी. विवरण</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/openAccess/applicant-refund" class="item-link external-link">आवेदक प्रतिदाय</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/openAccess/ctu" class="item-link external-link">सीटीयू</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/open-access/open-access-related-document" class="item-link external-link">ओपन एक्सेस संबंधित दस्तावेज़</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="फी एंड चार्जेस">
+                                    <a href="#" class="item-link external-link">फी एंड चार्जेस</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="https://fc.grid-india.in/FnCWeb/#/landing" class="item-link external-link">फी एंड चार्जेस  भुगतान पोर्टल</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/fee-charges/nrldc-user-details" class="item-link external-link">एन.आर.एल.डी.सी. उपयोगकर्ताओं की सूची</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/fee-charges/bank-account-details-for-nrldc-fees-charges" class="item-link external-link">एन.आर.एल.डी.सी.फी एंड चार्जेस के लिए बैंक खाता विवरण</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/fee-charges/bill-details" class="item-link external-link">बिल विवरण</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/fee-charges/reconcilation" class="item-link external-link">रीकॉनसीलेशन</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/fee-charges/fc-orders-and-regulations" class="item-link external-link">फी एंड चार्जेस नियम और अधिनियम</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="पैमाइश">
+                                    <a href="#" class="item-link external-link">पैमाइश</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="/metering/sem-data" class="item-link external-link">विशेष ऊर्जा मीटर डेटा</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://meterdata.nrldc.in/" class="item-link external-link">मीटरडेटा अपलोड करने के लिए लिंक</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/metering/guidelines-for-computation" class="item-link external-link">गणना के लिए दिशानिर्देश</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/metering/time-correction-procedure" class="item-link external-link">समय सुधार प्रक्रिया</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/metering/discrepancy-report" class="item-link external-link">डिस्क्रिपन्सी रिपोर्ट</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/metering/metering-regulations" class="item-link external-link">मीटरिंग अधिनियम</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/metering/handbook-energy" class="item-link external-link">उत्तरी क्षेत्र में इंटरफ़ेस एनर्जी मीटरिंग सिस्टम पर हैंडबुक</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="नियामक पूल खाता">
+                                    <a href="#" class="item-link external-link">नियामक पूल खाता</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">डीएसएम शुल्क</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="https://grid-india.in/en/markets/dsmrates" class="item-link external-link">डीएसएम दर</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="#" class="item-link external-link">विचलन</a>
+                                                                                                        <ul class="dropdown">
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/dsm-charges/deviation/deviation-disbursement-letter" class="item-link external-link">विचलन संवितरण पत्र</a>
+                                                        </li>
+                                                                                                                <li class="item">
+                                                            <a href="https://poolar.nrldc.in/login" class="item-link external-link">विचलन रीकॉनसीलेशन कथन</a>
+                                                        </li>
+                                                                                                            </ul>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/dsm-charges/deviation-interest" class="item-link external-link">विचलन ब्याज</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/dsm-charges/dsm-regulations" class="item-link external-link">डीएसएम अधिनियम</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">रिएक्टिव चार्जेस</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="#" class="item-link external-link">रिएक्टिव सिद्धांत</a>
+                                                                                                        <ul class="dropdown">
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/reactive-charges/reactive-principle/reactive-disbursement-letter" class="item-link external-link">रिएक्टिव संवितरण पत्र</a>
+                                                        </li>
+                                                                                                                <li class="item">
+                                                            <a href="https://poolar.nrldc.in/login" class="item-link external-link">रिएक्टिव रीकॉनसीलेशन कथन</a>
+                                                        </li>
+                                                                                                            </ul>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/reactive-charges/reactive-interest" class="item-link external-link">रिएक्टिव ब्याज</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/reactive-charges/reactive-regulations" class="item-link external-link">रिएक्टिव अधिनियम</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">कंजेस्शन चार्जेस</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="#" class="item-link external-link">कंजेस्शन सिद्धांत</a>
+                                                                                                        <ul class="dropdown">
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/congestion-charges/congestion-principle/congestion-disbursement-letter" class="item-link external-link">कंजेस्शन संवितरण पत्र</a>
+                                                        </li>
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/congestion-charges/congestion-principle/congestion-reconcillation-statement" class="item-link external-link">कंजेस्शन रीकॉनसीलेशन कथन</a>
+                                                        </li>
+                                                                                                            </ul>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/congestion-charges/congestion-interest" class="item-link external-link">कंजेस्शन ब्याज</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/congestion-charges/congestion-regulations" class="item-link external-link">कंजेस्शन अधिनियम</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">एंसीलरी सर्विसेस</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/ancillary-services/ancillary-services-regulation" class="item-link external-link">एंसीलरी सर्विसेस अधिनियम</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="#" class="item-link external-link">टी.आर.ए.एस.</a>
+                                                                                                        <ul class="dropdown">
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/ancillary-services/tras/tras-disbursement-letter" class="item-link external-link">टी.आर.ए.एस. संवितरण पत्र</a>
+                                                        </li>
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/ancillary-services/tras/tras-reconcillation-statement" class="item-link external-link">टी.आर.ए.एस. रीकॉनसीलेशन कथन</a>
+                                                        </li>
+                                                                                                            </ul>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/ancillary-services/tras-interest" class="item-link external-link">टी.आर.ए.एस. ब्याज</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="#" class="item-link external-link">एस.आर.ए.एस.</a>
+                                                                                                        <ul class="dropdown">
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/ancillary-services/sras/sras-disbursement-letter" class="item-link external-link">एस.आर.ए.एस. संवितरण पत्र</a>
+                                                        </li>
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/ancillary-services/sras/sras-reconcillation-statement" class="item-link external-link">एस.आर.ए.एस. रीकॉनसीलेशन कथन</a>
+                                                        </li>
+                                                                                                            </ul>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/ancillary-services/sras-interest" class="item-link external-link">एस.आर.ए.एस. ब्याज</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="#" class="item-link external-link">एस.सी.यू.सी.</a>
+                                                                                                        <ul class="dropdown">
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/ancillary-services/scuc/scuc-disbursement-letter" class="item-link external-link">एस.सी.यू.सी. संवितरण पत्र</a>
+                                                        </li>
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/ancillary-services/scuc/scuc-reconcillation-statement" class="item-link external-link">एस.सी.यू.सी. रीकॉनसीलेशन कथन</a>
+                                                        </li>
+                                                                                                            </ul>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/ancillary-services/scuc-interest" class="item-link external-link">एस.सी.यू.सी. ब्याज</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">रिपोर्ट्स</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="#" class="item-link external-link">मासिक उल्लंघन रिपोर्ट</a>
+                                                                                                        <ul class="dropdown">
+                                                                                                                <li class="item">
+                                                            <a href="/regulator-pool-account/reports/monthly-violation-report/deviation-violation-report" class="item-link external-link">विचलन उल्लंघन रिपोर्ट</a>
+                                                        </li>
+                                                                                                            </ul>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/regulator-pool-account/reports/bank-details" class="item-link external-link">बैंक खाता विवरण</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="आईएसजीएस क्षमता और हिस्सेदारी">
+                                    <a href="/isgs-capacity-share" class="item-link external-link">आईएसजीएस क्षमता और हिस्सेदारी</a>
+                                                                    </li>
+                                                            </ul>
+                                                    </li>
+                                                <li class="item icon">
+                            <a class="item-link external-link" href="#">सिस्टम ऑपरेशन</a>
+                                                        <ul class="dropdown">
+                                                                <li class="item" data-menu-item="पोस्ट डिस्पैच अनैलिसिस">
+                                    <a href="#" class="item-link external-link">पोस्ट डिस्पैच अनैलिसिस</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">पोस्ट डिस्पैच अनैलिसिस रिपोर्ट्स</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="/post-dispatch-analysis/reports/tripping-report" class="item-link external-link">ट्रिपिंग रिपोर्ट</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/post-dispatch-analysis/reports/weekly-reportable-events" class="item-link external-link">साप्ताहिक प्रतिवेद्य घटनाएं</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="#" class="item-link external-link">मासिक ग्रिड घटनाएं</a>
+                                                                                                        <ul class="dropdown">
+                                                                                                                <li class="item">
+                                                            <a href="/post-dispatch-analysis/reports/monthly-grid-events/gd-gi-events" class="item-link external-link">जी.डी./जी.आई. घटनाएं</a>
+                                                        </li>
+                                                                                                                <li class="item">
+                                                            <a href="/post-dispatch-analysis/reports/monthly-grid-events/inter-regional-tripping" class="item-link external-link">अंतर क्षेत्रीय ट्रिपिंग</a>
+                                                        </li>
+                                                                                                            </ul>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/post-dispatch-analysis/reports/weather-related-events" class="item-link external-link">मौसम संबंधी घटनाएँ</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/post-dispatch-analysis/frc" class="item-link external-link">एफ.आर.सी.</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://postda.nrldc.in/Account/Login.aspx" class="item-link external-link">ट्रिपिंग पोर्टल</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="स्थानांतरण क्षमता">
+                                    <a href="#" class="item-link external-link">स्थानांतरण क्षमता</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="https://grid-india.in/en/operations/monthly-atc-inter-country" class="item-link external-link">मासिक ए.टी.सी. - अंतर देशीय</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://grid-india.in/en/operations/monthly-atc-inter-regional" class="item-link external-link">मासिक ए.टी.सी. - अंतर क्षेत्रीय</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://grid-india.in/en/operations/monthly-atc-intra-regional" class="item-link external-link">मासिक ए.टी.सी. - अन्तः क्षेत्रीय</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="नवीकरणीय ऊर्जा">
+                                    <a href="#" class="item-link external-link">नवीकरणीय ऊर्जा</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="/renewable-energy/wg-report" class="item-link external-link">वर्किंग ग्रुप रिपोर्ट </a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/renewable-energy/ftc-procedure" class="item-link external-link">एफ.टी.सी. प्रक्रिया </a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://cea.nic.in/regulations-category/notified-regulations/?lang=en" class="item-link external-link">केंद्रीय विद्युत प्राधिकरण अधिनियम</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/renewable-energy/iegc-2023" class="item-link external-link">भारतीय विद्युत ग्रिड संहिता 2023</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/renewable-energy/re-in-northern-region" class="item-link external-link">उत्तरी क्षेत्र में नवीकरणीय ऊर्जा</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">पंजीकरण</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="/renewable-energy/registration/formats-for-registration" class="item-link external-link">पंजीकरण के लिए प्रारूप</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="https://oms.nrldc.in/posoco/home" class="item-link external-link">ओ.एम.एस. पंजीकरण पोर्टल</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/renewable-energy/registration/qca-registration-formats" class="item-link external-link">क्यूसीए पंजीकरण प्रारूप</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">प्रथम बारी चार्जिंग</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="/renewable-energy/first-time-charging/formats-of-annexures" class="item-link external-link">अनुलग्नक के प्रारूप</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/renewable-energy/trial-run-testing-procedure-and-guidelines" class="item-link external-link">ट्रायल रन  (परीक्षण प्रक्रिया और दिशानिर्देश)</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="पूर्वानुमान">
+                                    <a href="#" class="item-link external-link">पूर्वानुमान</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="/forecast/intra-day-forecast" class="item-link external-link">इंट्रा डे पूर्वानुमान</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/forecast/day-ahead-forecast" class="item-link external-link">अगले दिन का पूर्वानुमान</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/forecast/weekly-forecast" class="item-link external-link">साप्ताहिक पूर्वानुमान</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/forecast/monthly-forecast" class="item-link external-link">मासिक पूर्वानुमान</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/forecast/re-forecast" class="item-link external-link">आरई पूर्वानुमान</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="आउटेज">
+                                    <a href="#" class="item-link external-link">आउटेज</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="https://reporting.nrldc.in/outage/Account/Login?ReturnUrl=%2foutage%2f" class="item-link external-link">शटडाउन कार्यव्यवस्था</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/outage/planned-outages" class="item-link external-link">नियोजित आउटेज की सूची</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="उपलब्धता सत्यापन">
+                                    <a href="#" class="item-link external-link">उपलब्धता सत्यापन</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="/availablity-verification/data-submitted-utility" class="item-link external-link">संघटक द्वारा प्रस्तुत डेटा</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/availablity-verification/verified-availablity" class="item-link external-link">सत्यापित उपलब्धता</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                            </ul>
+                                                    </li>
+                                                <li class="item icon">
+                            <a class="item-link external-link" href="#">शेड्यूलिंग</a>
+                                                        <ul class="dropdown">
+                                                                <li class="item" data-menu-item="डब्लू .बी.ई.एस. एप्लीकेशन ">
+                                    <a href="https://newwbes.grid-india.in/" class="item-link external-link">डब्लू .बी.ई.एस. एप्लीकेशन </a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="पीक ऑवर और सीज़न की घोषणा">
+                                    <a href="/scheduling/peak-hours-and-season-declaration" class="item-link external-link">पीक ऑवर और सीज़न की घोषणा</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="लागू घाटा">
+                                    <a href="https://grid-india.in/en/markets/transmission-losses" class="item-link external-link">लागू घाटा</a>
+                                                                    </li>
+                                                            </ul>
+                                                    </li>
+                                                <li class="item icon">
+                            <a class="item-link external-link" href="#">रिपोर्ट्स</a>
+                                                        <ul class="dropdown">
+                                                                <li class="item" data-menu-item="दैनिक">
+                                    <a href="#" class="item-link external-link">दैनिक</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="/daily/daily-psp-report" class="item-link external-link">दैनिक बिजली आपूर्ति स्थिति रिपोर्ट</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://oms.nrldc.in/outageReport/" class="item-link external-link">उत्पादन और पारेषण  आउटेजिस</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="साप्ताहिक">
+                                    <a href="/weekly" class="item-link external-link">साप्ताहिक</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="मासिक">
+                                    <a href="/monthly" class="item-link external-link">मासिक</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="त्रैमासिक">
+                                    <a href="/quaterly" class="item-link external-link">त्रैमासिक</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="उत्तरी क्षेत्र वार्षिक सार-संग्रह">
+                                    <a href="/nr-annual-compendium" class="item-link external-link">उत्तरी क्षेत्र वार्षिक सार-संग्रह</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="सिस्टम विश्वसनीयता सूचकांक">
+                                    <a href="#" class="item-link external-link">सिस्टम विश्वसनीयता सूचकांक</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">दैनिक</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="https://grid-india.in/reports/system-reliability-indices/daily-angular-difference" class="item-link external-link">दैनिक</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="https://grid-india.in/reports/system-reliability-indices/weekly-angular-difference" class="item-link external-link">साप्ताहिक</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="https://grid-india.in/reports/system-reliability-indices/weekly-angular-difference" class="item-link external-link">मासिक</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">साप्ताहिक</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="/reports/system-reliability-indices/intra-state-ttc/intra-state-ttc-daily" class="item-link external-link">दैनिक</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/reports/system-reliability-indices/intra-state-ttc/intra-state-ttc-weekly" class="item-link external-link">साप्ताहिक</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/reports/system-reliability-indices/intra-state-ttc/intra-state-ttc-monthly" class="item-link external-link">मासिक</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="वोल्टेज डेविएशन इंडेक्स">
+                                    <a href="#" class="item-link external-link">वोल्टेज डेविएशन इंडेक्स</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="/voltage-deviation-index/daily" class="item-link external-link">दैनिक</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/voltage-deviation-index/weekly" class="item-link external-link">साप्ताहिक</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/voltage-deviation-index/monthly" class="item-link external-link">मासिक</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="वेब बेस्ड रिपोर्टिंग पोर्टल">
+                                    <a href="https://reporting.nrldc.in/posocoui/Account/Login?ReturnUrl=%2fposocoui%2f" class="item-link external-link">वेब बेस्ड रिपोर्टिंग पोर्टल</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="स्काडा रिपोर्ट">
+                                    <a href="#" class="item-link external-link">स्काडा रिपोर्ट</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="/scada-reports/telemetry-report" class="item-link external-link">टेलीमेट्री रिपोर्ट</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="#" class="item-link external-link">आर.टी.यू. उपलब्धता रिपोर्ट</a>
+                                                                                        <ul class="dropdown">
+                                                                                                <li class="item">
+                                                    <a href="/scada-reports/rtu-availability-report/nrldc-weekly" class="item-link external-link">एन.आर.एल.डी.सी. साप्ताहिक आर.टी.यू. उपलब्धता रिपोर्ट</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/scada-reports/rtu-availability-report/constituents-weekly" class="item-link external-link">संघटक साप्ताहिक आरटीयू उपलब्धता रिपोर्ट</a>
+                                                                                                    </li>
+                                                                                                <li class="item">
+                                                    <a href="/scada-reports/rtu-availability-report/ists-re" class="item-link external-link">आई.एस.टी.एस. आर.ई. आर.टी.यू. उपलब्धता रिपोर्ट</a>
+                                                                                                    </li>
+                                                                                            </ul>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="/scada-reports/scada-sem-comparison-reports" class="item-link external-link">स्काडा सेम तुलना रिपोर्ट</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                            </ul>
+                                                    </li>
+                                                <li class="item icon">
+                            <a class="item-link external-link" href="#">उपयोगी  लिंक्स </a>
+                                                        <ul class="dropdown">
+                                                                <li class="item" data-menu-item="एनएलडीसी">
+                                    <a href="https://grid-india.in/" class="item-link external-link">एनएलडीसी</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="अन्य आरएलडीसी">
+                                    <a href="#" class="item-link external-link">अन्य आरएलडीसी</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="https://erldc.in/" class="item-link external-link">ईआरएलडीसी</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://wrldc.in/content/Hindi/index.aspx" class="item-link external-link">डब्ल्यूआरएलडीसी</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://www.srldc.in/" class="item-link external-link">एसआरएलडीसी</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://www.nerldc.in/" class="item-link external-link">एनईआरएलडीसी</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="मौसम">
+                                    <a href="#" class="item-link external-link">मौसम</a>
+                                                                        <ul class="dropdown">
+                                                                                <li class="item">
+                                            <a href="https://gridastra.nrldc.in/" class="item-link external-link">एन.आर.एल.डी.सी. मौसम पोर्टल</a>
+                                                                                    </li>
+                                                                                <li class="item">
+                                            <a href="https://mausam.imd.gov.in/" class="item-link external-link">भारत मौसम विज्ञान विभाग वेबसाइट</a>
+                                                                                    </li>
+                                                                            </ul>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="अन्य उपयोगी लिंक">
+                                    <a href="/useful-links" class="item-link external-link">अन्य उपयोगी लिंक</a>
+                                                                    </li>
+                                                            </ul>
+                                                    </li>
+                                                <li class="item icon">
+                            <a class="item-link external-link" href="#">दस्तावेज़</a>
+                                                        <ul class="dropdown">
+                                                                <li class="item" data-menu-item="Papers">
+                                    <a href="/documents/Papers" class="item-link external-link">Papers</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="Important Grid Elements">
+                                    <a href="/documents/Important-Grid-Elements" class="item-link external-link">Important Grid Elements</a>
+                                                                    </li>
+                                                                <li class="item" data-menu-item="Documents">
+                                    <a href="/documents/Documents" class="item-link external-link">Documents</a>
+                                                                    </li>
+                                                            </ul>
+                                                    </li>
+                                                                    </ul>
+                </nav>
+                
+            </div>
+        </div>
+    </div>
+
+   <!-- Modal HTML -->
+<div class="modal fade feedback_fromModal" id="global_alertModals" tabindex="-1" role="dialog"
+aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 450px; width:95%;">
+    <div class="modal-content p-2">
+        <div class="modal-header border-0">
+            <h2 class="modal-title" style="flex-grow:1;">Link Disclaimer</h2>
+        </div>
+        <div class="modal-body pt-0">
+            <p class="">
+                This link is an external link, NRLDC is not responsible for the content and reliability of the link.
+                If you want to continue, click "Yes".
+            </p>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+            <button class="cs_btn" id="externalEventNo">No</button>
+            <button class="cs_btn" id="externalEventYes">Yes</button>
+        </div>
+    </div>
+</div>
+</div>
+
+</section>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const currentDomain = "https://nrldc.in";
+        const currentHost = new URL(currentDomain).host;  // Extract the host (e.g., "localhost:8000")
+        const links = document.querySelectorAll('.external-link');
+        let externalLinkHref = '';  // To store the external URL
+
+        links.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href) {
+                const url = new URL(href, currentDomain); // Create a full URL using the current domain as the base
+                if (url.host && url.host !== currentHost) { // Check if the host is present and doesn't match the current host
+                    link.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        externalLinkHref = href;  // Store the external URL
+                        openModal();  // Show the modal
+                    });
+                }
+            }
+        });
+
+        // Function to open the modal
+        function openModal() {
+            const modal = document.getElementById('global_alertModals');
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('role', 'dialog');
+
+            // Handle backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+        }
+
+        // Handle the "Yes" button click
+        document.getElementById('externalEventYes').addEventListener('click', function () {
+            closeModal();  // Close the modal
+            if (externalLinkHref) {
+                window.open(externalLinkHref, '_blank', 'noopener');
+            }
+            // window.location.href = externalLinkHref;  // Redirect to the external link
+        });
+
+        // Handle the "Yes" button click
+        document.getElementById('externalEventNo').addEventListener('click', function () {
+            closeModal();  // Close the modal
+        });
+
+        // Function to close the modal
+        function closeModal() {
+            const modal = document.getElementById('global_alertModals');
+            modal.style.display = 'none';
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            modal.removeAttribute('aria-modal');
+            modal.removeAttribute('role');
+
+            // Remove the backdrop
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                document.body.removeChild(backdrop);
+            }
+        }
+    });
+</script>
+
+
+    </header>
+    <!-- Modal -->
+  <div class="modal fade" id="staticBackdrop" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered dialog-box">
+      <div class="modal-content">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-header d-flex justify-content-center p-4">
+          <img src="https://nrldc.in/images/GridIndiaLogofooter.jpg" alt="Logo">
+        </div>
+        <p style="color:red;" class="pt-4 mb-0 text-center" id="errMsg"></p>
+        <div class="modal-body pt-0 mt-4">
+          <h2>Login</h2>
+          <p>Please fill the form below to login</p>
+          <script src="https://www.google.com/recaptcha/api.js?" async defer></script>
+
+          <form class="grid-form" method="post" id="loginForm" autocomplete="off">
+            <input type="hidden" name="_token" value="xZmNi8ahpSvdF8EG9VS9kJqQetro5rYi4JcBhxim" autocomplete="off">          <div class="form">
+             <div class="form-group " id="">
+    <input name="email" autocomplete="off" value=""  type="text" class="form-control " id="email"  placeholder=" ">
+    <label for="email" class="label-after-input">Email Address / Username</label>
+</div>
+                        <div class="form-group password-box-position-relative passsword-box " id="">
+    <i class="password-eye-box fa fa-eye-slash" onclick="showPassword(this)" aria-hidden="true"></i>
+    <input name="password" autocomplete="off" value="" type="password" autocomplete="off" class="form-control passsword-box-input " id="password" placeholder=" ">
+    <label for="password">Password</label>
+
+</div>
+                      </div>
+          <div id="otpbox" style="display: none;">
+            <div class="form-group " id="">
+    <input name="otp" autocomplete="off" value=""  type="text" class="form-control " id="otp"  placeholder=" ">
+    <label for="otp" class="label-after-input">Enter OTP</label>
+</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-start mb-3 pt-3">
+            <div class="login-check-box">
+              <div class="form-group " id="">
+    <label for="rememberMe">Remember me</label>
+    <input name="Remember me" value="1" type="checkbox" class="" id="rememberMe" placeholder="" >
+</div>                          </div>
+
+          </div>
+          <div data-sitekey="6Le4f7EqAAAAABDjNR-Q_u0UvU6B9x_3_2dssqHa" class="g-recaptcha"></div>
+                    <button type="submit" class="btn login-button">Login</button>
+          </form>
+        </div>
+      </div>
+    </div>
+</div>
+
+
+<script>
+  function showPassword(icon) {
+      const passwordInput = icon.nextElementSibling;
+      if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          icon.classList.remove("fa-eye-slash");
+          icon.classList.add("fa-eye");
+      } else {
+          passwordInput.type = "password";
+          icon.classList.remove("fa-eye");
+          icon.classList.add("fa-eye-slash");
+      }
+  }
+</script>
+    <div class="main">
+        <!-- Content Header (Page header) -->
+
+<section class="banner banner_relative">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-12 pr-0 pl-0">
+                <section class="single-item slider">
+    <!-- slides -->
+            <div class="slick-item">
+        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2F4mt7YcLxmB-w-Slide1.png" alt="Image">
+            </div>
+        <div class="slick-item">
+        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2F84kZ8DuQp2-w-Slide2.png" alt="Image">
+            </div>
+        <div class="slick-item">
+        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2F1rubicn4SL-w-Slide3.png" alt="Image">
+            </div>
+        </section>
+
+
+            </div><!-- /.col -->
+            <!-- <div class="col-lg-4">
+                <aside class="update-list row content-scroll updateList_style" id="updateList">
+            <div class="icon-item col-6">
+        <div class="icon-item_card">
+            <div class="icon">
+                                <img alt="slider" src="/images/slider/graph.svg">
+                            </div>
+            <div class="content">
+                <h2 class="m-0">आवृत्ति / Frequency</h2>
+                <p>49.95 Hz</p>
+            </div>
+        </div>
+    </div>
+        <div class="icon-item col-6">
+        <div class="icon-item_card">
+            <div class="icon">
+                                <img alt="slider" src="/images/slider/graph.svg">
+                            </div>
+            <div class="content">
+                <h2 class="m-0">उ.क्षे.आपूर्ति / NR Demand</h2>
+                <p>92470 MW</p>
+            </div>
+        </div>
+    </div>
+        <div class="icon-item col-6">
+        <div class="icon-item_card">
+            <div class="icon">
+                                <img alt="slider" src="/images/slider/graph.svg">
+                            </div>
+            <div class="content">
+                <h2 class="m-0">उ.क्षे.उत्पादन / NR Generation</h2>
+                <p>82843 MW</p>
+            </div>
+        </div>
+    </div>
+        <div class="icon-item col-6">
+        <div class="icon-item_card">
+            <div class="icon">
+                                <img alt="slider" src="/images/slider/graph.svg">
+                            </div>
+            <div class="content">
+                <h2 class="m-0">उ.क्षे.आर.ई. ऊर्जा उत्पादन/ NR RE Generation</h2>
+                <p>25576 MW</p>
+            </div>
+        </div>
+    </div>
+        <div class="icon-item col-6">
+        <div class="icon-item_card">
+            <div class="icon">
+                                <img alt="slider" src="/images/slider/graph.svg">
+                            </div>
+            <div class="content">
+                <h2 class="m-0">वर्तमान अनुसूची संशोधन / Current Sch Revision</h2>
+                <p>111</p>
+            </div>
+        </div>
+    </div>
+        <div class="icon-item col-6">
+        <div class="icon-item_card">
+            <div class="icon">
+                                <img alt="slider" src="/images/slider/graph.svg">
+                            </div>
+            <div class="content">
+                <h2 class="m-0">अंतिम अद्यतन / Last Updated On</h2>
+                <p>29-06-26 15:45:30</p>
+            </div>
+        </div>
+    </div>
+        </aside>
+            </div> -->
+        </div><!-- /.row -->
+    </div><!-- /.container-fluid -->
+        <div class="auto-scroll-container">
+    <div class="side-icon side-info" data-hover="1">
+        <a href="https://nrldc.in/about-us">
+            <span class="phone-number">हमारे बारे में</span>
+            <img src="https://nrldc.in/images/home/about.svg" alt="About us" />
+        </a>
+    </div>
+    <div class="side-icon side-msg" data-hover="2">
+        <a href="#information">
+            <span class="phone-number">जानकारी</span>
+            <img src="https://nrldc.in/images/home/info.svg" alt="Information" />
+        </a>
+    </div>
+    <div class="side-icon side-img" data-hover="3">
+        <a href="#gallery">
+            <span class="phone-number">गैलरी</span>
+            <img src="https://nrldc.in/images/home/gallery.svg" alt="Gallery" />
+        </a>
+    </div>
+</div>
+    </section>
+
+<section class="content-slider">
+    <div class="container-fluid g-0" style="overflow:hidden">
+        <div class="row g-0">
+            <div class="col-lg-4 col-5 col-sm-3">
+                <div class="info-section py-md-4">
+                    ताज़ा जानकारी
+                </div>
+            </div>
+            <div class="col-lg-8 col-7 col-sm-9">
+                <div class="info-slider-section mobile_view p-md-4">
+                    <section class="info-slider">
+                    <div class="slide-content">
+            <a href="https://nrldc.in/information-articals/Latest%20News" target="_blank" rel="noopener"><p class="m-0" style="color:white;">Stakeholder Consultation on Procedure for Disconnection of REGSs for repeated non-compliance of CEA Tech Standard-reg.</p></a>
+        </div>
+                    <div class="slide-content">
+            <a href="https://nrldc.in/information-articals/Latest%20News" target="_blank" rel="noopener"><p class="m-0" style="color:white;">Petition for approval of Fees and Charges of GRID-INDIA for control period 2024-2029</p></a>
+        </div>
+            </section>
+
+
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<section class="black-background section-spacing">
+    <div class="home-about">
+        <div class="container">
+            <div class="row">
+                <div class="about-content">
+                    <h4 class="sub-heading mb-2">
+                        हमारे बारे में
+                    </h4>
+                    <h2 class="heading col-lg-7 font-weight-bold">
+                        ग्रिड इंडिया लिमिटेड के बारे में
+                    </h2>
+                    <p class="paragraph">
+                        ग्रिड इंडिया लिमिटेड (GRID-INDIA) पूर्व में पॉवर सिस्टम ऑपरेशन कॉर्पोरेशन लिमिटेड (POSOCO) एक पूरी तरह से सरकारी उपक्रम है। यह पांच क्षेत्रीय भार प्रेषण केंद्र (RLDC) और एक राष्ट्रीय भार प्रेषण केंद्र (NLDC) का संचालन करता है। उत्तरी क्षेत्रीय भार प्रेषण केंद्र (NRLDC) भारत के उत्तरी क्षेत्र के RLDC कार्यों की देखरेख करता है।
+                    </p>
+                    <div class="row-btn-view">
+                        <a class="view-more button pt-md-3 pb-md-3 pl-md-4 pr-md-4" href="https://nrldc.in/about-us">और देखें</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="info-article section-spacing" id="information">
+    <div class="container">
+        <div class="row">
+            <div class="article-content">
+                <h4 class="sub-heading mb-2">
+                    जानकारी
+                </h4>
+                <h2 class="heading col-7 p-0 font-weight-bold mb-3 text-nowrap">
+                    जानकारी और लेख
+                </h2>
+                <div class="tab-container mb-4">
+                    <section id="informationTab">
+        <ul class="nav nav-tabs" id="noticeTabs">
+                                <li class="nav-item">
+            <a class="nav-link  active " data-bs-toggle="tab" href="#Latest News" data-route="https://nrldc.in/notice">Latest News</a>
+        </li>
+                            </ul>
+    <div class="tab-content mt-2">
+        <div class="tab-pane fade active show" id="latest_tab">
+            <ul class="information-section new_section p-0 mt-3">
+                                                <li class='p-4'>
+                    <h5 class="info-heading">
+                        <a href="https://nrldc.in/information-articals/Latest%20News">Stakeholder Consultation on Procedure for Disconnection of REGSs for repeated non-compliance of CEA Tech Standard-reg.</a>
+                                            </h5>
+                    <p class="paragraph tabTextColor">In line with Hon’ble CERC direction in Petition No.415/MP/2024, the comments/suggestions were solici...</p>
+                    <div class="d-flex justify-content-lg-end">
+                        <span> Updated: </span> <span class="tabSubTextColor updated-on">24 Mar 2026
+</span>
+                    </div>
+                </li>
+                                <li class='p-4'>
+                    <h5 class="info-heading">
+                        <a href="https://nrldc.in/information-articals/Latest%20News">Petition for approval of Fees and Charges of GRID-INDIA for control period 2024-2029</a>
+                                            </h5>
+                    <p class="paragraph tabTextColor">Notice is hereby given in accordance with regulation 10.2 of Central Electricity Regulatory Commissi...</p>
+                    <div class="d-flex justify-content-lg-end">
+                        <span> Updated: </span> <span class="tabSubTextColor updated-on">19 Sep 2025
+</span>
+                    </div>
+                </li>
+                                            </ul>
+            <div class="row-btn-view mt-4">
+                <a href="https://nrldc.in/information-articals/Latest%20News" id="noticeViewMore" class="view-more button d-inline-block pt-md-3 pb-md-3 pl-md-4 pr-md-4">
+                    और देखें
+                </a>
+            </div>
+        </div>
+    </div>
+</section>                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card-slider section-spacing">
+    <div class="container">
+        <div class="row">
+            <div class="content-card-slider">
+                <!-- slides -->
+<div class="card p-2 mr-4 rounded-0">
+    <a href="#global_alertModal" type="button" data-toggle="modal" onclick="setExternalURL('https://newwbes.grid-india.in')">
+        <div class="card-body">
+            <img src="https://nrldc.in/images/home/cal.svg" alt="Calender" />
+            <h3 class="mt-2">अनुसूची</h3>
+            <p class="card-text"></p>
+        </div>
+    </a>
+</div>
+<div class="card p-2 mr-4 rounded-0">
+    <a href="#global_alertModal" type="button" data-toggle="modal" onclick="setExternalURL('https://noar.in/')">
+        <div class="card-body">
+            <img src="https://nrldc.in/images/home/reporting.svg" alt="Noar" />
+            <h3 class="mt-2">नोअर पोर्टल</h3>
+            <p class="card-text"></p>
+        </div>
+    </a>
+</div>
+<div class="card p-2 mr-4 rounded-0">
+    <a href="#global_alertModal" type="button" data-toggle="modal" onclick="setExternalURL('https://reporting.nrldc.in/outage')">
+        <div class="card-body">
+            <img src="https://nrldc.in/images/home/reporting.svg" alt="Reporting" />
+            <h3 class="mt-2">रिपोर्टिंग पोर्टल</h3>
+            <p class="card-text"></p>
+        </div>
+    </a>
+</div>
+<div class="card p-2 mr-4 rounded-0">
+    <a href="#global_alertModal" type="button" data-toggle="modal"  onclick="setExternalURL('https://postda.nrldc.in/')">
+        <div class="card-body">
+            <img src="https://nrldc.in/images/home/tripping.svg" alt="Tripping" />
+            <h3 class="mt-2">ट्रिपिंग पोर्टल</h3>
+            <p class="card-text"></p>
+        </div>
+    </a>
+</div>
+<div class="card p-2 mr-4 rounded-0">
+    <a href="#global_alertModal" type="button" data-toggle="modal"  onclick="setExternalURL('https://mausam.imd.gov.in/')">
+        <div class="card-body">
+            <img src="https://nrldc.in/images/home/stoa.svg" alt="Calender" />
+            <h3 class="mt-2">मौसम पोर्टल</h3>
+            <p class="card-text"></p>
+        </div>
+    </a>
+</div>
+<div class="card p-2 mr-4 rounded-0">
+    <a href="#global_alertModal" type="button" data-toggle="modal" onclick="setExternalURL('https://oms.nrldc.in/')">
+        <div class="card-body">
+            <img src="https://nrldc.in/images/home/reporting.svg" alt="Calender" />
+            <h3 class="mt-2">ऑपरेशन एमजीएमटी सिस्टम</h3>
+            <p class="card-text"></p>
+        </div>
+    </a>
+</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="vison-mission-value section-spacing">
+    <div class="black-background">
+        <div class="container">
+            <div class="row vision-mission">
+                            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content-gallery section-spacing" id="gallery">
+    <div class="container">
+        <div class="row">
+            <div class="gallery-content">
+                <h4 class="sub-heading mb-2">
+                    मीडिया
+                </h4>
+                <h2 class="heading col-7 p-0 font-weight-bold mb-3">
+                    गैलरी
+                </h2>
+                <section id="gallery">
+    <ul class="nav nav-tabs" id="myTabs">
+        <li class="nav-item">
+            <a class="nav-link active" id="Media-tab" data-bs-toggle="tab" href="#Media">मीडिया</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="Events-tab" data-bs-toggle="tab" href="#Events">आयोजन</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="Outings-tab" data-bs-toggle="tab" href="#Outings">आउटिंग्स </a>
+        </li>
+    </ul>
+    <div class="tab-content mt-4">
+        <div class="tab-pane fade show active" id="Media">
+            <div class="gallery-slider slider gallery-box-view">
+                <!-- slides -->
+                                                <div class="slick-item">
+                    <div class="item">
+                        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2FA0hCa7Os9d-w-Media2_15th%20Aug.jpeg" width="406" height="299" alt="banner image" />
+                        <div class="content">
+                            <h4></h4>
+                            <span>06 Jan 2025</span>
+                        </div>
+                    </div>
+                </div>
+                                <div class="slick-item">
+                    <div class="item">
+                        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2FOM5FRluTzi-w-Media_Training%20on%20Frequency%20Control%20and%20Dimensioning%20of%20Reserves%20and%20Performance%20evaluation%20-%2012-13%20Sep%2024.jpg" width="406" height="299" alt="banner image" />
+                        <div class="content">
+                            <h4></h4>
+                            <span>06 Jan 2025</span>
+                        </div>
+                    </div>
+                </div>
+                                <div class="slick-item">
+                    <div class="item">
+                        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2Fcfwr1cgT6j-w-Media_Diwali%20%283%29_11zon.jpg" width="406" height="299" alt="banner image" />
+                        <div class="content">
+                            <h4></h4>
+                            <span>06 Jan 2025</span>
+                        </div>
+                    </div>
+                </div>
+                                <div class="slick-item">
+                    <div class="item">
+                        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2F2Q8e2qvYOu-w-Media1%20-%20Vigilance%20Awareness%20Training.jpg" width="406" height="299" alt="banner image" />
+                        <div class="content">
+                            <h4></h4>
+                            <span>06 Jan 2025</span>
+                        </div>
+                    </div>
+                </div>
+                                <div class="slick-item">
+                    <div class="item">
+                        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2FdbZeuU07Re-w-Media_Diwali.jpg" width="406" height="299" alt="banner image" />
+                        <div class="content">
+                            <h4></h4>
+                            <span>06 Jan 2025</span>
+                        </div>
+                    </div>
+                </div>
+                                                <!-- notification -->
+            </div>
+        </div>
+        <div class="tab-pane fade" id="Events">
+            <div class="gallery-slider slider gallery-box-view">
+                <!-- slides -->
+                                                <div class="slick-item">
+                    <div class="item">
+                        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2FiBrf1aaHZh-w-Events1_Swachhta%20Hi%20Sewa-2024.jpg" width="406" height="299" alt="banner image" />
+                        <div class="content">
+                            <h4> </h4>
+                            <span>06 Jan 2025</span>
+                        </div>
+                    </div>
+                </div>
+                                <div class="slick-item">
+                    <div class="item">
+                        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2FfADR2QxAF1-w-Event3_Hindi%20Pakhwada.jpg" width="406" height="299" alt="banner image" />
+                        <div class="content">
+                            <h4> </h4>
+                            <span>06 Jan 2025</span>
+                        </div>
+                    </div>
+                </div>
+                                <div class="slick-item">
+                    <div class="item">
+                        <img src="https://nrldc.in/view-file?any=uploads%2Fslider-images%2FRPFTn7OwKD-w-Events2.jpg" width="406" height="299" alt="banner image" />
+                        <div class="content">
+                            <h4> </h4>
+                            <span>06 Jan 2025</span>
+                        </div>
+                    </div>
+                </div>
+                                                <!-- notification -->
+            </div>
+        </div>
+        <div class="tab-pane fade" id="Outings">
+            <div class="gallery-slider slider gallery-box-view">
+                <!-- slides -->
+                                <h5 class="text-center my-5">Information not available</h5>
+                                <!-- notification -->
+            </div>
+        </div>
+    </div>
+</section>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- ============Global Alert Modal============== -->
+<div class="modal fade feedback_fromModal" id="global_alertModal" tabindex="-1" role="dialog"
+    aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 450px; width:95%;">
+        <div class="modal-content p-2">
+            <div class="modal-header border-0">
+                <h2 class="modal-title" style="flex-grow:1;">Link Disclaimer
+                </h2>
+
+            </div>
+            <div class="modal-body pt-0">
+                <p class="">
+                    This link is an external link, NRLDC is not responsible for the content and reliability of the link.
+                    If you want to continue, click "Yes".
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button data-dismiss="modal" class="cs_btn">No</button>
+                
+                <button class="cs_btn" id="confirmExternalEventr">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /.content-header -->
+
+
+
+
+<!-- =================Welcome Modal================ -->
+<!-- Custom Modal Structure -->
+<div class="custom__modal" id="showImageModal">
+    <div class="custom__modal-dialog">
+        <div class="custom__modal-content">
+            <button class="close-btn" onclick="closeModal()">
+                <img src="https://nrldc.in/images/plus.svg" alt="Image" class="icon">
+            </button>
+            <div class="custom__modal-body">
+                <img src="https://nrldc.in/images/gallery1.jpg" id="targatedImg" height="5000" alt="Image" class="modal-image">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var redirectUrl = '';
+    function setExternalURL(url) {
+        // var externalEvent = document.getElementById("externalEvent");
+        // externalEvent.href = url;
+        redirectUrl = url;
+        const modal = document.getElementById('global_alertModal');
+        modal.style.display = 'block';
+    }
+    var bannerImages = [];
+
+    // Example usage with the base path and first banner image
+    if (bannerImages.length > 0) {
+        var imagePath = "https://nrldc.in/view-file?any=uploads%2Flogo-images/" + bannerImages[0].image_path;
+    }
+    // ========Modal Script==========
+    function showImageModal(imageUrl) {
+        if (imageUrl?.trim()) {
+            // Get the time when the modal was last closed from localStorage
+            const modalClosedTime = localStorage.getItem("modalClosedTime");
+
+            if (modalClosedTime) {
+                const currentTime = new Date().getTime();
+                const timeDifference = currentTime - modalClosedTime;
+                const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+
+                // If 1 hour has passed since the modal was last closed, show the modal
+                if (timeDifference > oneHour) {
+                    document.getElementById("targatedImg").src = imageUrl;
+                    document.getElementById("showImageModal").style.display = "block";
+                }
+            } else {
+                // If no modalClosedTime is found in localStorage, show the modal
+                document.getElementById("targatedImg").src = imageUrl;
+                document.getElementById("showImageModal").style.display = "block";
+            }
+        } else {
+            console.log("Image URL is empty, modal will not be opened.");
+        }
+    }
+
+    function closeModal() {
+        localStorage.setItem("modalClosedTime", new Date().getTime());
+        document.getElementById("showImageModal").style.display = "none";
+    }
+    //alert(path+'/images/logo-images/'+bannerImages[0].image_path);
+    showImageModal(imagePath);
+    // ========Modal Script End==========
+     // Event listener for the "Yes" button
+    document.getElementById('confirmExternalEventr').addEventListener('click', function () {
+        let rurl = redirectUrl;
+        // Close the modal
+        closeModalExtr();
+
+        // Redirect to the external URL
+        if (rurl) {
+            window.open(rurl, '_blank', 'noopener');
+        }
+    });
+    // Function to close the modal
+    function closeModalExtr() {
+        const modal = document.getElementById('global_alertModal');
+
+        // Hide the modal
+        modal.style.display = 'none';
+
+        // Allow scrolling again by removing the `overflow: hidden` from the body
+        document.body.style.overflow = 'auto';
+        document.body.style.position = 'static';
+        // Reset redirectUrl to avoid stale values
+        redirectUrl = null;
+    }
+</script>
+    </div>
+    <section class="footer-logos">
+    <div class="container">
+        <div class="row">
+            <div class="logos-box">
+                <img src="https://nrldc.in/images/logo1.png" alt="logo1">
+                <img src="https://nrldc.in/images/logo2.png" alt="logo2">
+                <img src="https://nrldc.in/images/logo3.png" alt="logo3">
+                <img src="https://nrldc.in/images/logo4.png" alt="logo4">
+                <img src="https://nrldc.in/images/logo5.png" alt="logo5">
+                <img src="https://nrldc.in/images/logo6.png" alt="logo6">
+            </div>
+        </div>
+    </div>
+</section>    <section class="footer">
+    <footer id="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 col-md-4 col-lg-4">
+                    <div class="address mr-lg-4 pr-lg-4">
+                        <img src="https://nrldc.in/images/GridIndiaLogofooter.jpg" height:="49" width="148"
+                            alt="logo" class="footer-logo" />
+                        <img src="https://nrldc.in/images/address_qr.png" height:="49" width="50" alt="qr"
+                            class="footer-logo qr_code" />
+                        <p>
+                            <img src="https://nrldc.in/images/icons/location.svg" alt="Location" />
+                            18-ए, शहीद जीत सिंह मार्ग, कटवारिया सराय, नई दिल्ली - 110016
+                        </p>
+                        <p><img src="https://nrldc.in/images/icons/email.svg" alt="Email" />contact(at)grid-india(dot)com</p>
+                        <p><img src="https://nrldc.in/images/icons/call.svg" alt="Call" />011-26519406, 40224601, 40224602, 26853082</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 col-lg-3 pl-lg-5">
+                    <!-- <h4>Others</h4> -->
+                    <ul>
+                        <li><a rel="noopener" href="https://nrldc.in/about-us">हमारे बारे में</a></li>
+                        <li><a href="https://posoco.in/awards/" target="_blank" rel="noopener">पुरस्कार</a>
+                        </li>
+                        <li><a rel="noopener" href="https://nrldc.in/rti-new">सूचना का अधिकार</a></li>
+                        <li><a rel="noopener"
+                                href="https://nrldc.in/site-map">साइट मानचित्र</a></li>
+                        <li><a rel="noopener"
+                                href="https://nrldc.in/contact-us">संपर्क करें</a></li>
+                        
+                        <li>
+                            <a rel="noopener" href="https://nrldc.in/disaster-management">
+                                आपदा प्रबंधन
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-6 col-md-3 col-lg-3">
+                    <!-- <h4>About the Government</h4> -->
+                    <ul>
+                        <li>
+                            <a href="https://nrldc.in/images/home/Gyanoday_Internship-Gudilenes_POSOCO_External_Aug_14.pdf"
+                                target="_blank" rel="noopener noreferrer">
+                                इंटर्नशिप दिशानिर्देश
+                            </a>
+                        </li>
+                        <li><a rel="noopener" href="https://nrldc.in/useful-links">उपयोगी कड़ियां</a>
+                        </li>
+                        
+                        <li><a rel="noopener"
+                                href="https://nrldc.in/org-chart">संगठनात्मक चार्ट</a></li>
+                        <li><a rel="noopener" class="d-flex" href="https://nrldc.in/visit-request" >विज़िट अनुरोध</a></li>
+                        <li><a rel="noopener" href="https://nrldc.in/feedback">प्रतिपुष्टि</a></li>
+                        <li><a rel="noopener" href="https://nrldc.in/customer-feedback">ग्राहक प्रतिक्रिया</a></li>
+                                                <li><a rel="noopener" href="https://nrldc.in/tender">टेंडर</a>
+                    </ul>
+                </div>
+                <div class="col-12 col-md-2 col-lg-2 mt-3 mt-sm-0">
+                    <h4>सोशल मीडिया</h4>
+                    <div class="social-links">
+                        <a href="#global_alertModal" type="button" data-toggle="modal" onclick="setExternalURL('https://www.facebook.com/GridIndia1')">
+                            <img src="https://nrldc.in/images/icons/fb.svg" alt="fb" />
+                        </a>
+                        <a href="#global_alertModal" type="button" data-toggle="modal" onclick="setExternalURL('https://twitter.com/GridIndia1')">
+                            <img src="https://nrldc.in/images/icons/twitter.svg" alt="Twitter" />
+                        </a>
+                        <a href="#global_alertModal" type="button" data-toggle="modal"
+                            onclick="setExternalURL('https://www.linkedin.com/company/grid-controller-of-india-limited/')">
+                            <img src="https://nrldc.in/images/icons/linkedin.svg" alt="Linkedin" />
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+</section>
+<section class="footer-bottom">
+    <div class="copywrite">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-10 text-sm-center text-lg-start">
+                    सर्वाधिकार ©2020 पावर ट्रांसमिशन में विश्वसनीयता, सुरक्षा और अर्थव्यवस्था : ग्रिड कंट्रोलर ऑफ इंडिया लिमिटेड
+                    <a rel="noopener" href="/"> Grid Controller of India Limited.</a>
+                </div>
+                <div class="col-lg-2 text-sm-center text-lg-end">
+                    आगंतुक: <b>
+                                                18344
+                                            </b>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- ============Global Alert Modal============== -->
+<div class="modal fade feedback_fromModal" id="global_alertModal" tabindex="-1" role="dialog"
+    aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 450px; width:95%;">
+        <div class="modal-content p-2">
+            <div class="modal-header border-0">
+                <h2 class="modal-title" style="flex-grow:1;">Link Disclaimer
+                </h2>
+
+            </div>
+            <div class="modal-body pt-0">
+                <p class="">
+                    This link is an external link, NRLDC is not responsible for the content and reliability of the link.
+                    If you want to continue, click "Yes".
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button data-dismiss="modal" class="cs_btn">No</button>
+                <button class="cs_btn" id="confirmExternalEvent">Yes</button>
+                
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /.content-header -->
+<script>
+    var redirectUrl = '';
+    function setExternalURL(url) {
+        // var externalEvent = document.getElementById("externalEvent");
+        // externalEvent.href = url;
+        redirectUrl = url;
+        const modal = document.getElementById('global_alertModal');
+        modal.style.display = 'block';
+    }
+    document.getElementById('confirmExternalEvent').addEventListener('click', function () {
+        let rurl = redirectUrl;
+        // Close the modal
+        closeModalExt();
+
+        // Redirect to the external URL
+        if (rurl) {
+            window.open(rurl, '_blank', 'noopener');
+        }
+    });
+    // Function to close the modal
+    function closeModalExt() {
+        // const modal = document.getElementById('global_alertModal');
+        // modal.style.display = 'none';
+        const modal = document.getElementById('global_alertModal');
+
+        // Hide the modal
+        modal.style.display = 'none';
+
+        // Allow scrolling again by removing the `overflow: hidden` from the body
+        document.body.style.overflow = 'auto';
+        document.body.style.position = 'static';
+        // Reset redirectUrl to avoid stale values
+        redirectUrl = null;
+    }
+</script>
+
+<!-- The Modal -->
+<div class="modal fade grid-form" id="public_addvisit_modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body  p-4">
+                <h1 class="py-2 mb-2 col-12 section_title">Add Visit </h1>
+                <div class="add_visit_form_wrapper">
+                    <div class="">
+                        <!-- form start -->
+                        <form action="https://nrldc.in/visit-request" method="POST" enctype="multipart/form-data" class="" id="visitorForm">
+                            <input type="hidden" name="_token" value="xZmNi8ahpSvdF8EG9VS9kJqQetro5rYi4JcBhxim" autocomplete="off">                            <input type="hidden" name="pass_type" id="pass_type" value="visitor">
+                            <div class="card-body two-columns">
+                                <div class="row">
+                                    <div class="col-xl-12 col-xxl-12">
+                                        <div class="image-upload image-upload_6379601">
+    <div class="add-profile">
+        <img src="https://nrldc.in/images/plus.svg" alt="plus" />
+        Profile Picture
+    </div>
+    <div class="image-preview-container">
+        <img src="" alt="Preview" id="visitorProfilePicturePreview">
+    </div>
+    <p class="view">
+        <a href="#" target="_blank" class="file-url">url</a>
+        <span class="file-type">
+            Recommended resolution is 640*640 with file size less than 2MB
+                            <strong style="color:#DE6435;">*</strong>
+                    </span>
+        <span class="file-size">
+            File Size: KB
+        </span>
+        <span class="file-type-info">File type : Jpeg, Png</span>
+        <a class="url" href="#" target="_blank">View</a>
+        <a class="remove" href="javascript:void(0);"
+            onclick="removeImage_6379601('visitorProfilePicture')">Remove</a>
+    </p>
+    <div class="form-group">
+        <label>Profile Picture</label>
+        <input type="file" name="photograph" id="visitorProfilePicture" class="form-control-file"
+            style="max-width: 300px;" accept=".jpeg, .png"
+            onchange="if(this.files[0].size > 2 * 1024 * 1024) { alert('File size must be less than 2 MB.'); this.value = ''; }"
+            required
+             oninvalid="this.setCustomValidity('Profile Picture is required')"
+            oninput="setCustomValidity('')">
+    </div>
+    
+    </div>
+
+
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12 col-sm-6">
+                                        <div class="form-group " id="">
+    <input name="visitor_name" value="" required="required"  type="text" class="form-control " id="visitor_name"  placeholder="">
+    <label for="visitor_name" class="label-after-input">Visitor Name <span>*</span></label>
+</div>
+                                                                            </div>
+
+                                    <div class="col-12 col-sm-6 rmUserSelect" id="rmUserSelect">
+                                        <div class="form-group">
+                                            <select class="form-control select rmUser" name="id_card_type" id="rmUser" data-placeholder="Select Document Type" required="required">
+                                                <option disabled selected>Select Document Type</option>
+                                                                                                <option value="aadhaar_card" >Aadhaar Card</option>
+                                                                                                <option value="voter_id_card" >Voter ID Card</option>
+                                                                                                <option value="passport" >Passport</option>
+                                                                                                <option value="driving_license" >Driving License</option>
+                                                                                                <option value="govt_office_id" >Govt. Issued Office Id</option>
+                                                                                            </select>
+                                            <label for="">Govt. Issued Photo ID Card Type <span>*</span></label>
+                                            <span class="down-arrow"></span>
+                                        </div>
+                                                                            </div>
+
+                                    <div class="col-12 col-sm-6 employee-id">
+                                        <div class="form-group " id="">
+    <input name="id_card_number" value="" required="required"  type="text" class="form-control " id="id_card_number"  placeholder="">
+    <label for="id_card_number" class="label-after-input">Govt. Issued Photo ID Card Number <span>*</span></label>
+</div>
+                                                                            </div>
+
+                                    <div class="col-12 col-sm-6">
+                                        <div class="form-group " id="">
+    <input name="organisation" value=""  type="text" class="form-control " id="organisation"  placeholder="">
+    <label for="organisation" class="label-after-input">Organisation</label>
+</div>
+                                                                            </div>
+
+                                    <div class="col-12 col-sm-6">
+                                        <div class="form-group " id="">
+    <input name="mobile" value="" required="required"  type="text" class="form-control " id="mobile"  placeholder="">
+    <label for="mobile" class="label-after-input">Mobile Number <span>*</span></label>
+</div>
+                                                                            </div>
+
+                                    <div class="col-12 col-sm-6">
+                                        <div class="form-group " id="">
+    <input name="email" type="email" value=""  type="text" class="form-control " id="visitor_email"  placeholder="">
+    <label for="visitor_email" class="label-after-input">Email ID <span>*</span></label>
+</div>
+                                                                            </div>
+
+                                    <div class="col-12 col-sm-6">
+                                        <div class="form-group " id="">
+    <input name="address" value=""  type="text" class="form-control " id="address"  placeholder="">
+    <label for="address" class="label-after-input">Address <span>*</span></label>
+</div>
+                                                                            </div>
+
+                                    <div class="col-12 col-sm-12">
+                                        <div class="form-group " id="">
+    <input name="purpose_of_visit" value=""  type="text" class="form-control " id="purpose_of_visit"  placeholder="">
+    <label for="purpose_of_visit" class="label-after-input">Purpose of Visit <span>*</span></label>
+</div>
+                                                                            </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div class="col-12 col-sm-12 ">
+                                        <div class="form-group search_dropdown">
+                                            <select class="form-control" name="concerned_officer" data-placeholder="Select Concerned Officer" id="concerned_officer">
+                                                <option disabled selected>Select Concerned Officer</option>
+                                                                                                <option value="28" >
+                                                    Abdul Quadir
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="5" >
+                                                    Ajay Philipp
+                                                     - Chief GM
+                                                </option>
+                                                                                                <option value="54" >
+                                                    Ajit Kumar Yadav
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="49" >
+                                                    Akash Tomar
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="12" >
+                                                    Akhil Singhal
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="80" >
+                                                    Amit Sharma
+                                                     - Assistant Manager
+                                                </option>
+                                                                                                <option value="26" >
+                                                    Amit Gupta
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="53" >
+                                                    Anshika Gupta
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="64" >
+                                                    Anshul Varshney
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="48" >
+                                                    Arpit Jallan
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="31" >
+                                                    Ashish Antil
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="9" >
+                                                    Ashok Kumar
+                                                     - Chief GM
+                                                </option>
+                                                                                                <option value="22" >
+                                                    Babloo Ram Meena
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="47" >
+                                                    Babu Lal Rathi
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="17" >
+                                                    Bikas Kumar Jha
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="71" >
+                                                    Chintan Meena
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="61" >
+                                                    Deepak Verma
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="62" >
+                                                    Deepak Kumar
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="89" >
+                                                    Dhirendra Kushwaha
+                                                     - Jr. Engineer Gr-III
+                                                </option>
+                                                                                                <option value="32" >
+                                                    Gaurav Singh
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="42" >
+                                                    Gaurav Malviya
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="170" >
+                                                    Gurmit Singh
+                                                     - General Manager
+                                                </option>
+                                                                                                <option value="114" >
+                                                    Hemant Kumar Meena
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="35" >
+                                                    Hirak Roy
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="59" >
+                                                    Ibtesam Asif
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="60" >
+                                                    Indupu Devi Vara Prasad
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="94" >
+                                                    Jagdish Raj
+                                                     - Engineer
+                                                </option>
+                                                                                                <option value="69" >
+                                                    Kalpesh Verma
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="18" >
+                                                    Kamaldeep Singh
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="55" >
+                                                    Lav Kumar Khandelwal
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="8" >
+                                                    Mahesh Kumar
+                                                     - Chief GM
+                                                </option>
+                                                                                                <option value="36" >
+                                                    Manish Kumar Singh
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="65" >
+                                                    Mantoo Kumar
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="92" >
+                                                    Mausam Kumari
+                                                     - Jr. Engineer Gr-III
+                                                </option>
+                                                                                                <option value="75" >
+                                                    Md Sultan Sheikh
+                                                     - Assistant Manager
+                                                </option>
+                                                                                                <option value="74" >
+                                                    Menaria Ramchandra Prem Shankar
+                                                     - Assistant Manager
+                                                </option>
+                                                                                                <option value="56" >
+                                                    Mona Kailashnarayan Kamwal
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="85" >
+                                                    Nalanda Lama
+                                                     - Assistant Manager
+                                                </option>
+                                                                                                <option value="34" >
+                                                    Nand Lal Nagar
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="73" >
+                                                    Narayan Suthar
+                                                     - Assistant Manager
+                                                </option>
+                                                                                                <option value="25" >
+                                                    Nitin Yadav
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="39" >
+                                                    Pankaj Kumar
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="15" >
+                                                    Paresh Khandelwal
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="41" >
+                                                    Paritosh Pathak
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="132" >
+                                                    Pinki Debnath
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="30" >
+                                                    P Karthik .
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="63" >
+                                                    Pradeep Kumar Verma
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="38" >
+                                                    Prashant Garg
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="23" >
+                                                    Priyanka .
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="58" >
+                                                    Priyanshi Aggarwal
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="21" >
+                                                    Purn Prakash Chand
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="66" >
+                                                    Rahul Negi
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="70" >
+                                                    Rahul Kumar
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="90" >
+                                                    Rakesh Kumar Meena
+                                                     - Jr. Engineer Gr-III
+                                                </option>
+                                                                                                <option value="91" >
+                                                    Ravi Shankar
+                                                     - Jr. Engineer Gr-III
+                                                </option>
+                                                                                                <option value="86" >
+                                                    Sachin Panwar
+                                                     - Assistant Manager
+                                                </option>
+                                                                                                <option value="84" >
+                                                    Sandeep Bhutia
+                                                     - Assistant Manager
+                                                </option>
+                                                                                                <option value="43" >
+                                                    Saravana Prakash
+                                                     - Chief Manager
+                                                </option>
+                                                                                                <option value="52" >
+                                                    Shailendra Kumar Meena
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="44" >
+                                                    Shailesh Gaurav
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="11" >
+                                                    Sheikh Shadruddin
+                                                     - Chief GM
+                                                </option>
+                                                                                                <option value="46" >
+                                                    Shinjinee Laik
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="51" >
+                                                    Shubhendu Sachin
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="57" >
+                                                    Shyam Kumar Meena
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="95" >
+                                                    Simarjeet Singh
+                                                     - Jr. Officer
+                                                </option>
+                                                                                                <option value="20" >
+                                                    S K Jain
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="68" >
+                                                    Subrat Susmay Nayak
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="50" >
+                                                    Sugata Bhattacharya
+                                                     - Manager
+                                                </option>
+                                                                                                <option value="67" >
+                                                    Sumit Kumar
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="72" >
+                                                    Sunil Kumar
+                                                     - Deputy Manager
+                                                </option>
+                                                                                                <option value="10" >
+                                                    Sunil Kr Aharwal
+                                                     - General Manager
+                                                </option>
+                                                                                                <option value="29" >
+                                                    Sunil Kumar Kanaujiya
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="16" >
+                                                    Suruchi Jain
+                                                     - Deputy General Manager
+                                                </option>
+                                                                                                <option value="77" >
+                                                    Swatantra Kumar Gupta
+                                                     - Assistant Manager
+                                                </option>
+                                                                                                <option value="88" >
+                                                    Vinita Goswami
+                                                     - Jr. Engineer Gr-III
+                                                </option>
+                                                                                                <option value="76" >
+                                                    Yug Varshney
+                                                     - Assistant Manager
+                                                </option>
+                                                                                            </select>
+                                            <label for="concerned_officer">Concerned Officer <span>*</span></label>
+                                            <span class="down-arrow"></span>
+                                        </div>
+                                                                            </div>
+
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <div class="input-group-addon">
+                                                <span class="glyphicon glyphicon-th"></span>
+                                            </div>
+                                            <input type="date" class="form-control flatpickr-input active" name="start_date" placeholder="" id="start_date" readonly="readonly" value="" required="required">
+                                            <label for="valid">Start Date <span>*</span></label>
+                                            <span class="calendar-icon form-icon"></span>
+                                        </div>
+                                                                            </div>
+
+                                    <div class="col-12"></div>
+                                    <div class="col-12 col-sm-6 dailyPass">
+                                        <div class="form-group">
+                                            <div class="input-group-addon">
+                                                <span class="glyphicon glyphicon-th"></span>
+                                            </div>
+                                            <input type="time" class="form-control" name="start_time" placeholder="" id="start_time" value="" required="required">
+                                            <label>Valid From <span>*</span></label>
+                                        </div>
+                                                                            </div>
+
+                                    <div class="col-12 col-sm-6 dailyPass">
+                                        <div class="form-group">
+                                            <select class="form-control select rmUser" name="end_time" id="end_time" data-placeholder="Valid Upto" required="required">
+                                                <option selected disabled value="">Select Duration</option>
+                                                <option value="1" >1 hour</option>
+                                                <option value="2" >2 hour</option>
+                                                <option value="3" >3 hour</option>
+                                                <option value="4" >4 hour</option>
+                                                <option value="5" >5 hour</option>
+                                                <option value="6" >6 hour</option>
+                                                <option value="7" >7 hours</option>
+                                                <option value="8" >8 hours</option>
+                                                <option value="9" >9 hours</option>
+                                                <option value="10" >10 hours</option>
+                                                <option value="11" >11 hours</option>
+                                                <option value="12" >12 hours</option>
+                                            </select>
+                                            <label for="">Valid Upto <span>*</span></label>
+                                            <span class="down-arrow"></span>
+                                        </div>
+                                                                            </div>
+                                    <div class="col-12 col-sm-6">
+                                        <div class="form-group " id="">
+    <input name="hardware_details" value=""  type="text" class="form-control " id="hardware_details"  placeholder="">
+    <label for="hardware_details" class="label-after-input">Hardware Details</label>
+</div>
+                                                                            </div>
+
+                                    <div class="form-footer col-12">
+                                        <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="cs_btn btn_gray" id="visitorFormSubmitBtn" style="cursor: not-allowed;" data-target="#submitted_successfully">Submit</button>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                            <!-- /.card-body -->
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @script('scripts')
+    <script type="text/javascript" charset="utf8" src="https://nrldc.in/js/jquery.slim.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://nrldc.in/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://nrldc.in/js/sweetalert2@11.js"></script>
+    <link href="https://nrldc.in/css/select2.min.css" rel="stylesheet" />
+    <script src="https://nrldc.in/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Setup flatpickr
+            function setupFlatpickr(selector) {
+
+                flatpickr(selector, {
+                    minDate: 'today',
+                    dateFormat: 'Y-m-d',
+                });
+            }
+
+            setupFlatpickr('#start_date');
+            setupFlatpickr('#end_date');
+        })
+
+
+        $('#concerned_officer').select2({
+            dropdownParent: $('#public_addvisit_modal'),
+            placeholder: "Select Concerned Officer",
+            allowClear: true
+        });
+
+
+        function setupDateTimeInputs(startDateSelector, startTimeSelector, endTimeSelector) {
+            const $startDateInput = $(startDateSelector);
+            const $startTimeInput = $(startTimeSelector);
+            const $endTimeSelect = $(endTimeSelector);
+
+            const updateEndTimeOptions = () => {
+                const currentDate = new Date();
+                const selectedDate = new Date(
+                    `${$startDateInput.val()}T${$startTimeInput.val() || '00:00:00'}`
+                );
+                const isSameDay = currentDate.toDateString() === selectedDate.toDateString();
+
+                $endTimeSelect.empty();
+                $endTimeSelect.append(`<option selected disabled  value="">Select Duration</option>`);
+                if (isSameDay) {
+                    const hours = selectedDate.getHours();
+                    const minutes = selectedDate.getMinutes();
+                    const remainingMinutes = (23 - hours) * 60 + (60 - minutes);
+                    const remainingHours = Math.floor(remainingMinutes / 60);
+                    const maxHours = Math.min(remainingHours, 12);
+
+                    for (let i = 1; i <= maxHours; i++) {
+                        $endTimeSelect.append(`<option value="${i}">${i} hour${i > 1 ? 's' : ''}</option>`);
+                    }
+                } else {
+                    for (let i = 1; i <= 12; i++) {
+                        $endTimeSelect.append(`<option value="${i}">${i} hour${i > 1 ? 's' : ''}</option>`);
+                    }
+                }
+            };
+
+            $startDateInput.on('change', updateEndTimeOptions);
+            $startTimeInput.on('change', updateEndTimeOptions);
+        }
+        $(document).ready(function() {
+            setupDateTimeInputs('#start_date', '#start_time', '#end_time');
+
+        });
+
+        $(document).ready(function() {
+            $('#mobile').on('input', function() {
+                var input = $(this).val();
+                var sanitizedInput = input.replace(/\D/g, ''); // Remove non-digit characters
+                if (sanitizedInput.length > 10) {
+                    sanitizedInput = sanitizedInput.substring(0, 10); // Limit to 10 digits
+                }
+                $(this).val(sanitizedInput); // Update the input with sanitized value
+            });
+        });
+
+        function enableSubmitBtn() {
+            var visitorProfilePicture = document.getElementById('visitorProfilePicture');
+            var visitor_name = document.getElementById('visitor_name');
+            var id_card_number = document.getElementById('id_card_number');
+            var mobile = document.getElementById('mobile');
+            var email = document.getElementById('visitor_email');
+            var address = document.getElementById('address');
+            var purpose_of_visit = document.getElementById('purpose_of_visit');
+            var start_date = document.getElementById('start_date');
+            var start_time = document.getElementById('start_time');
+            var end_time = document.getElementById('end_time');
+
+            if (visitorProfilePicture.value !== '' &&
+                visitor_name.value !== '' &&
+                id_card_number.value !== '' &&
+                mobile.value !== '' &&
+                email.value !== '' &&
+                address.value !== '' &&
+                purpose_of_visit.value !== '' &&
+                start_date.value !== '' &&
+                start_time.value !== '' &&
+                end_time.value !== ''
+            ) {
+                document.getElementById('visitorFormSubmitBtn').disabled = false;
+                document.getElementById('visitorFormSubmitBtn').style.cursor = 'pointer';
+                document.getElementById('visitorFormSubmitBtn').classList.add('btn_primary');
+                document.getElementById('visitorFormSubmitBtn').classList.remove('btn_gray');
+
+            } else {
+                document.getElementById('visitorFormSubmitBtn').disabled = true;
+                document.getElementById('visitorFormSubmitBtn').style.cursor = 'not-allowed';
+                document.getElementById('visitorFormSubmitBtn').classList.add('btn_gray');
+                document.getElementById('visitorFormSubmitBtn').classList.remove('btn_primary');
+            }
+
+        }
+        document.getElementById('visitorForm').addEventListener('change', function() {
+            setupDateTimeInputs('#start_date', '#start_time', '#end_time');
+            enableSubmitBtn();
+        });
+    </script>
+    @endscript
+    ;
+    <link rel="modulepreload" href="https://nrldc.in/build/assets/app-8c359af5.js" /><script type="module" src="https://nrldc.in/build/assets/app-8c359af5.js"></script>
+    <!-- Bootstrap 4 -->
+    <!-- AdminLTE App -->
+    <script>
+        function getEncryptText(password) {
+            let output = '';
+            const key = "base64:XNPpac371ig9m5RGmelxquhO5k3okU2ZbFfeU2UDnWI=";
+            for (let i = 0; i < password.length; i++) {
+                output += String.fromCharCode(password.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return btoa(output);
+        }
+
+    </script>
+    <script src="https://nrldc.in/js/multilineSelect.js" type="module"></script>
+    <script src="https://nrldc.in/js/navigation.js" type="module"></script>
+    <script src="https://nrldc.in/js/frontend.js" type="module"></script>
+    <script src="https://nrldc.in/js/flatpickr.js" type="module"></script>
+    <script src="https://nrldc.in/js/adminlte.min.js" defer></script>
+    <script src="https://nrldc.in/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://nrldc.in/js/datatable/dataTables.fixedColumns.js"></script>
+        <script>
+        $(document).ready(function() {
+            // Attach change event listener to the file input
+            $('#visitorProfilePicture').on('change', function() {
+                previewImage_6379601(this);
+            });
+
+            function previewImage_6379601(input) {
+                const file = input.files[0];
+                const fileUrl = URL.createObjectURL(file); // Get the URL of the uploaded file
+                const fileType = file.type.split('/');
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#visitorProfilePicturePreview').attr('src', e.target.result);
+                        $(".image-upload_6379601").addClass('active');
+                        $(".image-upload_6379601 .file-url, .image-upload_6379601 .url")
+                            .attr('href', fileUrl);
+                        $(".image-upload_6379601 .file-url").text(file.name);
+                        const fileSizeKB = file.size / 1024;
+                        $(".image-upload_6379601 .file-size").text("File size: " + fileSizeKB
+                            .toFixed(2) + " KB");
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            window.removeImage_6379601 = function(inputId) {
+                $('#' + inputId).val(null);
+                $('#' + inputId + 'Preview').attr('src', '');
+                $(".image-upload_6379601").removeClass('active');
+            };
+        });
+    </script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+
+    <script>
+        let isAuthenticated = false;
+        let csrfToken = 'xZmNi8ahpSvdF8EG9VS9kJqQetro5rYi4JcBhxim';
+        let fcmTokenRoute = "https://nrldc.in/update-fcm-token";
+        let vapidKeyValue = "BJDo6HXZaceL9ntxTTP-UlitF2Noij5ZCUYXT-eqmKPmFeDz9QifaUEL1AxrQJfwBXqDV7f6j98-PUb_-tD0z0M";
+        var firebaseConfig = {
+            apiKey: "AIzaSyB-lr7rrDVINC0u5I1n3aQxF7apE7RZIoc",
+            authDomain: "nrldc-web.firebaseapp.com",
+            projectId: "nrldc-web",
+            storageBucket: "nrldc-web.appspot.com",
+            messagingSenderId: "430757589246",
+            appId: "1:430757589246:web:37a035a3b7f0c6970335af"
+        };
+        if(isAuthenticated) {
+
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            var messaging = firebase.messaging();
+        }
+    </script>
+    
+</body>
+
+</html>

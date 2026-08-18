@@ -93,8 +93,11 @@ consumption MU with a known fuel.
 ## Carbon intensity
 
 `CI(zone, t) = Σ_fuel share_fuel × EF_fuel`, in gCO2eq/kWh, stored as
-`carbon_intensity` datapoints. National CI = demand-weighted mean over states
-with a CI value.
+`carbon_intensity` datapoints. National CI = generation-weighted mean over
+states with a CI value — i.e. total emissions ÷ total generation,
+`Σ_zone CI_zone × gen_zone / Σ_zone gen_zone`. (Weighting by generation, not
+demand, is the energy-correct blend; for import/export-heavy states the two
+differ, though at the national level demand ≈ generation so the gap is ~1%.)
 
 Emission factors are versioned in
 [`scrapers/gridscrapers/emission_factors.json`](../scrapers/gridscrapers/emission_factors.json)
@@ -130,9 +133,22 @@ outranks the estimate:
   plus wind/solar/biomass from the NCEP page.
 - **Delhi** (`delhisldc.org`, HTML) — own generation only (gas CCGTs +
   waste-to-energy); see the caveat below.
+- **Chhattisgarh** (`sldccg.com/gen.php`, HTML, 30 s refresh) — in-state
+  generation: CSPGCL thermal + intra-state IPP/CPP → coal, Bango → hydro, plus
+  live solar+BESS and biomass injection. ~half of CG demand is central-sector
+  drawl (generated elsewhere), so this is a partial in-state mix — exempt from
+  the demand reconcile, with an internal "TOTAL OF CSPGCL & IPP/CPP" cross-check
+  instead. Its CI is coal-heavy in-state-generation CI, not consumption.
 - **Maharashtra** (`mahasldc.in` SCADA JPEG) — thermal/hydro/gas/solar read
   from the dashboard image by a vision parser, with a ±10% fuel-sum-vs-demand
   reconciliation gate (a value that fails is quarantined, never written).
+
+**Reconcile guard.** Before a measured mix is trusted, its total generation must
+land within 50–200% of the state's demand. A full-mix feed far outside that band
+has almost certainly dropped rows or doubled a unit, so the mix is discarded and
+the state falls back to its estimate for that tick (self-healing: the plugin
+re-inserts next tick and wins again once it recovers). Own-generation feeds
+(Delhi) report only a slice of supply by design and are exempt from this check.
 
 **Caveat — measured CI is *generation* CI, not *consumption* CI.** The
 measured mix is what the state *generates*, not what it *consumes*; imports
@@ -179,6 +195,7 @@ the source runs.
 | [Karnataka SLDC](https://kptclsldc.in) | live station + RE generation by fuel | **live** (SCADA) |
 | [Delhi SLDC](http://www.delhisldc.org) | live own-generation by GENCO | **live** (SCADA) |
 | [Maharashtra SLDC](https://mahasldc.in) | SCADA dashboard image → vision parse | **live** (SCADA) |
+| [Chhattisgarh SLDC](https://sldccg.com/gen.php) | live in-state generation by station/fuel | **live** (SCADA, 30 s) |
 | RLDC daily PSP reports — [NRLDC](https://nrldc.in), [SRLDC](https://srldc.in), [WRLDC](https://www.wrldc.in) | actual state energy by fuel, peak demand | **T-1** |
 | [CEA / NPP daily generation (dgr2)](https://npp.gov.in) | state×sector×fuel conventional energy | **T-1** |
 | [CEA renewable generation report](https://gen-re.cea.gov.in) | state-wise daily wind/solar/other-RE | **T-1** |

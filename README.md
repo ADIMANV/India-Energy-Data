@@ -1,8 +1,14 @@
-# India Live Grid Map
+# India Electricity Data
 
-Electricity-Maps-for-India: state-wise live demand, generation mix, and carbon
-intensity on a map, with free history and API. See `docs/` for the build plan
-and source recon.
+State-wise live electricity demand, generation mix, and carbon intensity for
+India — on a map, with free history and a public API. Estimates are always
+labelled as estimates, never presented as measurements.
+
+Live demand covers all 32 states/UTs. Four states publish real per-fuel
+generation over SCADA and are reported as **measured** (Punjab, Delhi,
+Karnataka, Chhattisgarh); the rest have their fuel mix **estimated** from a
+documented freshness ladder — see
+[docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 ![India Electricity Data — live demand choropleth with per-state generation mix and carbon intensity](docs/screenshot.png)
 
@@ -15,7 +21,7 @@ and source recon.
 - `api/` — FastAPI (Phase 1)
 - `web/` — Next.js + MapLibre map (Phase 1)
 - `docs/sources/` — endpoint recon notes + archived sample responses
-- `docs/reference/emaps-parsers/` — electricitymaps-contrib India parsers (MIT, reference only)
+- `deploy/` — production stack (TimescaleDB + API + Caddy TLS + cron tick)
 
 ## Quick start
 
@@ -52,9 +58,31 @@ Estimated fuel mix & carbon intensity methodology: [docs/METHODOLOGY.md](docs/ME
 Curated plant-name fixes: [data/plant_overrides.json](data/plant_overrides.json)
 (wins over fuzzy matching; review queue dump in `data/plant_review_top30.md`).
 
-## Iron rules
+## Data sources
 
-1. Raw responses are archived to `raw_responses` **before** parsing — parsers
-   will break; raw data lets us backfill.
-2. One plugin per source. Parsers are pure functions of archived bytes and are
-   versioned via `PARSER_VERSION`.
+All upstream data is public. Full per-source latency and provenance tables are
+in [docs/METHODOLOGY.md](docs/METHODOLOGY.md); source-by-source recon notes are
+in [docs/sources/README.md](docs/sources/README.md).
+
+| Source | Used for |
+|---|---|
+| [Vidyut Pravah](https://vidyutpravah.in) (Ministry of Power) | live state demand, exchange price |
+| [MERIT](https://meritindia.in) (Ministry of Power) | own-generation vs import, plant-wise dispatch |
+| RLDC PSP reports (NRLDC/SRLDC/WRLDC) | daily actual fuel shares |
+| [CEA](https://cea.nic.in) daily generation + RE reports | fuel-share blend, validation |
+| State SLDCs (Punjab, Delhi, Karnataka, Chhattisgarh, Maharashtra) | measured live generation by fuel |
+
+State boundaries from [datameet/maps](https://github.com/datameet/maps)
+(CC-BY 2.5 IN). Emission factors are versioned in
+`scrapers/gridscrapers/emission_factors.json` (CEA CO2 Baseline Database).
+
+This project is independent and not affiliated with or endorsed by any of the
+above organisations.
+
+## License
+
+[MIT](LICENSE) © 2026 Aditya Sawant.
+
+Upstream data remains subject to its publishers' own terms; the MIT license
+covers this repository's code and derived outputs only.
+

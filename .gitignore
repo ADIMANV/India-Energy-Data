@@ -1,9 +1,18 @@
 .venv/
 __pycache__/
 *.pyc
+*.egg-info/
 logs/
 node_modules/
 .next/
+
+# Local editor preferences and generated analysis/deck outputs
+.claude/settings.local.json
+.tmp_*/
+*.pptx
+*.pptx.inspect.ndjson
+*_results.csv
+vessel_data.csv
 
 # secrets — never commit; keep only the template
 .env
