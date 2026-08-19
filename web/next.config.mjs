@@ -10,7 +10,16 @@
 //   BACKEND_ORIGIN      = http://<ec2-ip>:8000
 //   NEXT_PUBLIC_API_URL = /api
 // Locally both stay unset: lib/api.js falls back to http://localhost:8000.
-const backend = process.env.BACKEND_ORIGIN;
+// Trimmed because pasting into a dashboard env-var field routinely picks up a
+// leading tab/newline, and Next.js then rejects the rewrite with a confusing
+// "does not start with /, http://, or https://" (the value did — after a \t).
+const backend = process.env.BACKEND_ORIGIN?.trim();
+
+if (backend && !/^https?:\/\//.test(backend)) {
+  throw new Error(
+    `BACKEND_ORIGIN must start with http:// or https:// — got ${JSON.stringify(backend)}`,
+  );
+}
 
 const nextConfig = {
   reactStrictMode: true,
