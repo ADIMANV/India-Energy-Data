@@ -48,6 +48,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# The tick only writes every 15 min, so serving every request from the database
+# is pure waste — and the box this runs on is small. Let any CDN in front of us
+# absorb the load: s-maxage caches at the edge (browsers still revalidate via
+# max-age=0), and stale-while-revalidate keeps the API answering from cache
+# during a slow tick or a restart instead of failing.
+CACHE_CONTROL = "public, max-age=0, s-maxage=120, stale-while-revalidate=600"
+
+
+@app.middleware("http")
+async def cache_headers(request, call_next):
+    response = await call_next(request)
+    if request.method == "GET" and response.status_code == 200:
+        response.headers.setdefault("Cache-Control", CACHE_CONTROL)
+    return response
+
 
 def _zone_or_400(zone: str) -> str:
     zone = zone.upper()
