@@ -143,12 +143,25 @@ def load(csv_path: str | None) -> int:
             r["gppd_idnr"],
         ))
 
+    # Upsert on the source's own id rather than TRUNCATE + reinsert:
+    # station_daily.plant_id references these rows, so a truncate fails once any
+    # PSP data exists — and RESTART IDENTITY would renumber ids and repoint
+    # existing references at the wrong plants. Keying on (source, source_id)
+    # keeps ids stable across refreshes.
     with psycopg.connect(get_dsn()) as conn:
-        conn.execute("TRUNCATE india_plants RESTART IDENTITY")
         with conn.cursor() as cur:
             cur.executemany(
-                """INSERT INTO india_plants (name, fuel, capacity_mw, lat, lon, state_zone, source, source_id)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+                """INSERT INTO india_plants
+                       (name, fuel, capacity_mw, lat, lon, state_zone, source, source_id)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                   ON CONFLICT (source, source_id) WHERE source_id IS NOT NULL
+                   DO UPDATE SET name = EXCLUDED.name,
+                                 fuel = EXCLUDED.fuel,
+                                 capacity_mw = EXCLUDED.capacity_mw,
+                                 lat = EXCLUDED.lat,
+                                 lon = EXCLUDED.lon,
+                                 state_zone = EXCLUDED.state_zone,
+                                 loaded_at = now()""",
                 rows,
             )
         conn.commit()
