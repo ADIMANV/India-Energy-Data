@@ -7,6 +7,9 @@ WORKDIR /app
 COPY scrapers/ scrapers/
 COPY api/ api/
 COPY scripts/ scripts/
+# state boundaries: gridscrapers.plants needs these to map each plant's lat/lon
+# to a zone. web/ is not otherwise shipped, so copy just this file.
+COPY web/public/india_states.geojson /app/data/india_states.geojson
 RUN pip install --no-cache-dir ./scrapers ./api
 
 # default: API server. The tick service overrides with `python -m gridscrapers.tick`.

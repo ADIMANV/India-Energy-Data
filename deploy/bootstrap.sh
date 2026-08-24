@@ -58,12 +58,25 @@ CRON_LINE="*/15 * * * * cd $APP_DIR && $COMPOSE run --rm tick >> $APP_DIR/logs/t
 { crontab -l 2>/dev/null | grep -vF "india-grid" | grep -vF "$APP_DIR" || true ; echo "$CRON_LINE" ; } | crontab -
 crontab -l | tail -1
 
-echo "==> 7/7 first tick + smoke test"
+echo "==> 7/9 plant registry"
+# gridscrapers.plants is a one-shot loader, not part of the tick. Without it
+# india_plants is empty, and every ambiguous "thermal" station falls back to
+# coal — inflating carbon intensity. Idempotent: skips if already populated.
+PLANTS=$($COMPOSE exec -T db psql -U grid -d india_grid -tAc "SELECT count(*) FROM india_plants" 2>/dev/null | tr -d '[:space:]' || echo 0)
+if [ "${PLANTS:-0}" -gt 0 ]; then
+    echo "    already loaded ($PLANTS plants)"
+else
+    $COMPOSE run --rm --build tick python -m gridscrapers.plants load \
+        || echo "WARN: plant registry load failed — thermal rows will fall back to coal"
+fi
+
+echo "==> 8/9 first tick + smoke test"
 # --build is required: `compose run` only builds when the image is *absent*, so
 # on a re-run after a code change it would silently use the stale tick image.
 $COMPOSE run --build --rm tick || echo "WARN: first tick reported issues (see output above)"
 sleep 1
 curl -s "http://127.0.0.1:8000/v1/zones" | head -c 200 && echo
 echo
+echo "==> 9/9 done"
 echo "Done. API: https://\$API_DOMAIN/v1/zones (once DNS + Let's Encrypt settle)."
 echo "Probe RLDCs next:  cd $APP_DIR && $COMPOSE run --rm tick python scripts/probe_rldc.py"

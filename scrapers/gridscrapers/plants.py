@@ -14,6 +14,7 @@ datameet states GeoJSON the frontend uses.
 import argparse
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -27,7 +28,33 @@ GPPD_URL = (
     "https://raw.githubusercontent.com/wri/global-power-plant-database/"
     "master/output_database/global_power_plant_database.csv"
 )
-GEOJSON_PATH = Path(__file__).parents[2] / "web/public/india_states.geojson"
+
+
+def _find_geojson() -> Path:
+    """State boundaries, for assigning each plant's lat/lon to a zone.
+
+    The repo-relative path only resolves in a source checkout — once the
+    package is pip-installed (i.e. the deploy image) __file__ lives in
+    site-packages and web/ isn't shipped. Check an explicit override and the
+    image path too, or the loader silently has no boundaries to match against
+    and every plant is dropped.
+    """
+    candidates = [
+        Path(p) for p in (os.environ.get("GRID_GEOJSON_PATH"),) if p
+    ] + [
+        Path(__file__).parents[2] / "web/public/india_states.geojson",  # source checkout
+        Path("/app/data/india_states.geojson"),                          # deploy image
+    ]
+    for c in candidates:
+        if c.is_file():
+            return c
+    raise FileNotFoundError(
+        "india_states.geojson not found. Set GRID_GEOJSON_PATH, or run from a "
+        f"source checkout. Looked in: {', '.join(str(c) for c in candidates)}"
+    )
+
+
+GEOJSON_PATH = None  # resolved lazily by load_state_geoms so import never fails
 
 FUEL_MAP = {
     "Coal": "coal", "Gas": "gas", "Oil": "oil", "Petcoke": "coal",
@@ -72,7 +99,8 @@ def _point_in_geom(lon: float, lat: float, geom: dict) -> bool:
     return False
 
 
-def load_state_geoms(path: Path = GEOJSON_PATH) -> list[tuple[str, dict]]:
+def load_state_geoms(path: Path | None = None) -> list[tuple[str, dict]]:
+    path = path or _find_geojson()
     geo = json.loads(path.read_text())
     out = []
     for f in geo["features"]:
