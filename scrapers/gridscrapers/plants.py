@@ -141,6 +141,8 @@ def load(csv_path: str | None) -> int:
             state_for(lon, lat, geoms),
             "gppd",
             r["gppd_idnr"],
+            (r.get("owner") or "").strip() or None,
+            int(float(r["commissioning_year"])) if r.get("commissioning_year") else None,
         ))
 
     # Upsert on the source's own id rather than TRUNCATE + reinsert:
@@ -152,8 +154,9 @@ def load(csv_path: str | None) -> int:
         with conn.cursor() as cur:
             cur.executemany(
                 """INSERT INTO india_plants
-                       (name, fuel, capacity_mw, lat, lon, state_zone, source, source_id)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                       (name, fuel, capacity_mw, lat, lon, state_zone, source,
+                        source_id, owner, commissioning_year)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    ON CONFLICT (source, source_id) WHERE source_id IS NOT NULL
                    DO UPDATE SET name = EXCLUDED.name,
                                  fuel = EXCLUDED.fuel,
@@ -161,6 +164,8 @@ def load(csv_path: str | None) -> int:
                                  lat = EXCLUDED.lat,
                                  lon = EXCLUDED.lon,
                                  state_zone = EXCLUDED.state_zone,
+                                 owner = EXCLUDED.owner,
+                                 commissioning_year = EXCLUDED.commissioning_year,
                                  loaded_at = now()""",
                 rows,
             )

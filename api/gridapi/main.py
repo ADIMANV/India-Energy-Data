@@ -6,6 +6,7 @@ Endpoints:
     GET /v1/zones                            — all zones + latest demand met
     GET /v1/zone/{id}/live                   — latest value per metric/fuel
     GET /v1/zone/{id}/history?metric=&hours= — timeseries
+    GET /v1/export/live.csv|.json            — every state, one row, one format
 """
 
 import csv
@@ -22,6 +23,36 @@ from psycopg_pool import AsyncConnectionPool
 DSN = os.environ.get("GRID_DB_DSN", "postgresql://grid:grid@localhost:5433/india_grid")
 
 ZONE_RE = re.compile(r"^IN(-[A-Z]{2})?$")
+
+# Human-readable names for the unified export. The point of that endpoint is a
+# format a consumer can use without a lookup table of their own, so the name
+# ships alongside the code.
+ZONE_NAMES = {
+    "IN": "All India",
+    "IN-AP": "Andhra Pradesh", "IN-AR": "Arunachal Pradesh", "IN-AS": "Assam",
+    "IN-BR": "Bihar", "IN-CG": "Chhattisgarh", "IN-CH": "Chandigarh",
+    "IN-DL": "Delhi", "IN-GA": "Goa", "IN-GJ": "Gujarat", "IN-HP": "Himachal Pradesh",
+    "IN-HR": "Haryana", "IN-JH": "Jharkhand", "IN-JK": "Jammu and Kashmir",
+    "IN-KA": "Karnataka", "IN-KL": "Kerala", "IN-MH": "Maharashtra",
+    "IN-ML": "Meghalaya", "IN-MN": "Manipur", "IN-MP": "Madhya Pradesh",
+    "IN-MZ": "Mizoram", "IN-NL": "Nagaland", "IN-OD": "Odisha",
+    "IN-PB": "Punjab", "IN-PY": "Puducherry", "IN-RJ": "Rajasthan",
+    "IN-SK": "Sikkim", "IN-TN": "Tamil Nadu", "IN-TR": "Tripura",
+    "IN-TS": "Telangana", "IN-UK": "Uttarakhand", "IN-UP": "Uttar Pradesh",
+    "IN-WB": "West Bengal",
+}
+
+# Fixed column order for the unified export. Every state gets every column,
+# empty where a source doesn't publish it — the whole point is that the shape
+# does not vary by state the way the underlying sources do.
+EXPORT_FUELS = ["coal", "gas", "oil", "nuclear", "hydro", "wind", "solar",
+                "biomass", "res_nonsolar", "other"]
+EXPORT_COLUMNS = (
+    ["zone", "zone_name", "ts_utc", "data_age_min", "demand_met_mw",
+     "carbon_intensity_gco2_kwh", "ci_estimated", "ci_basis"]
+    + [f"gen_{f}_mw" for f in EXPORT_FUELS]
+    + ["gen_total_mw", "net_import_mw", "exchange_price_rs_kwh"]
+)
 METRICS = {
     "demand_met", "generation", "exchange_purchase", "exchange_price",
     "peak_shortage", "energy_shortage", "frequency", "net_import",
@@ -378,3 +409,105 @@ async def zone_history(
             for ts, m, f, v, u, src, est in rows
         ],
     }
+
+
+async def _live_snapshot() -> list[dict]:
+    """Current value of every metric for every zone, one dict per zone.
+
+    Sources disagree about shape — some publish a full fuel breakdown, some only
+    a demand number — so every zone gets every key, with None where that state's
+    sources don't publish it. Consumers can then rely on the columns rather than
+    branching per state.
+    """
+    async with pool.connection() as conn:
+        rows = await (await conn.execute(
+            """
+            SELECT DISTINCT ON (zone, metric, fuel)
+                   zone, metric, fuel, value, ts, estimated
+            FROM datapoints
+            WHERE ts > now() - interval '24 hours'
+            ORDER BY zone, metric, fuel, ts DESC, estimated ASC, inserted_at DESC
+            """
+        )).fetchall()
+        bases = dict(await (await conn.execute(
+            "SELECT DISTINCT zone, basis FROM current_fuel_shares"
+        )).fetchall())
+        now = (await (await conn.execute("SELECT now()")).fetchone())[0]
+
+    by_zone: dict[str, dict] = {}
+    for zone, metric, fuel, value, ts, est in rows:
+        z = by_zone.setdefault(zone, {"_ts": None, "_gen": {}})
+        if metric == "generation":
+            # own_generation is a MERIT aggregate, not a fuel — it would double
+            # count against the per-fuel rows, so it never enters the breakdown.
+            if fuel and fuel not in ("", "own_generation"):
+                z["_gen"][fuel] = value
+        elif metric == "demand_met":
+            z["demand_met_mw"], z["_ts"] = value, ts
+        elif metric == "carbon_intensity":
+            z["carbon_intensity_gco2_kwh"], z["ci_estimated"] = value, est
+        elif metric == "net_import":
+            z["net_import_mw"] = value
+        elif metric == "exchange_price":
+            z["exchange_price_rs_kwh"] = value
+
+    # The national fuel mix isn't stored against zone 'IN' — it's summed across
+    # states at query time (see zone_live). Do the same here, otherwise the
+    # All-India row would be the only one in the export with an empty breakdown.
+    if "IN" in by_zone and not by_zone["IN"]["_gen"]:
+        national: dict[str, float] = {}
+        for zone, z in by_zone.items():
+            if zone == "IN":
+                continue
+            for fuel, mw in z["_gen"].items():
+                national[fuel] = national.get(fuel, 0.0) + mw
+        by_zone["IN"]["_gen"] = national
+
+    out = []
+    for zone in sorted(by_zone):
+        z = by_zone[zone]
+        gen = z.pop("_gen")
+        ts = z.pop("_ts")
+        row = {c: None for c in EXPORT_COLUMNS}
+        row["zone"] = zone
+        row["zone_name"] = ZONE_NAMES.get(zone, zone)
+        row["ts_utc"] = ts.isoformat() if ts else None
+        row["data_age_min"] = round((now - ts).total_seconds() / 60, 1) if ts else None
+        row["ci_basis"] = bases.get(zone) or ("measured" if z.get("ci_estimated") is False else None)
+        for f in EXPORT_FUELS:
+            row[f"gen_{f}_mw"] = round(gen[f], 1) if f in gen else None
+        row["gen_total_mw"] = round(sum(gen.values()), 1) if gen else None
+        for k, v in z.items():
+            if k in row:
+                row[k] = round(v, 2) if isinstance(v, float) else v
+        out.append(row)
+    return out
+
+
+@app.get("/v1/export/live.json")
+async def export_live_json():
+    """Every zone's current values in one response, one object per zone."""
+    rows = await _live_snapshot()
+    return {
+        "generated_at": rows[0]["ts_utc"] if rows else None,
+        "columns": EXPORT_COLUMNS,
+        "dictionary": "https://india-energy-data.vercel.app/data-dictionary",
+        "zones": rows,
+    }
+
+
+@app.get("/v1/export/live.csv")
+async def export_live_csv():
+    """Every zone's current values as one CSV — identical columns for all states."""
+    rows = await _live_snapshot()
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=EXPORT_COLUMNS, extrasaction="ignore")
+    w.writeheader()
+    for r in rows:
+        w.writerow({k: ("" if v is None else v) for k, v in r.items()})
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="india_grid_live.csv"'},
+    )
