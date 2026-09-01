@@ -1,4 +1,4 @@
-// Copies the authoritative docs/METHODOLOGY.md into web/content/ so the
+// Copies the authoritative docs/*.md into web/content/ so the
 // methodology route can render it on hosts whose build root is web/ (e.g.
 // Vercel) where ../docs isn't present at runtime. Runs on predev/prebuild.
 // The page still prefers ../docs at request time when available, so dev never
@@ -8,14 +8,19 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const web = dirname(dirname(fileURLToPath(import.meta.url)));
-const src = join(web, "..", "docs", "METHODOLOGY.md");
 const dstDir = join(web, "content");
-const dst = join(dstDir, "METHODOLOGY.md");
 
-if (existsSync(src)) {
-  mkdirSync(dstDir, { recursive: true });
-  copyFileSync(src, dst);
-  console.log("synced METHODOLOGY.md → content/");
-} else {
-  console.log("docs/METHODOLOGY.md not found; using committed content/ copy");
+// Every doc rendered by a route must be listed here, or that route falls back
+// to the committed copy in content/ and silently serves a stale version.
+const DOCS = ["METHODOLOGY.md", "DATA_GAPS.md"];
+
+mkdirSync(dstDir, { recursive: true });
+for (const name of DOCS) {
+  const src = join(web, "..", "docs", name);
+  if (existsSync(src)) {
+    copyFileSync(src, join(dstDir, name));
+    console.log(`synced ${name} → content/`);
+  } else {
+    console.log(`docs/${name} not found; using committed content/ copy`);
+  }
 }

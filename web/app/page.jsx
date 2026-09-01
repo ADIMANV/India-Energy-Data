@@ -74,6 +74,7 @@ export default function Home() {
         <span>Open electricity data for India · estimates labelled, never faked</span>
         <nav>
           <a href="/methodology">Methodology</a>
+          <a href="/data-gaps">Data gaps</a>
           <a href="/status">Data quality</a>
         </nav>
       </footer>
