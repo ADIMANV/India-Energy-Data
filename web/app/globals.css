@@ -227,3 +227,35 @@ body {
   .legend { top: 12px; left: 12px; bottom: auto; }
   .legend .bar { width: 120px; }
 }
+
+/* Download page: the file itself is the product, so the buttons lead. */
+.dl-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 26px 0 34px; }
+.dl-btn {
+  display: inline-block; padding: 13px 26px; border-radius: 6px;
+  background: var(--accent); color: var(--accent-ink);
+  font-weight: 600; font-size: 15px; text-decoration: none;
+}
+.dl-btn:hover { filter: brightness(1.08); }
+.dl-btn.secondary {
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.table-scroll { overflow-x: auto; margin: 18px 0 30px; }
+table.dict { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+table.dict th {
+  text-align: left; padding: 9px 14px 9px 0; border-bottom: 1px solid var(--hairline);
+  color: var(--muted); font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+}
+table.dict td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+table.dict td code { font-size: 13px; color: var(--accent); }
+table.dict td.unit { color: var(--muted); white-space: nowrap; font-size: 13px; }
+
+/* Code blocks inside the doc pages need their own breathing room — without a
+   margin they collide with the heading that follows. */
+.doc-page pre {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 6px; padding: 14px 16px; margin: 14px 0 32px;
+  overflow-x: auto;
+}
+.doc-page pre code { font-size: 13.5px; color: var(--text); }

@@ -492,7 +492,7 @@ async def export_live_json():
     return {
         "generated_at": rows[0]["ts_utc"] if rows else None,
         "columns": EXPORT_COLUMNS,
-        "dictionary": "https://india-energy-data.vercel.app/data-dictionary",
+        "dictionary": "https://india-energy-data.vercel.app/data",
         "zones": rows,
     }
 

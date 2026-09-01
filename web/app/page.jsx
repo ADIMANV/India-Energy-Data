@@ -73,6 +73,7 @@ export default function Home() {
       <footer className="footer">
         <span>Open electricity data for India · estimates labelled, never faked</span>
         <nav>
+          <a href="/data">Download data</a>
           <a href="/methodology">Methodology</a>
           <a href="/data-gaps">Data gaps</a>
           <a href="/status">Data quality</a>
