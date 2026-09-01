@@ -39,3 +39,4 @@ docs/sources/*.xls
 docs/sources/*.xlsx
 !docs/sources/NRLDC_daily100626.pdf
 !docs/sources/NPP_dgr2_100626.xls
+!docs/sources/CEA_IC_July2026.xlsx

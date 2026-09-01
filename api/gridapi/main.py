@@ -7,6 +7,7 @@ Endpoints:
     GET /v1/zone/{id}/live                   — latest value per metric/fuel
     GET /v1/zone/{id}/history?metric=&hours= — timeseries
     GET /v1/export/live.csv|.json            — every state, one row, one format
+    GET /v1/export/capacity.csv              — installed capacity by state/sector/fuel
 """
 
 import csv
@@ -510,4 +511,37 @@ async def export_live_csv():
         iter([buf.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="india_grid_live.csv"'},
+    )
+
+
+@app.get("/v1/export/capacity.csv")
+async def export_capacity_csv():
+    """Installed capacity by state, sector and fuel (CEA, monthly).
+
+    Capacity, not generation — solar and wind run at much lower capacity
+    factors than coal, so a private capacity share is not a private generation
+    share. See /data-gaps for why this is the only usable public source for
+    ownership.
+    """
+    async with pool.connection() as conn:
+        rows = await (await conn.execute(
+            """
+            SELECT as_of, zone, sector, fuel, capacity_mw
+            FROM cea_installed_capacity
+            WHERE as_of = (SELECT max(as_of) FROM cea_installed_capacity)
+            ORDER BY zone, sector, fuel
+            """
+        )).fetchall()
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["as_of", "zone", "zone_name", "sector", "fuel", "capacity_mw"])
+    for as_of, zone, sector, fuel, mw in rows:
+        w.writerow([as_of.isoformat(), zone, ZONE_NAMES.get(zone, zone),
+                    sector, fuel, round(mw, 2) if mw is not None else ""])
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="india_installed_capacity.csv"'},
     )
