@@ -39,8 +39,9 @@ export const FUEL_ORDER = [
 
 // What India actually has installed, for scale against the 2021 registry the
 // map draws. All-India utility capacity, CEA installed capacity report;
-// renewablesMw is CEA's RES column (solar, wind, biomass, small hydro).
-export const INSTALLED = { mw: 551995, renewablesMw: 239661, asOf: "July 2026", source: "CEA" };
+// renewablesMw is CEA's "Wind, Solar & Other RE" (solar, wind, biomass, waste
+// to energy, small hydro — everything but large hydro and nuclear).
+export const INSTALLED = { mw: 563113, renewablesMw: 251149, asOf: "October 2026", source: "CEA" };
 
 // Plain-English names for the freshness-ladder rungs the API reports.
 export const BASIS_LABELS = {

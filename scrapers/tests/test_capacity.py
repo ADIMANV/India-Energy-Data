@@ -7,12 +7,14 @@ from gridscrapers.schema import RawResponse
 
 IST = ZoneInfo("Asia/Kolkata")
 SAMPLE = Path(__file__).parents[2] / "docs/sources/CEA_IC_July2026.xlsx"
+# after CEA's site rebuild: a "Summary" sheet first, the state table on "IC"
+SAMPLE_OCT = Path(__file__).parents[2] / "docs/sources/CEA_IC_Oct2026.xlsx"
 
 
 def _raw(body: bytes) -> RawResponse:
     return RawResponse(
         source="cea_capacity",
-        endpoint=capacity.report_url(date(2026, 7, 1)),
+        endpoint=capacity.LISTING_URL,
         fetched_at=datetime(2026, 8, 24, 12, 0, tzinfo=IST),
         http_status=200,
         body=body,
@@ -20,9 +22,36 @@ def _raw(body: bytes) -> RawResponse:
     )
 
 
-def test_report_url_month_name():
-    # CEA's filename uses the full month name with no separator before the year
-    assert capacity.report_url(date(2026, 7, 1)).endswith("/2026/07/IC_July2026.xlsx")
+LISTING = """
+<tr class="report-item" data-date="2026-10" data-report-id="12998"><td>1</td>
+  <td class="report-name-cell">Installed Capacity</td><td class="period-cell">2026-10</td>
+  <td><a href="/api/dashboardReports/download-pdf/en/aaa" title="Download"></a></td>
+  <td><a href="/api/dashboardReports/download-excel/en/bbb" title="Download"></a></td></tr>
+<tr class="report-item" data-date="2026-08" data-report-id="12871"><td>3</td>
+  <td class="report-name-cell">Installed Capacity</td><td class="period-cell">2026-08</td>
+  <td><a href="/api/dashboardReports/download-pdf/en/ccc" title="Download"></a></td><td></td></tr>
+<tr class="report-item" data-date="2026-09" data-report-id="12930"><td>2</td>
+  <td class="report-name-cell">Installed Capacity</td><td class="period-cell">2026-09</td>
+  <td><a href="/api/dashboardReports/download-pdf/en/ddd" title="Download"></a></td>
+  <td><a href="/api/dashboardReports/download-excel/en/eee" title="Download"></a></td></tr>
+"""
+
+
+def test_excel_links_newest_first_and_skip_pdf_only_months():
+    assert capacity.excel_links(LISTING) == [
+        ("2026-10", "/api/dashboardReports/download-excel/en/bbb"),
+        ("2026-09", "/api/dashboardReports/download-excel/en/eee"),
+    ]
+
+
+def test_parses_the_rebuilt_sites_two_sheet_workbook():
+    raw = _raw(SAMPLE_OCT.read_bytes())
+    raw.meta["month"] = "2026-10-01"
+    rows = capacity.parse(raw)
+    assert {r[0] for r in rows} == {date(2026, 10, 31)}
+    dl = {(s, f): mw for _, z, s, f, mw in rows if z == "IN-DL"}
+    assert abs(dl[("state", "gas")] - 1710.4) < 0.1      # was 1800.4 in July
+    assert abs(dl[("private", "res")] - 557.43) < 0.01
 
 
 def test_parses_state_sector_fuel():

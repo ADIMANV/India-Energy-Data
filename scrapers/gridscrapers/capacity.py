@@ -3,9 +3,11 @@
     python -m gridscrapers.capacity load            # newest published month
     python -m gridscrapers.capacity load --month 2026-07
 
-CEA publishes one workbook a month at a predictable path:
-
-    cea.nic.in/wp-content/uploads/installed/{YYYY}/{MM}/IC_{Month}{YYYY}.xlsx
+CEA publishes one workbook a month. Since its 2026 site rebuild the files are
+no longer at stable paths (the old wp-content/uploads URLs all 404); the
+Installed Capacity report page lists every month as a table row carrying a
+download link with a fresh token on each render. So: fetch the listing, take
+the row for the month wanted, download its Excel. No session is needed.
 
 The state section (below the regional summary) repeats a fixed four-row block
 per state — State / Private / Central / Sub-Total — against fuel columns. We
@@ -31,6 +33,7 @@ Two accounting notes, both easy to get wrong:
 import argparse
 import datetime as dt
 import io
+import re
 import sys
 
 import psycopg
@@ -39,9 +42,13 @@ from .db import archive_raw, get_dsn, insert_datapoints  # noqa: F401  (archive_
 from .http import make_client, request_raw
 
 SOURCE = "cea_capacity"
-PARSER_VERSION = 1
-URL = ("https://cea.nic.in/wp-content/uploads/installed/"
-       "{y}/{m:02d}/IC_{month_name}{y}.xlsx")
+PARSER_VERSION = 2
+BASE = "https://cea.nic.in"
+LISTING_URL = (BASE + "/reports/dashboardView?headingId=107&subHeadingId=1003"
+               "&subSubHeadingId=10014&lang=en")
+# <tr class="report-item" data-date="2026-10" ...> … href="/api/dashboardReports/download-excel/…"
+_ROW = re.compile(r'<tr[^>]*class="report-item"[^>]*data-date="(\d{4}-\d{2})"(.*?)</tr>', re.S)
+_EXCEL = re.compile(r'href="(/api/dashboardReports/download-excel/[^"]+)"')
 
 # Column offsets within the state section, 1-based worksheet columns.
 COL_STATE, COL_SECTOR = 2, 3
@@ -69,26 +76,29 @@ STATE_ZONES = {
 }
 
 
-def report_url(day: dt.date) -> str:
-    return URL.format(y=day.year, m=day.month, month_name=day.strftime("%B"))
+def excel_links(html: str) -> list[tuple[str, str]]:
+    """[(YYYY-MM, download path)] for listing rows that offer an Excel, newest first."""
+    out = []
+    for month, body in _ROW.findall(html):
+        m = _EXCEL.search(body)
+        if m:
+            out.append((month, m.group(1)))
+    return sorted(out, reverse=True)
 
 
 def fetch(day: dt.date | None = None):
-    """Fetch a month's workbook. Walks back if the newest isn't published yet."""
-    start = day or dt.date.today().replace(day=1)
-    raws = []
+    """Fetch the workbook for `day`'s month, or the newest that has an Excel."""
     with make_client(legacy_tls=True) as client:
-        for back in range(0, 4):
-            y, m = divmod((start.year * 12 + start.month - 1) - back, 12)
-            candidate = dt.date(y, m + 1, 1)
-            raw = request_raw(client, SOURCE, "GET", report_url(candidate),
-                              meta={"month": candidate.isoformat()})
-            raws.append(raw)
-            if (raw.http_status or 0) == 200 and raw.body[:2] == b"PK":
-                break
-            if day:  # explicit month: don't walk back past what was asked for
-                break
-    return raws
+        listing = request_raw(client, SOURCE, "GET", LISTING_URL, meta={"kind": "listing"})
+        if (listing.http_status or 0) != 200 or not listing.body:
+            return [listing]
+        links = excel_links(bytes(listing.body).decode("utf-8", "replace"))
+        if day:
+            links = [link for link in links if link[0] == day.strftime("%Y-%m")]
+        if not links:
+            return [listing]
+        month, path = links[0]
+        return [request_raw(client, SOURCE, "GET", BASE + path, meta={"month": f"{month}-01"})]
 
 
 def _num(v) -> float | None:
@@ -105,7 +115,10 @@ def parse(raw) -> list[tuple]:
         return []
     import openpyxl
 
-    ws = openpyxl.load_workbook(io.BytesIO(bytes(raw.body)), data_only=True).active
+    wb = openpyxl.load_workbook(io.BytesIO(bytes(raw.body)), data_only=True)
+    # One sheet until mid-2026 ("IC_July 2026"); now a "Summary" sheet comes
+    # first and opens as the active one, with the state table on "IC".
+    ws = next((wb[n] for n in wb.sheetnames if n.strip().upper().startswith("IC")), wb.active)
 
     # "(As on 31.07.2026)" — the report's own date, not our ingest time.
     as_of = None
@@ -121,7 +134,7 @@ def parse(raw) -> list[tuple]:
                     except ValueError:
                         pass
     if as_of is None:
-        as_of = dt.date.fromisoformat(raw.meta["month"])
+        as_of = dt.date.fromisoformat(raw.meta["month"])  # set by fetch()
 
     out, zone = [], None
     for i in range(1, ws.max_row + 1):
@@ -151,7 +164,7 @@ def load(day: dt.date | None = None) -> int:
             used = raw
             break
     if not rows:
-        tried = ", ".join(r.meta["month"] for r in raws)
+        tried = ", ".join(r.meta.get("month") or r.meta.get("kind", "?") for r in raws)
         print(f"[{SOURCE}] no workbook parsed (tried {tried})", file=sys.stderr)
         return 0
 
