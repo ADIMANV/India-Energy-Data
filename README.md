@@ -1,8 +1,9 @@
 # India Electricity Data
 
-State-wise live electricity demand, generation mix, and carbon intensity for
-India — on a map, with free history and a public API. Estimates are always
-labelled as estimates, never presented as measurements.
+India's power plants on a 3D map, by installed capacity and fuel, alongside
+state-wise live electricity demand, generation mix and carbon intensity — with
+free history and a public API. Estimates are always labelled as estimates,
+never presented as measurements.
 
 Live demand covers all 32 states/UTs. Four states publish real per-fuel
 generation over SCADA and are reported as **measured** (Punjab, Delhi,
@@ -10,7 +11,7 @@ Karnataka, Chhattisgarh); the rest have their fuel mix **estimated** from a
 documented freshness ladder — see
 [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
-![India Electricity Data — live demand choropleth with per-state generation mix and carbon intensity](docs/screenshot.png)
+![India Electricity Data — a tilted map of India's power plants as columns, height by installed capacity and colour by fuel group, beside Karnataka's live measured generation mix](docs/screenshot.png)
 
 ## Layout
 
@@ -73,7 +74,10 @@ in [docs/sources/README.md](docs/sources/README.md).
 | State SLDCs (Punjab, Delhi, Karnataka, Chhattisgarh, Maharashtra) | measured live generation by fuel |
 
 State boundaries from [datameet/maps](https://github.com/datameet/maps)
-(CC-BY 2.5 IN). Emission factors are versioned in
+(CC-BY 2.5 IN), generalised for the web by `web/scripts/simplify-states.mjs`.
+Power plants from the [WRI Global Power Plant Database](https://datasets.wri.org/dataset/globalpowerplantdatabase)
+(CC BY 4.0), a 2021 snapshot — regenerate the map's copy with
+`python -m gridscrapers.plants export`. Emission factors are versioned in
 `scrapers/gridscrapers/emission_factors.json` (CEA CO2 Baseline Database).
 
 This project is independent and not affiliated with or endorsed by any of the

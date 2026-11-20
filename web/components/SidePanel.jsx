@@ -3,39 +3,41 @@
 import { useEffect, useState } from "react";
 import { fetchLive, fetchPanelHistory } from "../lib/api";
 import { ZONE_TO_NAME, ageLabel, ageMinutes, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
+import { BASIS_LABELS } from "../lib/fuels";
 import { CIChart, FuelBars, SupplyChart, yesterdayDelta } from "./charts";
 
-// the estimated/measured badge is the credibility marker — one click explains it
-function BasisBadge({ estimated, basis }) {
-  const label = estimated ? `estimated${basis ? ` · ${basis}` : ""}` : "measured";
+// Whether a number was measured or estimated is the credibility marker, so it
+// is said in words next to the number, and one click explains how.
+function BasisNote({ estimated, basis }) {
+  const label = estimated ? BASIS_LABELS[basis] || "estimated" : BASIS_LABELS.measured;
   return (
-    <a className={`badge ${estimated ? "" : "measured"}`} href="/methodology#freshness-ladder"
+    <a className={`basis${estimated ? "" : " measured"}`} href="/methodology#freshness-ladder"
        title="How this is computed">{label}</a>
   );
 }
 
-// "▲ 3.2% vs yesterday" — same clock-time delta, restrained styling
-function Delta({ d, unit }) {
+// "▲ 3.2% vs same time yesterday" — same clock-time delta, restrained styling
+function Delta({ d }) {
   if (!d) return null;
   const up = d.delta >= 0;
   return (
     <span className="delta">
-      <span className="mono">{up ? "▲" : "▼"} {Math.abs(d.pct).toFixed(1)}%</span>
+      <span className="num">{up ? "▲" : "▼"} {Math.abs(d.pct).toFixed(1)}%</span>
       <span className="delta-basis">vs same time yesterday</span>
     </span>
   );
 }
 
-function Figure({ label, value, unit, delta, badge }) {
+function Figure({ label, value, unit, delta, note }) {
   return (
     <div className="figure">
       <div className="figure-label">{label}</div>
       <div className="figure-value">
-        <span className="mono">{value}</span>
+        <span className="fig">{value}</span>
         {unit && <span className="figure-unit">{unit}</span>}
-        {badge}
       </div>
-      {delta && <Delta d={delta} unit={unit} />}
+      {delta && <Delta d={delta} />}
+      {note && <div className="figure-note">{note}</div>}
     </div>
   );
 }
@@ -83,6 +85,11 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
     .sort((a, b) => b.value - a.value);
   const mixEstimated = mix.some((m) => m.estimated);
   const mixBasis = mix.find((m) => m.estimation_basis)?.estimation_basis;
+  // The national mix is a sum of whichever states reported by fuel in the last
+  // half hour. If that covers a sliver of demand — only the few live-SCADA
+  // states — it is not India's mix, and drawing it as one would mislead.
+  const mixMW = mix.reduce((s, m) => s + m.value, 0);
+  const partialNational = isNational && demand && mixMW < 0.5 * demand.value;
   const points = history?.points || [];
   const hasSupply = points.some((p) => p.metric === "generation");
   const demandDelta = yesterdayDelta(points, "demand_met");
@@ -95,7 +102,7 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
       )}
       <h2>{title}</h2>
       <div className={`age ${stale ? "stale" : ""}`}>
-        updated {demand ? ageLabel(demand.ts) : "—"}{stale ? " · STALE" : ""}
+        Updated {demand ? ageLabel(demand.ts) : "—"}{stale ? " · stale" : ""}
       </div>
 
       <div className="figures">
@@ -104,15 +111,25 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
           <Figure
             label="Carbon intensity"
             value={Math.round(ci.value)} unit="gCO₂/kWh" delta={ciDelta}
-            badge={<BasisBadge estimated={ci.estimated} basis={ci.estimation_basis} />}
+            note={<BasisNote estimated={ci.estimated} basis={ci.estimation_basis} />}
           />
         )}
       </div>
 
       {/* generation mix — the differentiated thing, leads the data */}
-      {mix.length > 0 && (
+      {mix.length > 0 && partialNational && (
         <section className="block">
-          <h3>Generation mix <BasisBadge estimated={mixEstimated} basis={mixBasis} /></h3>
+          <h3>Generation mix</h3>
+          <p className="hint">
+            Only {fmtMW(mixMW)} of the {fmtMW(demand.value)} India is using right now has been
+            reported by fuel, too little to call a national mix. Pick a state to see its own.
+          </p>
+        </section>
+      )}
+      {mix.length > 0 && !partialNational && (
+        <section className="block">
+          <h3>Generation mix</h3>
+          <div className="block-note"><BasisNote estimated={mixEstimated} basis={mixBasis} /></div>
           <FuelBars mix={mix} />
         </section>
       )}
@@ -136,11 +153,11 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
           <h3>Power exchange</h3>
           {price && (
             <div className="row"><span className="k">Price</span>
-              <span className="mono">₹{price.value.toFixed(2)}/kWh</span></div>
+              <span className="num">₹{price.value.toFixed(2)}/kWh</span></div>
           )}
           {purchase && (
             <div className="row"><span className="k">Purchased</span>
-              <span className="mono">{fmtMW(purchase.value)}</span></div>
+              <span className="num">{fmtMW(purchase.value)}</span></div>
           )}
         </section>
       )}

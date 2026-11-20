@@ -8,13 +8,19 @@ import { ageLabel, fmtMW } from "../lib/zones";
 
 const REFRESH_MS = 5 * 60 * 1000;
 
+const MODES = [
+  { key: "plants", label: "Plants", dek: "Every power plant in the open registry, by installed capacity and fuel." },
+  { key: "demand", label: "Demand", dek: "Electricity demand met in each state, right now." },
+  { key: "carbon", label: "Carbon", dek: "Carbon intensity of each state's generation, right now." },
+];
+
 export default function Home() {
   const [zonesData, setZonesData] = useState(null);
   const [national, setNational] = useState(null);
   const [selectedZone, setSelectedZone] = useState("IN");
   const [refreshKey, setRefreshKey] = useState(0);
   const [apiError, setApiError] = useState(null);
-  const [colorMode, setColorMode] = useState("demand");
+  const [colorMode, setColorMode] = useState("plants");
 
   const refresh = useCallback(() => {
     fetchZones()
@@ -32,42 +38,46 @@ export default function Home() {
 
   const natDemand = national?.metrics.find((m) => m.metric === "demand_met");
   const stateCount = zonesData ? zonesData.zones.filter((z) => z.zone !== "IN").length : 0;
+  const mode = MODES.find((m) => m.key === colorMode);
 
   return (
     <div className="app">
-      <header className="header">
-        <h1><span className="spark">⚡</span> India Electricity Data</h1>
-        <div className="header-stats">
-          <div className="stat">
-            <span className="label">National demand met</span>
-            <span className="value mono">{fmtMW(natDemand?.value)}</span>
-          </div>
-          <div className="stat">
-            <span className="label">States reporting</span>
-            <span className="value mono">{stateCount}</span>
-          </div>
-        </div>
-        <div className="header-controls">
-          <div className="toggle" role="group" aria-label="map color mode">
-            <button className={colorMode === "demand" ? "on" : ""} onClick={() => setColorMode("demand")}>
-              Demand
-            </button>
-            <button className={colorMode === "carbon" ? "on" : ""} onClick={() => setColorMode("carbon")}>
-              Carbon
-            </button>
-          </div>
-          {selectedZone !== "IN" && (
-            <button className="allindia" onClick={() => setSelectedZone("IN")}>All India</button>
-          )}
-          <div className="freshness">
-            {apiError
-              ? `API unreachable: ${apiError}`
-              : natDemand ? `updated ${ageLabel(natDemand.ts)} · refresh 5 min` : "loading…"}
-          </div>
-        </div>
-      </header>
       <main className="main">
-        <GridMap zonesData={zonesData} onSelect={setSelectedZone} selectedZone={selectedZone} colorMode={colorMode} />
+        <section className="stage">
+          <header className="masthead">
+            <h1>India Electricity Data</h1>
+            <p className="dek">{mode.dek}</p>
+            <nav className="modes" aria-label="Map layer">
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  className={colorMode === m.key ? "on" : ""}
+                  aria-pressed={colorMode === m.key}
+                  onClick={() => setColorMode(m.key)}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </nav>
+          </header>
+          <div className="readout" aria-live="polite">
+            <span className="r-label">All-India demand met</span>
+            <span className="r-value num">{fmtMW(natDemand?.value)}</span>
+            <span className="r-age">
+              {apiError
+                ? "live data unavailable"
+                : natDemand
+                  ? `${stateCount} states · updated ${ageLabel(natDemand.ts)}`
+                  : "loading…"}
+            </span>
+          </div>
+          <GridMap
+            zonesData={zonesData}
+            onSelect={setSelectedZone}
+            selectedZone={selectedZone}
+            colorMode={colorMode}
+          />
+        </section>
         <SidePanel zone={selectedZone} onSelect={setSelectedZone} refreshKey={refreshKey} />
       </main>
       <footer className="footer">
@@ -77,6 +87,7 @@ export default function Home() {
           <a href="/methodology">Methodology</a>
           <a href="/data-gaps">Data gaps</a>
           <a href="/status">Data quality</a>
+          <a href="https://github.com/ADIMANV/India-Energy-Data">Source</a>
         </nav>
       </footer>
     </div>
