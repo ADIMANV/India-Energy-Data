@@ -27,6 +27,31 @@
         "3010"
       ],
       "port": 3010
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": ".venv/bin/uvicorn",
+      "runtimeArgs": [
+        "gridapi.main:app",
+        "--port",
+        "8000"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "web-local-api",
+      "cwd": "web",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "BACKEND_ORIGIN=http://127.0.0.1:8000",
+        "NEXT_PUBLIC_API_URL=/api",
+        "npx",
+        "next",
+        "dev",
+        "-p",
+        "3020"
+      ],
+      "port": 3020
     }
   ]
 }

@@ -9,9 +9,9 @@ import { ageLabel, fmtMW } from "../lib/zones";
 const REFRESH_MS = 5 * 60 * 1000;
 
 const MODES = [
-  { key: "plants", label: "Plants", dek: "Every power plant in the open registry, by installed capacity and fuel." },
   { key: "demand", label: "Demand", dek: "Electricity demand met in each state, right now." },
-  { key: "carbon", label: "Carbon", dek: "Carbon intensity of each state's generation, right now." },
+  { key: "plants", label: "Plants", dek: "Every power plant in the open registry, by installed capacity and fuel." },
+  { key: "carbon", label: "Carbon", dek: "How green each state's generation is right now, as carbon intensity." },
 ];
 
 export default function Home() {
@@ -20,7 +20,7 @@ export default function Home() {
   const [selectedZone, setSelectedZone] = useState("IN");
   const [refreshKey, setRefreshKey] = useState(0);
   const [apiError, setApiError] = useState(null);
-  const [colorMode, setColorMode] = useState("plants");
+  const [colorMode, setColorMode] = useState("demand");
 
   const refresh = useCallback(() => {
     fetchZones()

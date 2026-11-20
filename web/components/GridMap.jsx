@@ -3,19 +3,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { NAME_TO_ZONE, ZONE_TO_NAME, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
-import { GROUPS, INSTALLED, fuelGroup, fuelLabel } from "../lib/fuels";
+import { BASIS_LABELS, FUEL_GROUP, GROUPS, INSTALLED, fuelGroup, fuelLabel } from "../lib/fuels";
 
 const INK = "#0e0d0b";
 const LAND = "#1b1a17";
-const NO_DATA = "#22201d";
 const BORDER = "rgba(236, 230, 218, 0.2)";
 const SELECTED = "#ece6da";
 const MUTED_PLANT = "#4a463f";
 
-// Single-hue ramps stepped by OKLCH lightness, dark = low. Carbon takes the
-// fossil magenta, so on the carbon map more magenta means more fossil.
-const DEMAND_STOPS = [[0, "#312d27"], [2000, "#585148"], [8000, "#82796b"], [18000, "#b2a695"], [30000, "#e8dccb"]];
-const CARBON_STOPS = [[0, "#42232c"], [250, "#7a354d"], [500, "#b7476f"], [750, "#e46f96"], [1000, "#ffafc7"]];
+// Demand: one green-teal hue, dark = small, light = large — the original
+// palette. Its shade is size, not greenness; greenness is the carbon map.
+const DEMAND_STOPS = [[0, "#2a3431"], [2000, "#33514a"], [8000, "#437468"], [18000, "#69b394"], [30000, "#c4e6d2"]];
+// Carbon: green ↔ rust around 500 g/kWh. Equal OKLCH lightness steps out from
+// a dark neutral midpoint, so low-carbon and coal-heavy states both stand out
+// and states near the middle recede.
+const CARBON_STOPS = [
+  [0, "#57bc80"], [125, "#489a68"], [250, "#3c7753"], [375, "#34533e"], [500, "#29302b"],
+  [625, "#614232"], [750, "#91593c"], [875, "#be6f45"], [1000, "#e68a58"],
+];
 
 const INDIA = [[68, 6.5], [97.5, 36]];
 const PLANT_GROUPS = ["fossil", "firm", "renewable"];
@@ -25,15 +30,38 @@ const PLANT_GROUPS = ["fossil", "firm", "renewable"];
 const DEG_PER_PX_Z0 = 360 / 512;
 const M_PER_PX_Z0 = 40075016.686 / 512;
 const COLUMN_RADIUS_PX = 1.8;
+const GROW_MS = 700;
+
+const fresh = (ts) => ts && ageMinutes(ts) <= STALE_AFTER_MIN;
+const ciOf = (z) => (z?.carbon_intensity && fresh(z.carbon_intensity.ts) ? z.carbon_intensity : null);
 
 function fillColorExpr(mode) {
   const [stops, key] = mode === "carbon" ? [CARBON_STOPS, "carbon"] : [DEMAND_STOPS, "demand"];
   return [
     "case",
     ["boolean", ["feature-state", `${key}Missing`], true],
-    NO_DATA,
+    LAND, // the hatch layer on top marks it as missing
     ["interpolate", ["linear"], ["to-number", ["feature-state", key], -1], ...stops.flat()],
   ];
+}
+
+const missingExpr = (key) => ["case", ["boolean", ["feature-state", `${key}Missing`], true], 1, 0];
+
+// Diagonal hairlines for "no data" — texture rather than another colour, so
+// missing can never be mistaken for a value on the ramp.
+function hatchImage() {
+  const n = 8;
+  const c = document.createElement("canvas");
+  c.width = c.height = n;
+  const g = c.getContext("2d");
+  g.strokeStyle = "rgba(236, 230, 218, 0.22)";
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(-1, n + 1); g.lineTo(n + 1, -1);
+  g.moveTo(-1, 1); g.lineTo(1, -1);
+  g.moveTo(n - 1, n + 1); g.lineTo(n + 1, n - 1);
+  g.stroke();
+  return g.getImageData(0, 0, n, n);
 }
 
 // Each plant is an octagonal column. The footprint is rebuilt at the end of
@@ -53,7 +81,7 @@ function columns(plants, zoom) {
       ring.push(ring[0]);
       return {
         type: "Feature",
-        properties: { i, fuel: p.fuel, h0: p.h0 },
+        properties: { i, fuel: p.fuel, zone: p.zone || "", h0: p.h0 },
         geometry: { type: "Polygon", coordinates: [ring] },
       };
     }),
@@ -67,7 +95,6 @@ function columns(plants, zoom) {
 // MapLibre only accepts ["zoom"] at the top level of the expression, so any
 // per-plant condition has to go inside the stops rather than around them.
 const heightExpr = (h0) => ["interpolate", ["exponential", 0.5], ["zoom"], 0, h0, 22, ["/", h0, 4194304]];
-const HEIGHT = heightExpr(["get", "h0"]);
 const GROUP_COLOR = [
   "match", ["get", "fuel"],
   ["coal", "gas", "oil"], GROUPS.fossil.color,
@@ -76,15 +103,23 @@ const GROUP_COLOR = [
   GROUPS.unattributed.color,
 ];
 
-function plantPaint(activeFuels) {
-  if (!activeFuels) return { color: GROUP_COLOR, height: HEIGHT };
-  const on = ["in", ["get", "fuel"], ["literal", activeFuels]];
-  // filtered-out plants stay as flat grey footprints, so the selection is read
-  // against the whole fleet rather than an empty country
-  return {
-    color: ["case", on, GROUP_COLOR, MUTED_PLANT],
-    height: heightExpr(["case", on, ["get", "h0"], 0]),
-  };
+// Plants outside the current fuel filter or the selected state drop to flat
+// grey footprints, so a selection is always read against the whole fleet.
+// `grow` scales every column, for the rise when the plants layer opens.
+function plantPaint(activeFuels, zone, grow) {
+  const conds = [];
+  if (activeFuels) conds.push(["in", ["get", "fuel"], ["literal", activeFuels]]);
+  if (zone && zone !== "IN") conds.push(["==", ["get", "zone"], zone]);
+  const h0 = grow >= 1 ? ["get", "h0"] : ["*", grow, ["get", "h0"]];
+  if (!conds.length) return { color: GROUP_COLOR, height: heightExpr(h0) };
+  const on = conds.length === 1 ? conds[0] : ["all", ...conds];
+  return { color: ["case", on, GROUP_COLOR, MUTED_PLANT], height: heightExpr(["case", on, h0, 0]) };
+}
+
+function activeFuelsOf(facet) {
+  if (!facet) return null;
+  if (facet.kind === "fuel") return [facet.key];
+  return Object.keys(FUEL_GROUP).filter((f) => FUEL_GROUP[f] === facet.key);
 }
 
 function graticule() {
@@ -97,6 +132,8 @@ function graticule() {
 
 const fmtGW = (mw) => `${(mw / 1000).toFixed(mw < 10000 ? 1 : 0)} GW`;
 const fmtCap = (mw) => `${Math.round(mw).toLocaleString("en-IN")} MW`;
+const ordinal = (n) => `${n}${["th", "st", "nd", "rd"][(n % 100 > 10 && n % 100 < 14) || n % 10 > 3 ? 0 : n % 10]}`;
+const zoneName = (zone) => (zone === "IN" ? "All India" : ZONE_TO_NAME[zone] || zone);
 
 function usePlants() {
   const [plants, setPlants] = useState(null);
@@ -136,24 +173,29 @@ function plantStats(plants) {
   return { byGroup, total, count: plants.length, tallest };
 }
 
-function activeFuelsOf(facet, stats) {
-  if (!facet || !stats) return null;
-  if (facet.kind === "fuel") return [facet.key];
-  return stats.byGroup[facet.key].fuels.map((f) => f.fuel);
-}
-
 export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const featureIdsRef = useRef({}); // zone -> feature id
   const plantsRef = useRef([]);
   const modeRef = useRef(colorMode);
+  const paintRef = useRef({ activeFuels: null, zone: "IN", grow: 1 });
   const [ready, setReady] = useState(false);
   const [tooltip, setTooltip] = useState(null);
   const [facet, setFacet] = useState(null); // {kind: "group"|"fuel", key}
   const plants = usePlants();
-  const stats = useMemo(() => plantStats(plants), [plants]);
   modeRef.current = colorMode;
+  paintRef.current.activeFuels = activeFuelsOf(facet);
+  paintRef.current.zone = selectedZone;
+
+  const applyPlantPaint = () => {
+    const map = mapRef.current;
+    if (!map?.getLayer("plants")) return;
+    const { activeFuels, zone, grow } = paintRef.current;
+    const { color, height } = plantPaint(activeFuels, zone, grow);
+    map.setPaintProperty("plants", "fill-extrusion-color", color);
+    map.setPaintProperty("plants", "fill-extrusion-height", height);
+  };
 
   useEffect(() => {
     const map = new maplibregl.Map({
@@ -171,13 +213,12 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
       attributionControl: false,
       preserveDrawingBuffer: true, // so headless screenshots capture the WebGL canvas
     });
-    const attribution = new maplibregl.AttributionControl({
+    map.addControl(new maplibregl.AttributionControl({
       customAttribution:
         "Boundaries: datameet (CC BY 2.5 IN) · Plants: WRI Global Power Plant Database (CC BY 4.0) · " +
         "Live: Vidyut Pravah, MERIT, state load despatch centres",
       compact: true,
-    });
-    map.addControl(attribution, "bottom-right");
+    }), "bottom-right");
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
     mapRef.current = map;
 
@@ -191,11 +232,12 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     map.on("load", async () => {
       map.resize();
       // compact attribution opens expanded and only folds on the first drag;
-      // start it folded so it never runs underneath the legend (the ⓘ opens it)
+      // start it folded so it never runs underneath the key (the ⓘ opens it)
       containerRef.current
         ?.querySelector(".maplibregl-ctrl-attrib")
         ?.classList.remove("maplibregl-compact-show");
       map.setLight({ anchor: "viewport", color: "#ffffff", intensity: 0.32, position: [1.3, 205, 35] });
+      map.addImage("hatch", hatchImage());
 
       map.addSource("graticule", { type: "geojson", data: graticule() });
       map.addLayer({
@@ -223,17 +265,20 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         if (zone) featureIdsRef.current[zone] = i;
       });
       map.addSource("states", { type: "geojson", data: geo });
-      map.addLayer({ id: "states-fill", type: "fill", source: "states", paint: { "fill-color": LAND } });
       map.addLayer({
-        id: "states-line",
-        type: "line",
-        source: "states",
+        id: "states-fill", type: "fill", source: "states",
+        paint: { "fill-color": fillColorExpr(modeRef.current) },
+      });
+      map.addLayer({
+        id: "states-nodata", type: "fill", source: "states",
+        paint: { "fill-pattern": "hatch", "fill-opacity": 0 },
+      });
+      map.addLayer({
+        id: "states-line", type: "line", source: "states",
         paint: { "line-color": BORDER, "line-width": 0.6 },
       });
       map.addLayer({
-        id: "states-selected",
-        type: "line",
-        source: "states",
+        id: "states-selected", type: "line", source: "states",
         paint: { "line-color": SELECTED, "line-width": 1.6 },
         filter: ["==", ["get", "zone"], "___none___"],
       });
@@ -242,9 +287,10 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         id: "plants",
         type: "fill-extrusion",
         source: "plants",
+        layout: { visibility: "none" },
         paint: {
           "fill-extrusion-color": GROUP_COLOR,
-          "fill-extrusion-height": HEIGHT,
+          "fill-extrusion-height": heightExpr(["get", "h0"]),
           "fill-extrusion-opacity": 0.95,
           "fill-extrusion-vertical-gradient": true,
         },
@@ -292,9 +338,14 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         } else setTooltip(null);
       });
       map.on("mouseout", () => setTooltip(null));
+      // a plant selects its state; a state selects itself; open sea goes back
+      // to All India
       map.on("click", (e) => {
-        const zone = pickPlant(e.point)?.zone || pickState(e.point)?.properties.zone;
-        if (zone) onSelect(zone);
+        const plant = pickPlant(e.point);
+        const state = plant ? null : pickState(e.point);
+        if (plant?.zone) onSelect(plant.zone);
+        else if (state?.properties.zone) onSelect(state.properties.zone);
+        else if (!state) onSelect("IN");
       });
       setReady(true);
     });
@@ -342,53 +393,60 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     const byZone = Object.fromEntries(zonesData.zones.map((z) => [z.zone, z]));
     for (const [zone, fid] of Object.entries(featureIdsRef.current)) {
       const z = byZone[zone];
-      const demandStale = !z || ageMinutes(z.ts) > STALE_AFTER_MIN;
-      const ci = z?.carbon_intensity;
-      const ciStale = !ci || ageMinutes(ci.ts) > STALE_AFTER_MIN;
+      const ci = ciOf(z);
       map.setFeatureState(
         { source: "states", id: fid },
         {
           demand: z ? z.demand_met_mw : -1,
-          demandMissing: demandStale,
+          demandMissing: !z || !fresh(z.ts),
           carbon: ci ? ci.value : -1,
-          carbonMissing: ciStale,
+          carbonMissing: !ci,
         },
       );
     }
   }, [ready, zonesData]);
 
-  // plants mode draws the fleet on plain land; the other two are choropleths
+  // Demand and Carbon are choropleths; Plants draws the fleet on plain land,
+  // and the columns rise out of the ground when it opens.
   useEffect(() => {
     if (!ready) return;
     const map = mapRef.current;
     const plantsMode = colorMode === "plants";
     map.setLayoutProperty("plants", "visibility", plantsMode ? "visible" : "none");
     map.setPaintProperty("states-fill", "fill-color", plantsMode ? LAND : fillColorExpr(colorMode));
+    map.setPaintProperty("states-nodata", "fill-opacity", plantsMode ? 0 : missingExpr(colorMode));
     setTooltip(null);
+    if (!plantsMode) return;
+    let frame;
+    const t0 = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / GROW_MS);
+      paintRef.current.grow = 1 - (1 - t) ** 3; // ease-out
+      applyPlantPaint();
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => { cancelAnimationFrame(frame); paintRef.current.grow = 1; };
   }, [ready, colorMode]);
 
   useEffect(() => {
-    if (!ready) return;
-    const { color, height } = plantPaint(activeFuelsOf(facet, stats));
-    mapRef.current.setPaintProperty("plants", "fill-extrusion-color", color);
-    mapRef.current.setPaintProperty("plants", "fill-extrusion-height", height);
-  }, [ready, facet, stats]);
+    if (ready) applyPlantPaint();
+  }, [ready, facet, selectedZone]);
 
   useEffect(() => {
     if (!ready) return;
     mapRef.current.setFilter("states-selected", ["==", ["get", "zone"], selectedZone || "___none___"]);
   }, [ready, selectedZone]);
 
+  const keyProps = { zonesData, selectedZone, onSelect };
   return (
     <>
       <div className="map-wrap" ref={containerRef}>
         {tooltip && <Tooltip tip={tooltip} zonesData={zonesData} />}
       </div>
-      {colorMode === "plants" ? (
-        <PlantLegend stats={stats} facet={facet} setFacet={setFacet} />
-      ) : (
-        <RampLegend mode={colorMode} />
-      )}
+      {colorMode === "plants" && <PlantKey {...keyProps} plants={plants} facet={facet} setFacet={setFacet} />}
+      {colorMode === "demand" && <DemandKey {...keyProps} />}
+      {colorMode === "carbon" && <CarbonKey {...keyProps} />}
     </>
   );
 }
@@ -419,21 +477,20 @@ function Tooltip({ tip, zonesData }) {
     );
   }
   const z = tip.zone ? zonesData?.zones.find((d) => d.zone === tip.zone) : null;
+  const ci = ciOf(z);
   return (
     <div className="tooltip" style={style}>
       <div className="t-name">{tip.name}</div>
       {z ? (
         <>
           <div className="t-line"><span className="num">{fmtMW(z.demand_met_mw)}</span> demand met</div>
-          {z.carbon_intensity && (
+          {ci && (
             <div className="t-line">
-              <span className="num">{Math.round(z.carbon_intensity.value)}</span> gCO₂/kWh
-              {z.carbon_intensity.estimated ? <span className="t-sub"> · estimated</span> : ""}
+              <span className="num">{Math.round(ci.value)}</span> gCO₂/kWh
+              {ci.estimated ? <span className="t-sub"> · estimated</span> : ""}
             </div>
           )}
-          <div className={`t-sub ${ageMinutes(z.ts) > STALE_AFTER_MIN ? "stale" : ""}`}>
-            updated {ageLabel(z.ts)}
-          </div>
+          <div className={`t-sub ${fresh(z.ts) ? "" : "stale"}`}>updated {ageLabel(z.ts)}</div>
         </>
       ) : (
         <div className="t-sub">no live data</div>
@@ -442,40 +499,221 @@ function Tooltip({ tip, zonesData }) {
   );
 }
 
-function PlantLegend({ stats, facet, setFacet }) {
-  if (!stats) return <aside className="legend"><p className="lg-note">Loading plants…</p></aside>;
-  const active = activeFuelsOf(facet, stats);
-  const toggle = (next) =>
-    setFacet(facet && facet.kind === next.kind && facet.key === next.key ? null : next);
-  const tallestState = ZONE_TO_NAME[stats.tallest.zone];
-  const registryRenewables = stats.byGroup.renewable.mw;
+// ---------- the key, bottom left: All India until a state is picked ----------
+
+function KeyHead({ title, selectedZone, onSelect }) {
+  return (
+    <>
+      {selectedZone !== "IN" && (
+        <button className="lg-back" onClick={() => onSelect("IN")}>← All India</button>
+      )}
+      <h2 className="lg-title">{title}</h2>
+    </>
+  );
+}
+
+function Ramp({ stops, ends, mid, arms }) {
+  const max = stops[stops.length - 1][0];
+  const gradient = stops.map(([v, c]) => `${c} ${(v / max) * 100}%`).join(", ");
+  return (
+    <div className="lg-rampwrap">
+      <div className="lg-ramp" style={{ background: `linear-gradient(to right, ${gradient})` }} />
+      <div className="lg-ends num">
+        <span>{ends[0]}</span>
+        {mid && <span>{mid}</span>}
+        <span>{ends[1]}</span>
+      </div>
+      {arms && <div className="lg-ends lg-arms"><span>{arms[0]}</span><span>{arms[1]}</span></div>}
+    </div>
+  );
+}
+
+function NoData() {
+  return (
+    <div className="lg-nodata">
+      <i className="lg-swatch hatch" /> no data, or older than {STALE_AFTER_MIN} min
+    </div>
+  );
+}
+
+function RankList({ label, rows, value, onSelect }) {
+  if (!rows.length) return null;
+  return (
+    <>
+      <div className="lg-sub">{label}</div>
+      <ol className="lg-rank">
+        {rows.map((z) => (
+          <li key={z.zone}>
+            <button onClick={() => onSelect(z.zone)}>{zoneName(z.zone)}</button>
+            <span className="num">{value(z)}</span>
+          </li>
+        ))}
+      </ol>
+    </>
+  );
+}
+
+function DemandKey({ zonesData, selectedZone, onSelect }) {
+  const zones = zonesData?.zones || [];
+  const india = zones.find((z) => z.zone === "IN");
+  const states = zones
+    .filter((z) => z.zone !== "IN" && fresh(z.ts))
+    .sort((a, b) => b.demand_met_mw - a.demand_met_mw);
+  const ramp = <Ramp stops={DEMAND_STOPS} ends={["0", "30+ GW"]} />;
+
+  if (selectedZone === "IN") {
+    return (
+      <aside className="legend">
+        <KeyHead title="Demand met, right now" selectedZone="IN" onSelect={onSelect} />
+        {ramp}
+        <RankList label="Largest right now" rows={states.slice(0, 5)}
+                  value={(z) => fmtMW(z.demand_met_mw)} onSelect={onSelect} />
+        <NoData />
+      </aside>
+    );
+  }
+  const z = zones.find((d) => d.zone === selectedZone);
+  const rank = states.findIndex((d) => d.zone === selectedZone) + 1;
   return (
     <aside className="legend">
-      <h2 className="lg-title">Installed capacity, by fuel</h2>
-      {PLANT_GROUPS.map((g) => {
+      <KeyHead title={zoneName(selectedZone)} selectedZone={selectedZone} onSelect={onSelect} />
+      {z ? (
+        <>
+          <div className="lg-fig">{fmtMW(z.demand_met_mw)}</div>
+          <p className="lg-line">
+            demand met
+            {india ? ` · ${((z.demand_met_mw / india.demand_met_mw) * 100).toFixed(1)}% of India` : ""}
+            {rank ? ` · ${ordinal(rank)} largest of ${states.length}` : ""}
+          </p>
+          <p className={`lg-note${fresh(z.ts) ? "" : " stale"}`}>updated {ageLabel(z.ts)}</p>
+        </>
+      ) : (
+        <p className="lg-note">No live demand for this state.</p>
+      )}
+      {ramp}
+      <NoData />
+    </aside>
+  );
+}
+
+function CarbonKey({ zonesData, selectedZone, onSelect }) {
+  const zones = zonesData?.zones || [];
+  const india = ciOf(zones.find((z) => z.zone === "IN"));
+  const states = zones
+    .filter((z) => z.zone !== "IN" && ciOf(z))
+    .sort((a, b) => ciOf(a).value - ciOf(b).value);
+  const ramp = (
+    <Ramp stops={CARBON_STOPS} ends={["0", "1,000+ g"]} mid="500" arms={["low-carbon", "coal-heavy"]} />
+  );
+  const g = (z) => `${Math.round(ciOf(z).value)} g`;
+
+  if (!states.length) {
+    return (
+      <aside className="legend">
+        <KeyHead title={selectedZone === "IN" ? "Carbon intensity of generation" : zoneName(selectedZone)}
+                 selectedZone={selectedZone} onSelect={onSelect} />
+        <p className="lg-line">
+          Carbon intensity isn&rsquo;t available right now. <a href="/status">Data quality</a>
+        </p>
+        {ramp}
+        <NoData />
+      </aside>
+    );
+  }
+  if (selectedZone === "IN") {
+    return (
+      <aside className="legend">
+        <KeyHead title="Carbon intensity of generation" selectedZone="IN" onSelect={onSelect} />
+        {india && (
+          <>
+            <div className="lg-fig">{Math.round(india.value)}<span className="lg-unit"> gCO₂/kWh</span></div>
+            <p className="lg-line">India&rsquo;s grid, right now</p>
+          </>
+        )}
+        {ramp}
+        <RankList label="Lowest right now" rows={states.slice(0, 3)} value={g} onSelect={onSelect} />
+        <RankList label="Highest right now" rows={states.slice(-3).reverse()} value={g} onSelect={onSelect} />
+        <p className="lg-note">
+          Mostly estimated: only a few states publish live generation by fuel.{" "}
+          <a href="/methodology">How it&rsquo;s calculated</a>
+        </p>
+      </aside>
+    );
+  }
+  const ci = ciOf(zones.find((d) => d.zone === selectedZone));
+  const vs = ci && india ? ((ci.value - india.value) / india.value) * 100 : null;
+  return (
+    <aside className="legend">
+      <KeyHead title={zoneName(selectedZone)} selectedZone={selectedZone} onSelect={onSelect} />
+      {ci ? (
+        <>
+          <div className="lg-fig">{Math.round(ci.value)}<span className="lg-unit"> gCO₂/kWh</span></div>
+          <p className="lg-line">
+            {vs == null ? "carbon intensity of generation"
+              : `${Math.abs(vs).toFixed(0)}% ${vs < 0 ? "below" : "above"} India's grid`}
+          </p>
+          <p className="lg-note">
+            {ci.estimated ? BASIS_LABELS[ci.estimation_basis] || "estimated" : BASIS_LABELS.measured}
+          </p>
+        </>
+      ) : (
+        <p className="lg-note">No carbon intensity for this state right now.</p>
+      )}
+      {ramp}
+      <NoData />
+    </aside>
+  );
+}
+
+function PlantKey({ plants, selectedZone, onSelect, facet, setFacet }) {
+  const scoped = useMemo(
+    () => (selectedZone === "IN" ? plants : plants?.filter((p) => p.zone === selectedZone)),
+    [plants, selectedZone],
+  );
+  const stats = useMemo(() => plantStats(scoped), [scoped]);
+  const national = useMemo(() => plantStats(plants), [plants]);
+  const isState = selectedZone !== "IN";
+  const title = isState ? zoneName(selectedZone) : "Installed capacity, by fuel";
+
+  if (!plants) return <aside className="legend"><p className="lg-note">Loading plants…</p></aside>;
+  if (!stats) {
+    return (
+      <aside className="legend">
+        <KeyHead title={title} selectedZone={selectedZone} onSelect={onSelect} />
+        <p className="lg-note">No plants for this state in the open registry.</p>
+      </aside>
+    );
+  }
+  const active = activeFuelsOf(facet);
+  const toggle = (next) =>
+    setFacet(facet && facet.kind === next.kind && facet.key === next.key ? null : next);
+  return (
+    <aside className="legend">
+      <KeyHead title={title} selectedZone={selectedZone} onSelect={onSelect} />
+      {isState && (
+        <p className="lg-line">
+          {stats.count.toLocaleString("en-IN")} plants · {fmtGW(stats.total)} in the registry
+        </p>
+      )}
+      {PLANT_GROUPS.filter((g) => stats.byGroup[g].mw > 0).map((g) => {
         const grp = stats.byGroup[g];
         const groupOn = !active || grp.fuels.some((f) => active.includes(f.fuel));
+        const on = facet?.kind === "group" && facet.key === g;
         return (
           <div className={`lg-group${groupOn ? "" : " off"}`} key={g}>
-            <button
-              className={`lg-row${facet?.kind === "group" && facet.key === g ? " on" : ""}`}
-              onClick={() => toggle({ kind: "group", key: g })}
-              aria-pressed={facet?.kind === "group" && facet.key === g}
-            >
+            <button className={`lg-row${on ? " on" : ""}`} aria-pressed={on}
+                    onClick={() => toggle({ kind: "group", key: g })}>
               <i className="lg-swatch" style={{ background: GROUPS[g].color }} />
               <span className="lg-label">{GROUPS[g].label}</span>
               <span className="num">{fmtGW(grp.mw)}</span>
             </button>
             <div className="lg-fuels">
               {grp.fuels.map((f) => {
-                const on = facet?.kind === "fuel" && facet.key === f.fuel;
+                const fon = facet?.kind === "fuel" && facet.key === f.fuel;
                 return (
-                  <button
-                    key={f.fuel}
-                    className={`lg-fuel${on ? " on" : ""}${active && !active.includes(f.fuel) ? " off" : ""}`}
-                    onClick={() => toggle({ kind: "fuel", key: f.fuel })}
-                    aria-pressed={on}
-                  >
+                  <button key={f.fuel} aria-pressed={fon}
+                          className={`lg-fuel${fon ? " on" : ""}${active && !active.includes(f.fuel) ? " off" : ""}`}
+                          onClick={() => toggle({ kind: "fuel", key: f.fuel })}>
                     {fuelLabel(f.fuel)} <span className="num">{fmtGW(f.mw)}</span>
                   </button>
                 );
@@ -484,42 +722,24 @@ function PlantLegend({ stats, facet, setFacet }) {
           </div>
         );
       })}
-      {facet && (
-        <button className="lg-reset" onClick={() => setFacet(null)}>Show every plant</button>
-      )}
+      {facet && <button className="lg-reset" onClick={() => setFacet(null)}>Show every fuel</button>}
       <p className="lg-note">
-        Column height is installed capacity. The tallest, in {tallestState}, is{" "}
+        Column height is installed capacity. The largest{isState ? " here" : ""}
+        {isState ? "" : `, in ${zoneName(stats.tallest.zone)},`} is {stats.tallest.name},{" "}
         {fmtCap(stats.tallest.capacity_mw)}.
       </p>
-      <p className="lg-note">
-        These {stats.count.toLocaleString("en-IN")} plants, {fmtGW(stats.total)}, are the last open
-        plant registry (WRI, 2021). India has {fmtGW(INSTALLED.mw)} installed ({INSTALLED.source},{" "}
-        {INSTALLED.asOf}). Almost all of the difference is renewables: the registry has{" "}
-        {fmtGW(registryRenewables)} of solar, wind and biomass; India has {fmtGW(INSTALLED.renewablesMw)}.{" "}
-        <a href="/data-gaps">Why</a>
-      </p>
-    </aside>
-  );
-}
-
-function RampLegend({ mode }) {
-  const carbon = mode === "carbon";
-  const stops = carbon ? CARBON_STOPS : DEMAND_STOPS;
-  return (
-    <aside className="legend">
-      <h2 className="lg-title">{carbon ? "Carbon intensity of generation" : "Demand met, right now"}</h2>
-      <div className="lg-ramp" style={{ background: `linear-gradient(to right, ${stops.map((s) => s[1]).join(", ")})` }} />
-      <div className="lg-ends num">
-        <span>0</span>
-        <span>{carbon ? "1,000+ gCO₂/kWh" : "30+ GW"}</span>
-      </div>
-      <div className="lg-nodata">
-        <i className="lg-swatch flat" style={{ background: NO_DATA }} /> no data, or older than {STALE_AFTER_MIN} min
-      </div>
-      {carbon && (
+      {isState ? (
         <p className="lg-note">
-          Mostly estimated: only a few states publish live generation by fuel.{" "}
-          <a href="/methodology">How it&rsquo;s calculated</a>
+          From the last open plant registry (WRI, 2021): plants built since are missing, most of
+          them solar and wind. <a href="/data-gaps">Why</a>
+        </p>
+      ) : (
+        <p className="lg-note">
+          These {national.count.toLocaleString("en-IN")} plants, {fmtGW(national.total)}, are the
+          last open plant registry (WRI, 2021). India has {fmtGW(INSTALLED.mw)} installed
+          ({INSTALLED.source}, {INSTALLED.asOf}). Almost all of the difference is renewables: the
+          registry has {fmtGW(national.byGroup.renewable.mw)} of solar, wind and biomass; India
+          has {fmtGW(INSTALLED.renewablesMw)}. <a href="/data-gaps">Why</a>
         </p>
       )}
     </aside>
