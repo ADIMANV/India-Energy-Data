@@ -5,7 +5,11 @@ precompiled dataset contains no India plants (checked 2026-06-11, v0.8.1),
 so GPPD is the primary source. Refresh procedure: docs/METHODOLOGY.md.
 
 Usage:
-    python -m gridscrapers.plants load [--csv /tmp/gppd.csv]
+    python -m gridscrapers.plants load   [--csv /tmp/gppd.csv]
+    python -m gridscrapers.plants export [--csv /tmp/gppd.csv] [--out web/public/plants.json]
+
+`export` writes the registry as a static file for the map, so drawing every
+plant costs the API and database nothing.
 
 State attribution is point-in-polygon (ray casting) against the same
 datameet states GeoJSON the frontend uses.
@@ -119,31 +123,43 @@ def state_for(lon: float | None, lat: float | None, geoms) -> str | None:
     return None
 
 
-def load(csv_path: str | None) -> int:
+def _read_gppd(csv_path: str | None) -> str:
     if csv_path:
-        text = Path(csv_path).read_text()
-    else:
-        print(f"downloading {GPPD_URL}", file=sys.stderr)
-        text = httpx.get(GPPD_URL, timeout=120).raise_for_status().text
+        return Path(csv_path).read_text(encoding="utf-8")
+    print(f"downloading {GPPD_URL}", file=sys.stderr)
+    return httpx.get(GPPD_URL, timeout=120).raise_for_status().text
 
-    geoms = load_state_geoms()
-    rows = []
+
+def india_plants(text: str, geoms) -> list[dict]:
+    """GPPD rows for India, normalised to our fuel vocabulary and state zones."""
+    out = []
     for r in csv.DictReader(text.splitlines()):
         if r["country"] != "IND":
             continue
         lat = float(r["latitude"]) if r["latitude"] else None
         lon = float(r["longitude"]) if r["longitude"] else None
-        rows.append((
-            r["name"],
-            FUEL_MAP.get(r["primary_fuel"], "other"),
-            float(r["capacity_mw"]) if r["capacity_mw"] else None,
-            lat, lon,
-            state_for(lon, lat, geoms),
-            "gppd",
-            r["gppd_idnr"],
-            (r.get("owner") or "").strip() or None,
-            int(float(r["commissioning_year"])) if r.get("commissioning_year") else None,
-        ))
+        out.append({
+            "name": r["name"],
+            "fuel": FUEL_MAP.get(r["primary_fuel"], "other"),
+            "capacity_mw": float(r["capacity_mw"]) if r["capacity_mw"] else None,
+            "lat": lat,
+            "lon": lon,
+            "zone": state_for(lon, lat, geoms),
+            "source_id": r["gppd_idnr"],
+            "owner": (r.get("owner") or "").strip() or None,
+            "commissioning_year": (int(float(r["commissioning_year"]))
+                                   if r.get("commissioning_year") else None),
+        })
+    return out
+
+
+def load(csv_path: str | None) -> int:
+    plants = india_plants(_read_gppd(csv_path), load_state_geoms())
+    rows = [
+        (p["name"], p["fuel"], p["capacity_mw"], p["lat"], p["lon"], p["zone"],
+         "gppd", p["source_id"], p["owner"], p["commissioning_year"])
+        for p in plants
+    ]
 
     # Upsert on the source's own id rather than TRUNCATE + reinsert:
     # station_daily.plant_id references these rows, so a truncate fails once any
@@ -173,11 +189,51 @@ def load(csv_path: str | None) -> int:
     return len(rows)
 
 
+EXPORT_FIELDS = ["id", "name", "fuel", "capacity_mw", "lon", "lat", "zone",
+                 "owner", "commissioning_year"]
+
+
+def export(csv_path: str | None, out_path: str) -> int:
+    """Write the registry as compact JSON for the web map.
+
+    Rows are arrays against a field list rather than objects — ~40% smaller for
+    1,600 plants, and the file is fetched on every page load. Plants without
+    coordinates can't be drawn, so they're left out; coordinates are rounded to
+    four decimals (~11 m), well below what a country-scale map can show.
+    """
+    plants = india_plants(_read_gppd(csv_path), load_state_geoms())
+    rows = [
+        [p["source_id"], p["name"], p["fuel"],
+         round(p["capacity_mw"], 1) if p["capacity_mw"] is not None else None,
+         round(p["lon"], 4), round(p["lat"], 4), p["zone"],
+         p["owner"], p["commissioning_year"]]
+        for p in plants
+        if p["lat"] is not None and p["lon"] is not None
+    ]
+    rows.sort(key=lambda r: -(r[3] or 0))  # largest first, so they win hover ties
+    doc = {
+        "source": "WRI Global Power Plant Database v1.3.0",
+        "source_url": "https://datasets.wri.org/dataset/globalpowerplantdatabase",
+        "license": "CC BY 4.0",
+        "snapshot_year": 2021,
+        "fields": EXPORT_FIELDS,
+        "plants": rows,
+    }
+    Path(out_path).write_text(json.dumps(doc, separators=(",", ":"), ensure_ascii=False))
+    return len(rows)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("command", choices=["load"])
+    ap.add_argument("command", choices=["load", "export"])
     ap.add_argument("--csv", help="local GPPD csv (skips download)")
+    ap.add_argument("--out", default=str(Path(__file__).parents[2] / "web/public/plants.json"),
+                    help="export destination (default: web/public/plants.json)")
     args = ap.parse_args()
+    if args.command == "export":
+        n = export(args.csv, args.out)
+        print(f"exported {n} india plants to {args.out}", file=sys.stderr)
+        return 0
     n = load(args.csv)
     print(f"loaded {n} india plants", file=sys.stderr)
     return 0
