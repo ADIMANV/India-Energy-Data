@@ -29,6 +29,13 @@ Per state, per day, the freshest and most authoritative fuel-share basis wins
   that; and the RE report counts ISTS-connected parks under their host state
   (Rajasthan solar reads ~4× its control-area number). Acceptable for the
   ER/NER states it currently covers, where RE and imports are small.
+  **Correction (20 Nov 2026):** dgr2 spells Chhattisgarh "CHHATISGARH", which
+  the parser didn't recognise, so until this date Chhattisgarh's conventional
+  generation was filed under Uttar Pradesh (overwriting UP's own rows) and
+  Chhattisgarh's blend showed almost only its renewables. Every archived
+  report since June has been re-parsed (`python -m gridscrapers.cea reparse`);
+  Chhattisgarh now reads ~99% coal. UP's live mix comes from its PSP report
+  and was not affected.
 - **`merit_schedule_t2`** — daily fuel shares from MERIT scheduled dispatch
   (T-2). Last-resort fallback.
 
