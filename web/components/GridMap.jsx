@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { NAME_TO_ZONE, ZONE_TO_NAME, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
 import { BASIS_LABELS, FUEL_GROUP, GROUPS, INSTALLED, MAP_GROUP_COLORS, fuelGroup, fuelLabel } from "../lib/fuels";
@@ -10,7 +10,9 @@ import { fetchStationStatus } from "../lib/api";
 const BORDER = "rgba(58, 48, 36, 0.36)";
 const SELECTED = "#18222c";
 const MUTED_PLANT = "#c9bfae";
-const SHEET = "#f9f5ec"; // India's paper in plants mode, lighter than the land around it
+const SHEET = "#f9f5ec";
+const OUTSIDE = "#b9b2a6"; // the veil over everything that isn't India
+const INK = "#1f1c18"; // India's paper in plants mode, lighter than the land around it
 
 // Demand: one green-teal hue, light = small, dark = large (on a light map the
 // dark end is the emphatic one). Shade is size, not greenness — that's carbon.
@@ -282,34 +284,48 @@ function statusOf(plant, stations) {
 const onlineMw = (p, online) =>
   online && p.kind === "plant" && p.status ? p.capacity_mw * p.status.frac : p.capacity_mw;
 
-function plantStats(plants, online) {
-  if (!plants?.length) return null;
-  const byGroup = {};
-  for (const g of PLANT_GROUPS) byGroup[g] = { mw: 0, fuels: {} };
-  let total = 0, tallest = null, count = 0, convInstalled = 0, convOnline = 0;
-  const off = [];
-  for (const p of plants) {
-    const g = byGroup[fuelGroup(p.fuel)];
-    if (!g) continue;
-    const mw = onlineMw(p, online);
-    g.mw += mw;
-    g.fuels[p.fuel] = (g.fuels[p.fuel] || 0) + mw;
-    total += mw;
+// Everything the key draws for a set of records (All India, or one state).
+// Conventional plants carry both installed and online capacity; solar, wind,
+// biomass and small hydro only installed, since nothing reports them daily.
+function plantStats(records, online) {
+  if (!records?.length) return null;
+  const groups = Object.fromEntries(PLANT_GROUPS.map((g) => [g, { installed: 0, online: 0 }]));
+  const fuels = {};
+  const plants = [], off = [];
+  const re = new Map(); // district (or null: not published) -> {mw, fuels, at}
+  let installed = 0, convInstalled = 0, convOnline = 0;
+  for (const p of records) {
+    const group = fuelGroup(p.fuel);
+    if (!groups[group]) continue;
+    const on = onlineMw(p, online);
+    groups[group].installed += p.capacity_mw;
+    groups[group].online += on;
+    const f = (fuels[p.fuel] ||= { fuel: p.fuel, group, installed: 0, online: 0, status: false });
+    f.installed += p.capacity_mw;
+    f.online += on;
+    installed += p.capacity_mw;
     if (p.kind === "plant") {
-      if (online && p.status?.frac === 0) off.push(p);
-      else count += 1;
-      if (!tallest || mw > onlineMw(tallest, online)) tallest = p;
+      plants.push(p);
+      if (p.status) f.status = true;
       convInstalled += p.capacity_mw;
-      convOnline += mw;
+      convOnline += on;
+      if (online && p.status?.frac === 0) off.push(p);
+    } else {
+      const k = p.kind === "district" ? p.district : null;
+      const d = re.get(k) || { district: k, mw: 0, fuels: {}, at: p };
+      d.mw += p.capacity_mw;
+      d.fuels[p.fuel] = (d.fuels[p.fuel] || 0) + p.capacity_mw;
+      if (p.capacity_mw > d.at.capacity_mw) d.at = p;
+      re.set(k, d);
     }
   }
-  for (const g of PLANT_GROUPS) {
-    byGroup[g].fuels = Object.entries(byGroup[g].fuels)
-      .map(([fuel, mw]) => ({ fuel, mw }))
-      .sort((a, b) => b.mw - a.mw);
-  }
+  plants.sort((a, b) => b.capacity_mw - a.capacity_mw);
   off.sort((a, b) => b.capacity_mw - a.capacity_mw);
-  return { byGroup, total, count, tallest, convInstalled, convOnline, off };
+  return {
+    groups, installed, convInstalled, convOnline, plants, off,
+    fuels: Object.values(fuels).sort((a, b) => b.installed - a.installed),
+    districts: [...re.values()].sort((a, b) => b.mw - a.mw),
+  };
 }
 
 // CEA's reason for each unit down, in words; gas and most hydro stations give
@@ -353,6 +369,9 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const featureIdsRef = useRef({}); // zone -> feature id
+  const boundsRef = useRef({}); // zone -> [[w, s], [e, n]]
+  const homeRef = useRef(null); // the opening camera, to return to All India
+  const awayRef = useRef(false); // camera moved to a state by selecting it
   const plantsRef = useRef([]);
   const modeRef = useRef(colorMode);
   const paintRef = useRef({ activeFuels: null, zone: "IN", grow: 1 });
@@ -443,7 +462,18 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         f.id = i;
         const zone = NAME_TO_ZONE[f.properties.ST_NM] || null;
         f.properties.zone = zone;
-        if (zone) featureIdsRef.current[zone] = i;
+        if (zone) {
+          featureIdsRef.current[zone] = i;
+          const polys = f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates];
+          let [w, s, e, n] = [180, 90, -180, -90];
+          for (const [x, y] of polys.flatMap((poly) => poly[0])) {
+            w = Math.min(w, x); s = Math.min(s, y); e = Math.max(e, x); n = Math.max(n, y);
+          }
+          const prev = boundsRef.current[zone]; // Ladakh and J&K share a zone
+          boundsRef.current[zone] = prev
+            ? [[Math.min(prev[0][0], w), Math.min(prev[0][1], s)], [Math.max(prev[1][0], e), Math.max(prev[1][1], n)]]
+            : [[w, s], [e, n]];
+        }
       });
       map.addSource("states", { type: "geojson", data: geo });
       // everything of ours goes under the city labels, so names stay legible
@@ -476,6 +506,51 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         id: "states-selected", type: "line", source: "states",
         paint: { "line-color": SELECTED, "line-width": 2.2 },
         filter: ["==", ["get", "zone"], "___none___"],
+      });
+      // Where India ends. Everything outside is veiled, and the coast and land
+      // border are inked, so the clickable country reads as one shape — without
+      // it Ladakh runs on into Tibet and the north-east into its neighbours.
+      // (public/india_outline.json, from scripts/india-outline.mjs)
+      const outline = await (await fetch("/india_outline.json")).json();
+      const ringArea = (r) => {
+        let a = 0;
+        for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += (r[j][0] - r[i][0]) * (r[j][1] + r[i][1]);
+        return a / 2;
+      };
+      const turn = (r, cw) => ((ringArea(r) > 0) === cw ? r : [...r].reverse());
+      map.addSource("india-outline", { type: "geojson", data: outline });
+      map.addSource("india-mask", {
+        type: "geojson",
+        data: {
+          type: "Feature", properties: {},
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              turn([[-180, -85], [-180, 85], [180, 85], [180, -85], [-180, -85]], true),
+              ...outline.geometry.coordinates.map((r) => turn(r, false)),
+            ],
+          },
+        },
+      });
+      add({
+        id: "outside-veil", type: "fill", source: "india-mask",
+        paint: { "fill-color": OUTSIDE, "fill-opacity": 0.5, "fill-antialias": false },
+      });
+      add({
+        id: "india-outline-halo", type: "line", source: "india-outline",
+        layout: { "line-join": "round" },
+        paint: {
+          "line-color": "#fffaf0", "line-opacity": 0.7,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 3, 5, 7, 8],
+        },
+      });
+      add({
+        id: "india-outline", type: "line", source: "india-outline",
+        layout: { "line-join": "round" },
+        paint: {
+          "line-color": INK, "line-opacity": 1,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2, 7, 3.2],
+        },
       });
       map.addSource("state-labels", { type: "geojson", data: labelPoints(geo) });
       add({
@@ -564,6 +639,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         pitch: wide ? 48 : 42,
         bearing: -9,
       });
+      homeRef.current = { center: map.getCenter(), zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() };
 
       // a column under the cursor wins; otherwise the smallest disc, which is
       // the most specific total there (they nest: district discs inside a state's)
@@ -712,6 +788,41 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     mapRef.current.setFilter("states-selected", ["==", ["get", "zone"], selectedZone || "___none___"]);
   }, [ready, selectedZone]);
 
+  // Overlays cover the left and right of the map on wide screens; keep
+  // whatever the camera is framing in the clear middle.
+  const clearArea = () =>
+    containerRef.current?.clientWidth > 860 ? { top: 90, bottom: 40, left: 360, right: 420 } : 24;
+
+  // In Plants, picking a state brings the camera to it; All India goes home.
+  useEffect(() => {
+    if (!ready || colorMode !== "plants") return;
+    const map = mapRef.current;
+    if (selectedZone === "IN") {
+      if (awayRef.current && homeRef.current) map.easeTo({ ...homeRef.current, duration: 900 });
+      awayRef.current = false;
+      return;
+    }
+    const b = boundsRef.current[selectedZone];
+    if (!b) return;
+    const cam = map.cameraForBounds(b, { padding: clearArea(), bearing: -9 });
+    if (!cam) return;
+    map.easeTo({ center: cam.center, zoom: Math.min(cam.zoom, 7.2), pitch: 45, bearing: -9, duration: 900 });
+    awayRef.current = true;
+  }, [ready, selectedZone, colorMode]);
+
+  // From the key: fly to a plant (or a district's renewables) and open its card.
+  const focusPlant = useCallback((p) => {
+    const map = mapRef.current;
+    if (!map || p.lon == null) return;
+    setTooltip(null);
+    map.easeTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 6.6), duration: 900 });
+    map.once("moveend", () => {
+      const pt = map.project([p.lon, p.lat]);
+      setTooltip({ kind: "plant", x: pt.x, y: pt.y, w: containerRef.current.clientWidth, plant: p });
+    });
+    awayRef.current = true;
+  }, []);
+
   const keyProps = { zonesData, selectedZone, onSelect, gridLines };
   return (
     <>
@@ -720,7 +831,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
       </div>
       {colorMode === "plants" && (
         <PlantKey {...keyProps} plants={records} retrieved={plantDoc?.retrieved} facet={facet} setFacet={setFacet}
-                  status={status} basis={basis} setBasis={setBasis} online={online} />
+                  status={status} basis={basis} setBasis={setBasis} online={online} onFocus={focusPlant} />
       )}
       {colorMode === "demand" && <DemandKey {...keyProps} />}
       {colorMode === "carbon" && <CarbonKey {...keyProps} />}
@@ -1019,21 +1130,81 @@ function CarbonKey({ zonesData, selectedZone, onSelect, gridLines }) {
   );
 }
 
+// One row of a meter list: a name and figure, and under them a bar on a scale
+// shared by the whole list. With a status, the bar splits into what's online
+// (the full hue) and what isn't (a dim step of the same hue).
+function Meter({ name, figure, color, total, online, max, onClick, active, dim, title }) {
+  const w = max > 0 ? (total / max) * 100 : 0;
+  const on = online == null ? total : online;
+  const Tag = onClick ? "button" : "div";
+  return (
+    <li className={`meter${active ? " on" : ""}${dim ? " off" : ""}`}>
+      <Tag className="meter-row" onClick={onClick} title={title} aria-pressed={onClick ? !!active : undefined}>
+        <span className="meter-name">{name}</span>
+        <span className="meter-fig num">{figure}</span>
+        <span className="meter-track" style={{ width: `${Math.max(w, 0.6)}%` }}>
+          {on > 0 && <i style={{ flexGrow: on, background: color }} />}
+          {total - on > 0.5 && (
+            <i style={{ flexGrow: total - on, background: `color-mix(in oklab, ${color} 30%, var(--panel))` }} />
+          )}
+        </span>
+      </Tag>
+    </li>
+  );
+}
+
+// The one whole split three ways: what the state's (or India's) installed
+// capacity is made of. Each block prints its share where it fits.
+function MixBar({ groups, installed }) {
+  const parts = PLANT_GROUPS.map((g) => ({ g, mw: groups[g].installed })).filter((x) => x.mw > 0);
+  return (
+    <>
+      <div className="mixbar" role="img"
+           aria-label={parts.map((x) => `${GROUPS[x.g].label} ${fmtGW(x.mw)}`).join(", ")}>
+        {parts.map((x) => {
+          const share = x.mw / installed;
+          return (
+            <span key={x.g} style={{ flexGrow: x.mw, background: GROUPS[x.g].color }}
+                  title={`${GROUPS[x.g].label}: ${fmtGW(x.mw)}, ${Math.round(share * 100)}%`}>
+              {share >= 0.09 ? `${Math.round(share * 100)}%` : ""}
+            </span>
+          );
+        })}
+      </div>
+      <div className="mix-legend">
+        {parts.map((x) => (
+          <span key={x.g}><i style={{ background: GROUPS[x.g].color }} />{GROUPS[x.g].label}</span>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const plantName = (p) => p.name.split("/")[0].replace(/\s+(Private|Pvt\.?)?\s*(Ltd|Limited)\.?$/i, "").trim();
+const plantTitle = (p) => {
+  const s = p.status;
+  if (!s) return p.owner || "";
+  const down = s.down.slice(0, 2).map((u) =>
+    `${u[0] ? `Unit ${u[0]}` : "A unit"} (${Math.round(u[2])} MW)${u[6] ? `: ${sentence(u[6])}` : ""}`);
+  return [p.owner, ...down].filter(Boolean).join("\n");
+};
+
 function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, gridLines,
-                    status, basis, setBasis, online }) {
+                    status, basis, setBasis, online, onFocus }) {
   const scoped = useMemo(
     () => (selectedZone === "IN" ? plants : plants?.filter((p) => p.zone === selectedZone)),
     [plants, selectedZone],
   );
   const stats = useMemo(() => plantStats(scoped, online), [scoped, online]);
-  const national = useMemo(() => plantStats(plants, false), [plants]);
   const reasons = useMemo(
     () => (online && scoped ? outageByKind(scoped, status.stations) : null),
     [scoped, online, status],
   );
+  const [allPlants, setAllPlants] = useState(false);
+  useEffect(() => setAllPlants(false), [selectedZone]);
   const isState = selectedZone !== "IN";
   const asOf = status?.as_of ? shortDate(status.as_of) : null;
-  const title = isState ? zoneName(selectedZone) : online ? "Online now" : "Installed capacity";
+  const title = isState ? zoneName(selectedZone) : "India's power plants";
 
   if (!plants) return <aside className="legend"><p className="lg-note">Loading plants…</p></aside>;
   if (!stats) {
@@ -1047,11 +1218,18 @@ function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, 
   const active = activeFuelsOf(facet);
   const toggle = (next) =>
     setFacet(facet && facet.kind === next.kind && facet.key === next.key ? null : next);
-  const offMw = stats.off.reduce((s, p) => s + p.capacity_mw, 0);
+  const fuelMax = stats.fuels[0]?.installed || 1;
   const reasonRows = reasons ? OUTAGE_KINDS.filter(([k]) => reasons[k] >= 1) : [];
   const reasonMax = reasons ? Math.max(...reasonRows.map(([k]) => reasons[k]), 1) : 1;
+  const shownPlants = allPlants ? stats.plants : stats.plants.slice(0, 8);
+  const restMw = stats.plants.slice(8).reduce((s, p) => s + p.capacity_mw, 0);
+  const reMax = stats.districts[0]?.mw || 1;
+  const offMw = stats.off.reduce((s, p) => s + p.capacity_mw, 0);
+  const reFuels = (d) => Object.entries(d.fuels).sort((a, b) => b[1] - a[1])
+    .map(([f, mw]) => `${fuelLabel(f)} ${fmtGW(mw)}`).join(", ");
+
   return (
-    <aside className="legend">
+    <aside className={`legend${isState ? " legend-wide" : ""}`}>
       <KeyHead title={title} selectedZone={selectedZone} onSelect={onSelect} />
       {status?.as_of && (
         <div className="lg-seg" role="group" aria-label="Column height">
@@ -1061,102 +1239,151 @@ function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, 
                   onClick={() => setBasis("installed")}>Installed</button>
         </div>
       )}
-      {online ? (
-        <>
-          <div className="lg-fig num">
-            {fmtGW(stats.convOnline)}<span className="lg-unit"> of {fmtGW(stats.convInstalled)}</span>
+
+      <div className="kpis">
+        <div className="kpi">
+          <div className="kpi-label">Installed</div>
+          <div className="kpi-value num">{fmtGW(stats.installed)}</div>
+          <div className="kpi-note">every fuel, solar and wind included</div>
+        </div>
+        {online ? (
+          <div className="kpi">
+            <div className="kpi-label">Online, {asOf}</div>
+            <div className="kpi-value num">{fmtGW(stats.convOnline)}</div>
+            <div className="kpi-note">of {fmtGW(stats.convInstalled)} coal, gas, nuclear and hydro</div>
           </div>
-          <p className="lg-line">
-            coal, gas, nuclear and hydro capacity online in CEA&rsquo;s daily report for {asOf}
-          </p>
-          {reasonRows.length > 0 && (
-            <>
-              <div className="lg-sub">Offline, by CEA&rsquo;s stated reason</div>
-              <ul className="lg-reasons">
-                {reasonRows.map(([k, label]) => (
-                  <li key={k}>
-                    <span>{label}</span>
-                    <i style={{ width: `${(reasons[k] / reasonMax) * 100}%` }} />
-                    <span className="num">{fmtGW(reasons[k])}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </>
-      ) : (
-        isState && (
-          <p className="lg-line">
-            {fmtGW(stats.total)} operational · {stats.count.toLocaleString("en-IN")} plants plus district totals
-          </p>
-        )
-      )}
-      <div className="lg-sub">{online ? "Online by fuel · renewables installed" : "By fuel"}</div>
-      {PLANT_GROUPS.filter((g) => stats.byGroup[g].mw > 0).map((g) => {
-        const grp = stats.byGroup[g];
-        const groupOn = !active || grp.fuels.some((f) => active.includes(f.fuel));
-        const on = facet?.kind === "group" && facet.key === g;
-        return (
-          <div className={`lg-group${groupOn ? "" : " off"}`} key={g}>
-            <button className={`lg-row${on ? " on" : ""}`} aria-pressed={on}
-                    onClick={() => toggle({ kind: "group", key: g })}>
-              <i className="lg-swatch" style={{ background: GROUPS[g].color }} />
-              <span className="lg-label">{GROUPS[g].label}</span>
-              <span className="num">{fmtGW(grp.mw)}</span>
-            </button>
-            <div className="lg-fuels">
-              {grp.fuels.map((f) => {
-                const fon = facet?.kind === "fuel" && facet.key === f.fuel;
-                return (
-                  <button key={f.fuel} aria-pressed={fon}
-                          className={`lg-fuel${fon ? " on" : ""}${active && !active.includes(f.fuel) ? " off" : ""}`}
-                          onClick={() => toggle({ kind: "fuel", key: f.fuel })}>
-                    {fuelLabel(f.fuel)} <span className="num">{fmtGW(f.mw)}</span>
-                  </button>
-                );
-              })}
-            </div>
+        ) : (
+          <div className="kpi">
+            <div className="kpi-label">Plants</div>
+            <div className="kpi-value num">{stats.plants.length.toLocaleString("en-IN")}</div>
+            <div className="kpi-note">coal, gas, nuclear, hydro</div>
           </div>
-        );
-      })}
+        )}
+      </div>
+
+      <div className="lg-sub">What it&rsquo;s made of</div>
+      <MixBar groups={stats.groups} installed={stats.installed} />
+
+      <div className="lg-sub">
+        By fuel{online ? " · online and offline" : ""}
+      </div>
+      <ul className="meters">
+        {stats.fuels.map((f) => (
+          <Meter key={f.fuel}
+                 name={fuelLabel(f.fuel)}
+                 figure={online && f.status
+                   ? `${fmtGW(f.online)} of ${fmtGW(f.installed)}`
+                   : `${fmtGW(f.installed)}${online && f.group === "renewable" ? " installed" : ""}`}
+                 color={GROUPS[f.group].color}
+                 total={f.installed}
+                 online={online && f.status ? f.online : null}
+                 max={fuelMax}
+                 active={facet?.kind === "fuel" && facet.key === f.fuel}
+                 dim={active && !active.includes(f.fuel)}
+                 onClick={() => toggle({ kind: "fuel", key: f.fuel })} />
+        ))}
+      </ul>
       {facet && <button className="lg-reset" onClick={() => setFacet(null)}>Show every fuel</button>}
-      {online && stats.off.length > 0 && (
+
+      {isState && stats.plants.length > 0 && (
         <>
           <div className="lg-sub">
-            Fully offline, not drawn · {stats.off.length} {stats.off.length === 1 ? "plant" : "plants"}, {fmtGW(offMw)}
+            {stats.plants.length === 1 ? "Its one plant" : `Largest plants · ${stats.plants.length} in all`}
+          </div>
+          <ul className="meters">
+            {shownPlants.map((p) => {
+              const s = online ? p.status : null;
+              const on = s ? p.capacity_mw * s.frac : null;
+              return (
+                <Meter key={`${p.name}|${p.fuel}`}
+                       name={plantName(p)}
+                       figure={s
+                         ? s.frac === 0 ? `offline · ${fmtCap(p.capacity_mw)}`
+                           : s.frac >= 0.995 ? fmtCap(p.capacity_mw)
+                             : `${Math.round(on).toLocaleString("en-IN")} of ${fmtCap(p.capacity_mw)}`
+                         : fmtCap(p.capacity_mw)}
+                       color={GROUPS[fuelGroup(p.fuel)].color}
+                       total={p.capacity_mw}
+                       online={on}
+                       max={stats.plants[0].capacity_mw}
+                       title={plantTitle(p)}
+                       onClick={() => onFocus(p)} />
+              );
+            })}
+          </ul>
+          {stats.plants.length > 8 && (
+            <button className="lg-reset" onClick={() => setAllPlants(!allPlants)}>
+              {allPlants ? "Show the largest 8" : `Show all ${stats.plants.length} (${fmtGW(restMw)} more)`}
+            </button>
+          )}
+        </>
+      )}
+
+      {isState && stats.districts.length > 0 && (
+        <>
+          <div className="lg-sub">Solar, wind &amp; other renewables, by district</div>
+          <ul className="meters">
+            {stats.districts.slice(0, 6).map((d) => (
+              <Meter key={d.district || "-"}
+                     name={d.district || "District not published"}
+                     figure={fmtGW(d.mw)}
+                     color={GROUPS.renewable.color}
+                     total={d.mw}
+                     max={reMax}
+                     title={reFuels(d)}
+                     onClick={() => onFocus(d.at)} />
+            ))}
+          </ul>
+          {stats.districts[0] && !stats.districts[0].district && (
+            <p className="lg-note">
+              {fmtGW(stats.districts[0].mw)} of {zoneName(selectedZone)}&rsquo;s renewables has no
+              district in the registry, so it&rsquo;s one disc at the middle of the state.
+            </p>
+          )}
+        </>
+      )}
+
+      {!isState && reasonRows.length > 0 && (
+        <>
+          <div className="lg-sub">Offline, by CEA&rsquo;s stated reason</div>
+          <ul className="lg-reasons">
+            {reasonRows.map(([k, label]) => (
+              <li key={k}>
+                <span>{label}</span>
+                <i style={{ width: `${(reasons[k] / reasonMax) * 100}%` }} />
+                <span className="num">{fmtGW(reasons[k])}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {!isState && online && stats.off.length > 0 && (
+        <>
+          <div className="lg-sub">
+            Fully offline, not drawn · {stats.off.length} plants, {fmtGW(offMw)}
           </div>
           <ol className="lg-rank">
             {stats.off.slice(0, 4).map((p) => (
               <li key={`${p.name}|${p.zone}`}>
-                <button onClick={() => onSelect(p.zone)}>
-                  {p.name.split("/")[0].replace(/\s+(Private|Pvt\.?)?\s*(Ltd|Limited)\.?$/i, "").trim()}
-                </button>
+                <button onClick={() => onFocus(p)}>{plantName(p)}</button>
                 <span className="num">{fmtGW(p.capacity_mw)}</span>
               </li>
             ))}
           </ol>
         </>
       )}
+
       <GridLineKey n={gridLines} />
       <div className="lg-marks">
         <span><i className="mark-col" />plant, height is {online ? "capacity online" : "capacity"}</span>
-        <span><i className="mark-disc" />district or state total</span>
+        <span><i className="mark-disc" />solar, wind &amp; other renewables: a district or state total</span>
       </div>
-      {!online && stats.tallest && (
-        <p className="lg-note">
-          The largest{isState ? " here" : `, in ${zoneName(stats.tallest.zone)},`} is{" "}
-          {stats.tallest.name.split("/")[0].trim()}, {fmtCap(stats.tallest.capacity_mw)}
-          {stats.tallest.owner ? `, run by ${stats.tallest.owner.replace(/\.$/, "")}` : ""}.
-        </p>
-      )}
       <p className="lg-note">
         {online
-          ? "Online is installed capacity minus units CEA lists under outage. A plant with every unit down isn't drawn. CEA publishes no daily status for solar, wind, biomass or small hydro, so their discs are installed capacity. "
+          ? `Online is installed capacity minus the units CEA's daily report for ${asOf} lists as out; a plant with every unit out isn't drawn. Solar and wind have no daily status, so they count as installed. `
           : status && !status.as_of
             ? "CEA's daily plant status isn't available right now, so heights are installed capacity. "
             : ""}
-        {isState || online ? "" : `${fmtGW(national.total)} of operational capacity, against CEA's ${fmtGW(INSTALLED.mw)}. `}
-        Solar, wind, biomass and small hydro are only published as district or state totals.
         Plants: NITI Aayog ICED{retrieved ? `, ${retrieved}` : ""}; locations from the WRI registry
         and OpenStreetMap. <a href="/data-gaps">What&rsquo;s missing</a>
       </p>
