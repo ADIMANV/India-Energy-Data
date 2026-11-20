@@ -9,10 +9,10 @@ import { GROUPS, GROUP_ORDER, fuelColor, fuelGroup, fuelLabel } from "../lib/fue
 
 const BUCKET_MS = 15 * 60 * 1000;
 const HOUR_MS = 3600 * 1000;
-const CREAM = "#ece6da";               // demand line: the reference, not a series
+const CREAM = "#eeebe6";               // demand line: the reference, not a series
 const CARBON = GROUPS.fossil.color;    // intensity rises with the fossil share
-const INK = "#a39d90";
-const GRID = "#2a2823";
+const INK = "#9aa4a6";
+const GRID = "rgba(255, 255, 255, 0.07)";
 
 // tooltip names for everything a chart can plot: groups, demand, the gap
 const seriesLabel = (key) =>
@@ -34,7 +34,7 @@ function hourTicks(t0, t1, everyH = 3) {
   return ticks;
 }
 
-const axisStyle = { fontSize: 10, fill: INK, fontFamily: "var(--font-mono)" };
+const axisStyle = { fontSize: 10, fill: INK, fontFamily: "var(--font-sans)" };
 
 function ChartTip({ active, payload, label, unit, digits = 1 }) {
   if (!active || !payload?.length) return null;
@@ -181,8 +181,8 @@ export function SupplyChart({ points }) {
           <defs>
             <pattern id="importedHatch" width="6" height="6" patternUnits="userSpaceOnUse"
                      patternTransform="rotate(45)">
-              <rect width="6" height="6" fill="#1e1c19" />
-              <line x1="0" y1="0" x2="0" y2="6" stroke="#4d4840" strokeWidth="1.5" />
+              <rect width="6" height="6" fill="#2a3234" />
+              <line x1="0" y1="0" x2="0" y2="6" stroke="#56615f" strokeWidth="1.5" />
             </pattern>
           </defs>
         </ComposedChart>

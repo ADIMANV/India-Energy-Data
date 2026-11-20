@@ -6,6 +6,10 @@ import { ZONE_TO_NAME, ageLabel, ageMinutes, fmtMW, STALE_AFTER_MIN } from "../l
 import { BASIS_LABELS } from "../lib/fuels";
 import { CIChart, FuelBars, SupplyChart, yesterdayDelta } from "./charts";
 
+const ordinal = (n) => `${n}${["th", "st", "nd", "rd"][(n % 100 > 10 && n % 100 < 14) || n % 10 > 3 ? 0 : n % 10]}`;
+const freshCI = (z) =>
+  z?.carbon_intensity && ageMinutes(z.carbon_intensity.ts) <= STALE_AFTER_MIN ? z.carbon_intensity : null;
+
 // Whether a number was measured or estimated is the credibility marker, so it
 // is said in words next to the number, and one click explains how.
 function BasisNote({ estimated, basis }) {
@@ -16,33 +20,43 @@ function BasisNote({ estimated, basis }) {
   );
 }
 
-// "▲ 3.2% vs same time yesterday" — same clock-time delta, restrained styling
-function Delta({ d }) {
-  if (!d) return null;
-  const up = d.delta >= 0;
+function Icon({ name }) {
+  const paths = {
+    now: "M9 1 3 9h4l-1 6 6-8H8l1-6z",
+    mix: "M2 13h12M3 10h4v3H3zM8 6h3v7H8zM12 3h2v10h-2z",
+    supply: "M1 12c2-5 4-6 6-3s4 2 7-6",
+    carbon: "M8 2c3 3 4 5 4 7a4 4 0 0 1-8 0c0-2 1-4 4-7z",
+    market: "M3 3h10M3 7h10M6 3c3 0 3 4 0 4l5 6",
+  };
   return (
-    <span className="delta">
-      <span className="num">{up ? "▲" : "▼"} {Math.abs(d.pct).toFixed(1)}%</span>
-      <span className="delta-basis">vs same time yesterday</span>
+    <span className="sec-icon" aria-hidden="true">
+      <svg viewBox="0 0 16 16"><path d={paths[name]} fill="none" stroke="currentColor"
+        strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </span>
   );
 }
 
-function Figure({ label, value, unit, delta, note }) {
+// One stat: a small label, the number, and what qualifies it.
+function Tile({ label, value, unit, sub, bar }) {
   return (
-    <div className="figure">
-      <div className="figure-label">{label}</div>
-      <div className="figure-value">
-        <span className="fig">{value}</span>
-        {unit && <span className="figure-unit">{unit}</span>}
+    <div className="tile">
+      <div className="tile-label">{label}</div>
+      <div className="tile-value">
+        <span className="num">{value}</span>
+        {unit && <span className="tile-unit">{unit}</span>}
       </div>
-      {delta && <Delta d={delta} />}
-      {note && <div className="figure-note">{note}</div>}
+      {bar != null && <div className="tile-bar"><i style={{ width: `${Math.max(3, bar * 100)}%` }} /></div>}
+      {sub && <div className="tile-sub">{sub}</div>}
     </div>
   );
 }
 
-export default function SidePanel({ zone, onSelect, refreshKey }) {
+function deltaText(d) {
+  if (!d) return "no reading 24 h ago";
+  return `${d.delta >= 0 ? "▲" : "▼"} ${Math.abs(d.pct).toFixed(1)}% vs yesterday`;
+}
+
+export default function SidePanel({ zone, onSelect, refreshKey, zonesData }) {
   const [live, setLive] = useState(null);
   const [history, setHistory] = useState(null);
   const [error, setError] = useState(null);
@@ -59,12 +73,20 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
   }, [zone, refreshKey]);
 
   const title = isNational ? "All India" : ZONE_TO_NAME[zone] || zone;
-  if (error) {
-    return <aside className="panel"><h2>{title}</h2><p className="hint">No recent data. ({error})</p></aside>;
-  }
-  if (!live) {
-    return <aside className="panel"><h2>{title}</h2><p className="hint">Loading…</p></aside>;
-  }
+  const head = (meta) => (
+    <div className="p-head">
+      <nav className="crumbs" aria-label="Breadcrumb">
+        {isNational ? <span>India</span> : (
+          <><button onClick={() => onSelect("IN")}>India</button><span aria-hidden="true">›</span><span>{title}</span></>
+        )}
+      </nav>
+      <h2>{title}</h2>
+      {meta}
+    </div>
+  );
+
+  if (error) return <aside className="panel">{head(<p className="p-meta">No recent data. ({error})</p>)}</aside>;
+  if (!live) return <aside className="panel">{head(<p className="p-meta">Loading…</p>)}</aside>;
 
   const byMetric = {};
   for (const m of live.metrics) {
@@ -72,8 +94,6 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
     if (!(key in byMetric)) byMetric[key] = m;
   }
   const demand = byMetric["demand_met"];
-  const ownGen = byMetric["generation:own_generation"];
-  const imp = byMetric["net_import"];
   const price = byMetric["exchange_price"];
   const purchase = byMetric["exchange_purchase"];
   const ci = byMetric["carbon_intensity"];
@@ -93,72 +113,85 @@ export default function SidePanel({ zone, onSelect, refreshKey }) {
   const points = history?.points || [];
   const hasSupply = points.some((p) => p.metric === "generation");
   const demandDelta = yesterdayDelta(points, "demand_met");
-  const ciDelta = yesterdayDelta(points, "carbon_intensity");
+
+  // context from the all-zones feed: share and rank of India's demand, and
+  // how this state's carbon intensity compares with India's grid
+  const zones = zonesData?.zones || [];
+  const india = zones.find((z) => z.zone === "IN");
+  const ranked = zones.filter((z) => z.zone !== "IN" && ageMinutes(z.ts) <= STALE_AFTER_MIN)
+    .sort((a, b) => b.demand_met_mw - a.demand_met_mw);
+  const rank = ranked.findIndex((z) => z.zone === zone) + 1;
+  const indiaCI = freshCI(india);
+  const vsIndia = !isNational && ci && indiaCI ? ((ci.value - indiaCI.value) / indiaCI.value) * 100 : null;
 
   return (
     <aside className="panel">
-      {!isNational && (
-        <button className="breadcrumb" onClick={() => onSelect("IN")}>← All India</button>
+      {head(
+        <p className={`p-meta${stale ? " stale" : ""}`}>
+          Updated {demand ? ageLabel(demand.ts) : "—"}{stale ? " · stale" : ""}
+        </p>,
       )}
-      <h2>{title}</h2>
-      <div className={`age ${stale ? "stale" : ""}`}>
-        Updated {demand ? ageLabel(demand.ts) : "—"}{stale ? " · stale" : ""}
-      </div>
 
-      <div className="figures">
-        <Figure label="Demand met" value={fmtMW(demand?.value)} delta={demandDelta} />
-        {ci && (
-          <Figure
-            label="Carbon intensity"
-            value={Math.round(ci.value)} unit="gCO₂/kWh" delta={ciDelta}
-            note={<BasisNote estimated={ci.estimated} basis={ci.estimation_basis} />}
-          />
-        )}
-      </div>
+      <section className="p-sec">
+        <h3><Icon name="now" />Right now</h3>
+        <div className="tiles">
+          <Tile label="Demand met" value={fmtMW(demand?.value)} sub={deltaText(demandDelta)} />
+          {isNational ? (
+            <Tile label="States reporting" value={ranked.length} sub={`of ${Object.keys(ZONE_TO_NAME).length} with a grid`} />
+          ) : (
+            <Tile label="Share of India" value={india && demand ? `${((demand.value / india.demand_met_mw) * 100).toFixed(1)}%` : "—"}
+                  bar={rank ? (ranked.length - rank + 1) / ranked.length : null}
+                  sub={rank ? `${ordinal(rank)} largest of ${ranked.length}` : null} />
+          )}
+          {ci && (
+            <Tile label="Carbon intensity" value={Math.round(ci.value)} unit="g/kWh"
+                  sub={<BasisNote estimated={ci.estimated} basis={ci.estimation_basis} />} />
+          )}
+          {vsIndia != null && (
+            <Tile label="Against India's grid" value={`${vsIndia > 0 ? "+" : "−"}${Math.abs(vsIndia).toFixed(0)}%`}
+                  sub={`${vsIndia < 0 ? "lower" : "higher"} carbon than ${Math.round(indiaCI.value)} g`} />
+          )}
+        </div>
+      </section>
 
-      {/* generation mix — the differentiated thing, leads the data */}
-      {mix.length > 0 && partialNational && (
-        <section className="block">
-          <h3>Generation mix</h3>
-          <p className="hint">
-            Only {fmtMW(mixMW)} of the {fmtMW(demand.value)} India is using right now has been
-            reported by fuel, too little to call a national mix. Pick a state to see its own.
-          </p>
-        </section>
-      )}
-      {mix.length > 0 && !partialNational && (
-        <section className="block">
-          <h3>Generation mix</h3>
-          <div className="block-note"><BasisNote estimated={mixEstimated} basis={mixBasis} /></div>
-          <FuelBars mix={mix} />
+      {mix.length > 0 && (
+        <section className="p-sec">
+          <h3><Icon name="mix" />Generation mix</h3>
+          {partialNational ? (
+            <p className="p-note">
+              Only {fmtMW(mixMW)} of the {fmtMW(demand.value)} India is using right now has been
+              reported by fuel, too little to call a national mix. Pick a state to see its own.
+            </p>
+          ) : (
+            <div className="card">
+              <div className="card-note"><BasisNote estimated={mixEstimated} basis={mixBasis} /></div>
+              <FuelBars mix={mix} />
+            </div>
+          )}
         </section>
       )}
 
       {hasSupply && (
-        <section className="block">
-          <h3>Supply</h3>
-          <SupplyChart points={points} />
+        <section className="p-sec">
+          <h3><Icon name="supply" />Supply, last 24 hours</h3>
+          <div className="card"><SupplyChart points={points} /></div>
         </section>
       )}
 
       {points.some((p) => p.metric === "carbon_intensity") && (
-        <section className="block">
-          <h3>Carbon intensity</h3>
-          <CIChart points={points} />
+        <section className="p-sec">
+          <h3><Icon name="carbon" />Carbon intensity, last 24 hours</h3>
+          <div className="card"><CIChart points={points} /></div>
         </section>
       )}
 
       {(price || purchase) && (
-        <section className="block">
-          <h3>Power exchange</h3>
-          {price && (
-            <div className="row"><span className="k">Price</span>
-              <span className="num">₹{price.value.toFixed(2)}/kWh</span></div>
-          )}
-          {purchase && (
-            <div className="row"><span className="k">Purchased</span>
-              <span className="num">{fmtMW(purchase.value)}</span></div>
-          )}
+        <section className="p-sec">
+          <h3><Icon name="market" />Power exchange</h3>
+          <div className="tiles">
+            {price && <Tile label="Price" value={`₹${price.value.toFixed(2)}`} unit="/kWh" />}
+            {purchase && <Tile label="Bought on the exchange" value={fmtMW(purchase.value)} />}
+          </div>
         </section>
       )}
     </aside>

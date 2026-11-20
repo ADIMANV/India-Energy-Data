@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import GridMap from "../components/GridMap";
 import SidePanel from "../components/SidePanel";
+import StateSearch from "../components/StateSearch";
 import { fetchZones, fetchLive } from "../lib/api";
-import { ageLabel, fmtMW } from "../lib/zones";
+import { STALE_AFTER_MIN, ageLabel, ageMinutes, fmtMW } from "../lib/zones";
 
 const REFRESH_MS = 5 * 60 * 1000;
 
 const MODES = [
-  { key: "demand", label: "Demand", dek: "Electricity demand met in each state, right now." },
-  { key: "plants", label: "Plants", dek: "Every power plant in the open registry, by installed capacity and fuel." },
-  { key: "carbon", label: "Carbon", dek: "How green each state's generation is right now, as carbon intensity." },
+  { key: "demand", label: "Demand" },
+  { key: "plants", label: "Plants" },
+  { key: "carbon", label: "Carbon" },
 ];
 
 export default function Home() {
@@ -38,58 +39,44 @@ export default function Home() {
 
   const natDemand = national?.metrics.find((m) => m.metric === "demand_met");
   const stateCount = zonesData ? zonesData.zones.filter((z) => z.zone !== "IN").length : 0;
-  const mode = MODES.find((m) => m.key === colorMode);
+  const live = natDemand && !apiError && ageMinutes(natDemand.ts) <= STALE_AFTER_MIN;
 
   return (
     <div className="app">
-      <main className="main">
-        <section className="stage">
-          <header className="masthead">
-            <h1>India Electricity Data</h1>
-            <p className="dek">{mode.dek}</p>
-            <nav className="modes" aria-label="Map layer">
-              {MODES.map((m) => (
-                <button
-                  key={m.key}
-                  className={colorMode === m.key ? "on" : ""}
-                  aria-pressed={colorMode === m.key}
-                  onClick={() => setColorMode(m.key)}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </nav>
-          </header>
-          <div className="readout" aria-live="polite">
-            <span className="r-label">All-India demand met</span>
-            <span className="r-value num">{fmtMW(natDemand?.value)}</span>
-            <span className="r-age">
-              {apiError
-                ? "live data unavailable"
-                : natDemand
-                  ? `${stateCount} states · updated ${ageLabel(natDemand.ts)}`
-                  : "loading…"}
-            </span>
-          </div>
-          <GridMap
-            zonesData={zonesData}
-            onSelect={setSelectedZone}
-            selectedZone={selectedZone}
-            colorMode={colorMode}
-          />
-        </section>
-        <SidePanel zone={selectedZone} onSelect={setSelectedZone} refreshKey={refreshKey} />
-      </main>
-      <footer className="footer">
-        <span>Open electricity data for India · estimates labelled, never faked</span>
-        <nav>
-          <a href="/data">Download data</a>
+      <GridMap
+        zonesData={zonesData}
+        onSelect={setSelectedZone}
+        selectedZone={selectedZone}
+        colorMode={colorMode}
+      />
+
+      <header className="topbar">
+        <a className="wordmark" href="/">India Electricity Data</a>
+        <StateSearch selectedZone={selectedZone} onSelect={setSelectedZone} />
+        <nav className="seg" aria-label="Map layer">
+          {MODES.map((m) => (
+            <button key={m.key} className={colorMode === m.key ? "on" : ""}
+                    aria-pressed={colorMode === m.key} onClick={() => setColorMode(m.key)}>
+              {m.label}
+            </button>
+          ))}
+        </nav>
+        <div className="live" aria-live="polite">
+          <i className={`dot${live ? "" : " off"}`} />
+          {apiError ? "Live data unavailable"
+            : natDemand ? <><b className="num">{fmtMW(natDemand.value)}</b> India · {stateCount} states · {ageLabel(natDemand.ts)}</>
+              : "Loading…"}
+        </div>
+        <nav className="links">
+          <a href="/data">Data</a>
           <a href="/methodology">Methodology</a>
           <a href="/data-gaps">Data gaps</a>
-          <a href="/status">Data quality</a>
-          <a href="https://github.com/ADIMANV/India-Energy-Data">Source</a>
+          <a href="/status">Status</a>
+          <a href="https://github.com/ADIMANV/India-Energy-Data">GitHub</a>
         </nav>
-      </footer>
+      </header>
+
+      <SidePanel zone={selectedZone} onSelect={setSelectedZone} refreshKey={refreshKey} zonesData={zonesData} />
     </div>
   );
 }

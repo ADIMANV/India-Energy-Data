@@ -17,6 +17,12 @@ export const GROUPS = {
 };
 export const GROUP_ORDER = ["fossil", "firm", "renewable", "unattributed"];
 
+// The same three hues, stepped darker for the light basemap: the colours above
+// sit on the dark panel and fall under 3:1 against light grey land. Validated
+// as a set on the map's land colour (all pairs, worst ΔE 11.7 colour-blind,
+// 18.6 normal, every colour ≥ 3:1).
+export const MAP_GROUP_COLORS = { fossil: "#c2427a", firm: "#2a78d6", renewable: "#a86e00" };
+
 export const FUEL_GROUP = {
   coal: "fossil", gas: "fossil", oil: "fossil",
   hydro: "firm", nuclear: "firm",

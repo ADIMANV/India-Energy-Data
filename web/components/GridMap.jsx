@@ -3,23 +3,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { NAME_TO_ZONE, ZONE_TO_NAME, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
-import { BASIS_LABELS, FUEL_GROUP, GROUPS, INSTALLED, fuelGroup, fuelLabel } from "../lib/fuels";
+import { BASIS_LABELS, FUEL_GROUP, GROUPS, INSTALLED, MAP_GROUP_COLORS, fuelGroup, fuelLabel } from "../lib/fuels";
+import { ATTRIBUTION, BEFORE_LABELS, baseStyle } from "../lib/basemap";
 
-const INK = "#0e0d0b";
-const LAND = "#1b1a17";
-const BORDER = "rgba(236, 230, 218, 0.2)";
-const SELECTED = "#ece6da";
-const MUTED_PLANT = "#4a463f";
+const BORDER = "rgba(38, 46, 48, 0.38)";
+const SELECTED = "#1d2426";
+const MUTED_PLANT = "#b4b8b4";
 
-// Demand: one green-teal hue, dark = small, light = large — the original
-// palette. Its shade is size, not greenness; greenness is the carbon map.
-const DEMAND_STOPS = [[0, "#2a3431"], [2000, "#33514a"], [8000, "#437468"], [18000, "#69b394"], [30000, "#c4e6d2"]];
+// Demand: one green-teal hue, light = small, dark = large (on a light map the
+// dark end is the emphatic one). Shade is size, not greenness — that's carbon.
+const DEMAND_STOPS = [[0, "#d7eee8"], [2000, "#a2cfc4"], [8000, "#6dad9e"], [18000, "#3a8777"], [30000, "#0d5d50"]];
 // Carbon: green ↔ rust around 500 g/kWh. Equal OKLCH lightness steps out from
-// a dark neutral midpoint, so low-carbon and coal-heavy states both stand out
-// and states near the middle recede.
+// a light neutral midpoint, so low-carbon and coal-heavy states both stand out
+// and states near the middle recede into the map.
 const CARBON_STOPS = [
-  [0, "#57bc80"], [125, "#489a68"], [250, "#3c7753"], [375, "#34533e"], [500, "#29302b"],
-  [625, "#614232"], [750, "#91593c"], [875, "#be6f45"], [1000, "#e68a58"],
+  [0, "#186f3b"], [125, "#418d59"], [250, "#70ac80"], [375, "#aacbb1"], [500, "#e4e9e5"],
+  [625, "#deb7a7"], [750, "#ca896c"], [875, "#af6340"], [1000, "#934319"],
 ];
 
 const INDIA = [[68, 6.5], [97.5, 36]];
@@ -40,7 +39,7 @@ function fillColorExpr(mode) {
   return [
     "case",
     ["boolean", ["feature-state", `${key}Missing`], true],
-    LAND, // the hatch layer on top marks it as missing
+    "rgba(255, 255, 255, 0.35)", // the hatch layer on top marks it as missing
     ["interpolate", ["linear"], ["to-number", ["feature-state", key], -1], ...stops.flat()],
   ];
 }
@@ -54,7 +53,7 @@ function hatchImage() {
   const c = document.createElement("canvas");
   c.width = c.height = n;
   const g = c.getContext("2d");
-  g.strokeStyle = "rgba(236, 230, 218, 0.22)";
+  g.strokeStyle = "rgba(38, 46, 48, 0.32)";
   g.lineWidth = 1;
   g.beginPath();
   g.moveTo(-1, n + 1); g.lineTo(n + 1, -1);
@@ -95,11 +94,13 @@ function columns(plants, zoom) {
 // MapLibre only accepts ["zoom"] at the top level of the expression, so any
 // per-plant condition has to go inside the stops rather than around them.
 const heightExpr = (h0) => ["interpolate", ["exponential", 0.5], ["zoom"], 0, h0, 22, ["/", h0, 4194304]];
+// darker steps of the same three hues than the panel uses: these sit on a
+// light map, the panel's on a dark card (validated separately for each)
 const GROUP_COLOR = [
   "match", ["get", "fuel"],
-  ["coal", "gas", "oil"], GROUPS.fossil.color,
-  ["hydro", "nuclear"], GROUPS.firm.color,
-  ["solar", "wind", "biomass", "res_nonsolar"], GROUPS.renewable.color,
+  ["coal", "gas", "oil"], MAP_GROUP_COLORS.fossil,
+  ["hydro", "nuclear"], MAP_GROUP_COLORS.firm,
+  ["solar", "wind", "biomass", "res_nonsolar"], MAP_GROUP_COLORS.renewable,
   GROUPS.unattributed.color,
 ];
 
@@ -122,12 +123,69 @@ function activeFuelsOf(facet) {
   return Object.keys(FUEL_GROUP).filter((f) => FUEL_GROUP[f] === facet.key);
 }
 
-function graticule() {
-  const line = (coordinates) => ({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates } });
-  const features = [];
-  for (let lon = 65; lon <= 100; lon += 5) features.push(line([[lon, 0], [lon, 40]]));
-  for (let lat = 5; lat <= 35; lat += 5) features.push(line([[58, lat], [106, lat]]));
-  return { type: "FeatureCollection", features };
+// One label point per state. Labelling the polygons directly puts a name on
+// every island and enclave (Andaman & Nicobar three times over), so instead
+// take each state's largest piece and find its visual centre: the interior
+// point farthest from any edge, by a coarse-to-fine grid search. A plain
+// centroid falls outside concave states like West Bengal.
+function visualCenter(ring) {
+  const k = Math.cos((ring[0][1] * Math.PI) / 180); // make a degree of lon ≈ a degree of lat
+  const pts = ring.map(([x, y]) => [x * k, y]);
+  const inside = (x, y) => {
+    let c = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [xi, yi] = pts[i], [xj, yj] = pts[j];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  };
+  const edgeDist = (x, y) => {
+    let best = Infinity;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [ax, ay] = pts[j], [bx, by] = pts[i];
+      const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy || 1e-12;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len2));
+      best = Math.min(best, Math.hypot(x - (ax + t * dx), y - (ay + t * dy)));
+    }
+    return best;
+  };
+  let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  let best = [(x0 + x1) / 2, (y0 + y1) / 2], bestD = -1;
+  for (let pass = 0; pass < 3; pass++) {
+    const n = 14;
+    const sx = (x1 - x0) / n, sy = (y1 - y0) / n;
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
+      const x = x0 + i * sx, y = y0 + j * sy;
+      if (!inside(x, y)) continue;
+      const d = edgeDist(x, y);
+      if (d > bestD) { bestD = d; best = [x, y]; }
+    }
+    // zoom the search window in around the best point so far
+    const w = (x1 - x0) / 4, h = (y1 - y0) / 4;
+    [x0, x1, y0, y1] = [best[0] - w, best[0] + w, best[1] - h, best[1] + h];
+  }
+  return [best[0] / k, best[1]];
+}
+
+function labelPoints(geo) {
+  const ringArea = (r) => {
+    let a = 0;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += (r[j][0] - r[i][0]) * (r[j][1] + r[i][1]);
+    return Math.abs(a / 2);
+  };
+  return {
+    type: "FeatureCollection",
+    features: geo.features.map((f) => {
+      const polys = f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates];
+      const outer = polys.map((p) => p[0]).sort((a, b) => ringArea(b) - ringArea(a))[0];
+      return {
+        type: "Feature",
+        properties: { name: f.properties.ST_NM, zone: f.properties.zone },
+        geometry: { type: "Point", coordinates: visualCenter(outer) },
+      };
+    }),
+  };
 }
 
 const fmtGW = (mw) => `${(mw / 1000).toFixed(mw < 10000 ? 1 : 0)} GW`;
@@ -200,11 +258,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
   useEffect(() => {
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: {
-        version: 8,
-        sources: {},
-        layers: [{ id: "bg", type: "background", paint: { "background-color": INK } }],
-      },
+      style: baseStyle(),
       center: [80.5, 22.5],
       zoom: 3.6,
       minZoom: 2.5,
@@ -216,7 +270,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     map.addControl(new maplibregl.AttributionControl({
       customAttribution:
         "Boundaries: datameet (CC BY 2.5 IN) · Plants: WRI Global Power Plant Database (CC BY 4.0) · " +
-        "Live: Vidyut Pravah, MERIT, state load despatch centres",
+        "Live: Vidyut Pravah, MERIT, state load despatch centres · " + ATTRIBUTION,
       compact: true,
     }), "bottom-right");
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
@@ -228,7 +282,6 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(containerRef.current);
 
-    const markers = [];
     map.on("load", async () => {
       map.resize();
       // compact attribution opens expanded and only folds on the first drag;
@@ -236,24 +289,8 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
       containerRef.current
         ?.querySelector(".maplibregl-ctrl-attrib")
         ?.classList.remove("maplibregl-compact-show");
-      map.setLight({ anchor: "viewport", color: "#ffffff", intensity: 0.32, position: [1.3, 205, 35] });
+      map.setLight({ anchor: "viewport", color: "#ffffff", intensity: 0.28, position: [1.3, 205, 35] });
       map.addImage("hatch", hatchImage());
-
-      map.addSource("graticule", { type: "geojson", data: graticule() });
-      map.addLayer({
-        id: "graticule",
-        type: "line",
-        source: "graticule",
-        paint: { "line-color": "rgba(236, 230, 218, 0.07)", "line-width": 1, "line-dasharray": [1, 3] },
-      });
-      const label = (text, lngLat) => {
-        const el = document.createElement("span");
-        el.className = "grat-label";
-        el.textContent = text;
-        markers.push(new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(map));
-      };
-      for (let lat = 10; lat <= 35; lat += 5) label(`${lat}°N`, [62.5, lat]);
-      for (let lon = 70; lon <= 95; lon += 5) label(`${lon}°E`, [lon, 7.2]);
 
       // Generalised boundaries (web/scripts/simplify-states.mjs): 0.7 MB
       // instead of the 15.7 MB source, borders still shared exactly.
@@ -265,22 +302,54 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         if (zone) featureIdsRef.current[zone] = i;
       });
       map.addSource("states", { type: "geojson", data: geo });
-      map.addLayer({
+      // everything of ours goes under the city labels, so names stay legible
+      const add = (layer) => map.addLayer(layer, BEFORE_LABELS);
+      add({
         id: "states-fill", type: "fill", source: "states",
-        paint: { "fill-color": fillColorExpr(modeRef.current) },
+        paint: { "fill-color": fillColorExpr(modeRef.current), "fill-opacity": 0.86 },
       });
-      map.addLayer({
+      add({
         id: "states-nodata", type: "fill", source: "states",
         paint: { "fill-pattern": "hatch", "fill-opacity": 0 },
       });
-      map.addLayer({
-        id: "states-line", type: "line", source: "states",
-        paint: { "line-color": BORDER, "line-width": 0.6 },
+      // the terrain again, faintly, over the colour: the choropleth reads as
+      // painted onto the landscape rather than pasted over it
+      add({
+        id: "relief-over", type: "hillshade", source: "dem",
+        paint: {
+          "hillshade-exaggeration": 0.55,
+          "hillshade-shadow-color": "rgba(32, 40, 42, 0.42)",
+          "hillshade-highlight-color": "rgba(255, 255, 255, 0.3)",
+          "hillshade-accent-color": "rgba(32, 40, 42, 0.12)",
+          "hillshade-illumination-direction": 315,
+        },
       });
-      map.addLayer({
+      add({
+        id: "states-line", type: "line", source: "states",
+        paint: { "line-color": BORDER, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.5, 7, 1.1] },
+      });
+      add({
         id: "states-selected", type: "line", source: "states",
-        paint: { "line-color": SELECTED, "line-width": 1.6 },
+        paint: { "line-color": SELECTED, "line-width": 2.2 },
         filter: ["==", ["get", "zone"], "___none___"],
+      });
+      map.addSource("state-labels", { type: "geojson", data: labelPoints(geo) });
+      add({
+        id: "states-label", type: "symbol", source: "state-labels",
+        minzoom: 3.6,
+        layout: {
+          "text-field": ["upcase", ["get", "name"]],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 3.8, 8.5, 7, 12],
+          "text-letter-spacing": 0.12,
+          "text-max-width": 8,
+          "text-padding": 4,
+        },
+        paint: {
+          "text-color": "rgba(29, 36, 38, 0.62)",
+          "text-halo-color": "rgba(255, 255, 255, 0.55)",
+          "text-halo-width": 1,
+        },
       });
       map.addSource("plants", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
@@ -298,9 +367,9 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
 
       // Frame India, then tilt it. Overlays sit over the left and top of the
       // map on wide screens, so leave room for them there.
-      const wide = containerRef.current.clientWidth > 760;
+      const wide = containerRef.current.clientWidth > 860;
       const cam = map.cameraForBounds(INDIA, {
-        padding: wide ? { top: 120, bottom: 40, left: 350, right: 40 } : 12,
+        padding: wide ? { top: 90, bottom: 30, left: 330, right: 410 } : 12,
       });
       // Tilting pushes the north away and shrinks it, so frame a touch closer;
       // on a tall phone screen it also leaves India sitting low under empty
@@ -352,7 +421,6 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
 
     return () => {
       ro.disconnect();
-      markers.forEach((m) => m.remove());
       map.remove();
     };
   }, [onSelect]);
@@ -413,7 +481,10 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     const map = mapRef.current;
     const plantsMode = colorMode === "plants";
     map.setLayoutProperty("plants", "visibility", plantsMode ? "visible" : "none");
-    map.setPaintProperty("states-fill", "fill-color", plantsMode ? LAND : fillColorExpr(colorMode));
+    map.setLayoutProperty("states-label", "visibility", plantsMode ? "none" : "visible");
+    // plants: India brightened against its neighbours, so the fleet stands on it
+    map.setPaintProperty("states-fill", "fill-color", plantsMode ? "#ffffff" : fillColorExpr(colorMode));
+    map.setPaintProperty("states-fill", "fill-opacity", plantsMode ? 0.42 : 0.86);
     map.setPaintProperty("states-nodata", "fill-opacity", plantsMode ? 0 : missingExpr(colorMode));
     setTooltip(null);
     if (!plantsMode) return;
