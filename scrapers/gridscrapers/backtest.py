@@ -31,9 +31,15 @@ AUDIT_INTERVAL_DAYS = 7
 AUDIT_DROP_PP = 5.0
 
 
-def run_daily(conn: psycopg.Connection) -> int:
-    """Compute both checks for any days that have the needed inputs."""
+def run_daily(conn: psycopg.Connection, since_days: int | None = 4) -> int:
+    """Compute both checks for recent days that have the needed inputs.
+
+    Runs every tick; PSP actuals land at T-1, so only the last few days can
+    change. since_days=None recomputes all history (the demand integral scans
+    every archived demand reading, which is why the tick doesn't do that).
+    """
     n = 0
+    days = 36500 if since_days is None else since_days
     # our demand integral vs PSP consumption
     n += conn.execute(
         """
@@ -47,13 +53,16 @@ def run_daily(conn: psycopg.Connection) -> int:
             SELECT zone, ts::date AS day, avg(value) AS avg_mw, count(*) AS samples
             FROM datapoints
             WHERE metric = 'demand_met' AND source IN ('vidyut_pravah', 'merit')
+              AND ts >= current_date - %(days)s::int
             GROUP BY zone, ts::date
         ) d ON d.zone = p.zone AND d.day = p.as_of
         WHERE p.consumption_mu > 1 AND d.samples >= 80  -- ≥20h of 15-min coverage
+          AND p.as_of >= current_date - %(days)s::int
         ON CONFLICT (zone, as_of, "check") DO UPDATE
             SET value_a = EXCLUDED.value_a, value_b = EXCLUDED.value_b,
                 delta_pct = EXCLUDED.delta_pct, created_at = now()
-        """
+        """,
+        {"days": days},
     ).rowcount
     # CEA state+pvt conventional vs PSP own generation
     n += conn.execute(

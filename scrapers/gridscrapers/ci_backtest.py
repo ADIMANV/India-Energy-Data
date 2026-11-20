@@ -128,9 +128,16 @@ def _store(conn, zone, day, basis, ci_est, ci_act, source, independent) -> None:
     )
 
 
-def run(conn: psycopg.Connection) -> int:
-    """Backfill/refresh ci_backtest across all archived history."""
+def run(conn: psycopg.Connection, since_days: int | None = 4) -> int:
+    """Refresh ci_backtest for recent days (all archived history if since_days=None).
+
+    The tick calls this every 15 minutes. Rows are upserted per (zone, day) and
+    the actuals they're checked against arrive at T-1, so only the last few
+    days can change; recomputing all history each time costs ~3 queries per
+    state-day ever archived, a load that only grows on a 1-vCPU box.
+    """
     n = 0
+    days = 36500 if since_days is None else since_days
 
     # 1. Displayed-estimate rows: one per (zone, day) with archived live CI.
     #    ci_estimated_mean is demand-weighted (Σ CI·demand / Σ demand) so it
@@ -140,15 +147,18 @@ def run(conn: psycopg.Connection) -> int:
         """
         WITH ci AS (
             SELECT zone, ts, value AS ci FROM datapoints
-            WHERE metric='carbon_intensity' AND zone<>'IN'),
+            WHERE metric='carbon_intensity' AND zone<>'IN'
+              AND ts >= current_date - %(days)s::int),
         dem AS (
             SELECT zone, ts, value AS mw FROM datapoints
-            WHERE metric='demand_met' AND source<>'estimate')
+            WHERE metric='demand_met' AND source<>'estimate'
+              AND ts >= current_date - %(days)s::int)
         SELECT ci.zone, ci.ts::date AS day,
                sum(ci.ci * coalesce(dem.mw, 1)) / sum(coalesce(dem.mw, 1))
         FROM ci LEFT JOIN dem USING (zone, ts)
         GROUP BY ci.zone, ci.ts::date
-        """
+        """,
+        {"days": days},
     ).fetchall()
     for zone, day, ci_mean in est_days:
         basis = _effective_basis(conn, zone, day)
@@ -165,7 +175,8 @@ def run(conn: psycopg.Connection) -> int:
     #    for every (zone, day) where merit shares and an actual both exist.
     merit = conn.execute(
         "SELECT zone, as_of, fuel, share FROM state_fuel_shares "
-        "WHERE basis='merit_schedule_t2'"
+        "WHERE basis='merit_schedule_t2' AND as_of >= current_date - %s::int",
+        (days,),
     ).fetchall()
     by_zd: dict[tuple, dict] = {}
     for zone, as_of, fuel, share in merit:
