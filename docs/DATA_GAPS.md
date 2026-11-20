@@ -90,42 +90,53 @@ Attribute imports to the exporting state's actual mix and consumption-based
 accounting becomes possible. The flows are measured — they settle financially
 every fifteen minutes — but are not published in a usable form.
 
-## 4. There is no current open registry of Indian power plants
+## 4. The current plant registry has no coordinates — and most solar has no address
 
-The best open plant registry available is the WRI Global Power Plant Database.
-It is a **2021 snapshot**. Every plant commissioned since is missing, which in a
-market adding tens of gigawatts of solar a year is a large and growing hole.
+A current registry does exist. NITI Aayog's India Climate & Energy Dashboard
+publishes India's power plants unit by unit, with status, commissioning date and
+owner, and its operational total — **559 GW in November 2026** — matches CEA's
+installed capacity to within 1%. It replaced a four-year-old open registry on
+this map.
 
-Missing plants do not fail loudly. They fall through fuzzy name matching into a
-review queue and, below the match threshold, default to coal — the Indian
-thermal default. A registry that is four years stale therefore biases estimates
-*upward* for exactly the states building the most new renewables.
+What it doesn't have is a single coordinate. Every map of Indian power plants
+therefore has to guess where they are. Ours places 394 of 443 coal, gas,
+nuclear and large hydro plants by matching their names against the 2021 WRI
+registry and OpenStreetMap, and puts the other 46 at the centre of their
+district, marked as approximate.
 
-**What would close it:** CEA maintains current plant lists. Publishing them as a
-machine-readable file with stable identifiers — not a PDF, not an annual
-snapshot — would remove an entire class of error from every downstream analysis
-in the country.
+Solar and wind are worse: they are published only as **totals per district**,
+and **139 of India's 171 GW of solar only as totals per state** — "districts
+not specified". From public data, you cannot say where most of India's solar
+fleet is. The map draws these as discs, not columns, so a state's 36 GW is never
+read as one plant.
 
-## 5. Nobody can say who owns India's generation
+And the registry is machine-readable in name only. The download sits behind a
+CAPTCHA, the dashboard's own API returns encrypted responses, and no licence for
+reuse is stated.
 
-We store the ownership field from the registry above. Here is its coverage:
+**What would close it:** the same table with a coordinate (or at least a stable
+plant identifier shared with CEA's reports), renewable capacity listed project
+by project rather than summed by district, an open licence, and a plain file
+download.
 
-**327 of 1,589 Indian plants carry an owner — 21% of plants, covering 4% of
-capacity.** NTPC, India's largest generator, does not appear. The names that do
-appear are unnormalised to the point of being unusable: *"Hindustan Pvt lt"*,
-*"Acc Acc ltd"*, *"Mangalore & petrochem"*.
+## 5. Ownership is published — except for the fastest-growing half of the grid
 
-So a question as basic as *what share of this state's electricity comes from
-private generators, and which ones* cannot be answered from open data. CEA
-publishes an aggregate sector split — as of February 2026, private 54%, central
-23%, state 21% of installed capacity — but that is national capacity, not
-state-level generation, and capacity is a poor proxy because solar and wind run
-at far lower capacity factors than coal.
+The same registry names an implementing agency for every coal, gas, nuclear and
+hydro unit: NTPC runs 52 GW of coal, Adani Power 12 GW, MAHAGENCO 10 GW. That
+closes a gap the previous open registry left wide open — it carried an owner for
+4% of capacity, and not NTPC's.
 
-We store the field precisely so this gap is measurable rather than invisible.
+But solar and wind, **230 GW and 41% of India's capacity**, come with no owner at
+all, because they're only published as totals. So *what share of a state's
+renewable power is private, and whose* still can't be answered from public data
+— for exactly the segment growing fastest. CEA's state-wise sector split (state,
+private, central) helps, but it is capacity, not generation, and solar and wind
+run at far lower capacity factors than coal.
 
-**What would close it:** an owner column, with stable identifiers, on a current
-plant registry. This is a schema decision, not a data collection problem.
+**What would close it:** renewable projects listed individually with their
+developer. The tender and connectivity records that would make this possible
+already exist at SECI, the CTU and the state agencies; they aren't joined up or
+published as one table.
 
 ## 6. The sources are not as independent as they look
 

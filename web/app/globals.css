@@ -345,3 +345,10 @@ table.dict td.unit { color: var(--muted); white-space: nowrap; font-size: 13px; 
   .markdown, .doc-page > p { font-size: 15.5px; }
   .markdown h1, .doc-page > h1 { font-size: 32px; }
 }
+
+/* the plants key: which mark means what */
+.lg-marks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.lg-marks span { display: inline-flex; align-items: center; gap: 7px; }
+.mark-col { display: inline-block; width: 4px; height: 14px; border-radius: 1px; background: var(--paper); }
+.mark-disc { display: inline-block; width: 13px; height: 13px; border-radius: 50%; border: 1px solid var(--paper); background: rgba(237, 229, 214, 0.28); }
+.t-approx { color: var(--serious); }

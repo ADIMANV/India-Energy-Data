@@ -101,20 +101,45 @@ const GROUP_COLOR = [
   "match", ["get", "fuel"],
   ["coal", "gas", "oil"], MAP_GROUP_COLORS.fossil,
   ["hydro", "nuclear"], MAP_GROUP_COLORS.firm,
-  ["solar", "wind", "biomass", "res_nonsolar"], MAP_GROUP_COLORS.renewable,
+  ["solar", "wind", "biomass", "res_nonsolar", "small_hydro"], MAP_GROUP_COLORS.renewable,
   GROUPS.unattributed.color,
 ];
+
+// Totals — a district's (or, where districts aren't published, a whole
+// state's) solar, wind, biomass and small hydro — are flat discs whose area is
+// the capacity. A different mark from a plant's column on purpose: a state's
+// 36 GW of solar must never read as one 36 GW plant. The radius doubles with
+// each zoom level, so a disc keeps its size relative to the land under it.
+const DISC_RADIUS = [
+  "interpolate", ["exponential", 2], ["zoom"],
+  3, ["*", 0.1, ["sqrt", ["get", "capacity_mw"]]],
+  10, ["*", 12.8, ["sqrt", ["get", "capacity_mw"]]],
+];
+
+function selection(activeFuels, zone) {
+  const conds = [];
+  if (activeFuels) conds.push(["in", ["get", "fuel"], ["literal", activeFuels]]);
+  if (zone && zone !== "IN") conds.push(["==", ["get", "zone"], zone]);
+  return conds.length ? (conds.length === 1 ? conds[0] : ["all", ...conds]) : null;
+}
+
+function discPaint(activeFuels, zone) {
+  const on = selection(activeFuels, zone);
+  if (!on) return { color: GROUP_COLOR, opacity: 0.3, stroke: 0.85 };
+  return {
+    color: ["case", on, GROUP_COLOR, MUTED_PLANT],
+    opacity: ["case", on, 0.3, 0.12],
+    stroke: ["case", on, 0.85, 0.3],
+  };
+}
 
 // Plants outside the current fuel filter or the selected state drop to flat
 // grey footprints, so a selection is always read against the whole fleet.
 // `grow` scales every column, for the rise when the plants layer opens.
 function plantPaint(activeFuels, zone, grow) {
-  const conds = [];
-  if (activeFuels) conds.push(["in", ["get", "fuel"], ["literal", activeFuels]]);
-  if (zone && zone !== "IN") conds.push(["==", ["get", "zone"], zone]);
+  const on = selection(activeFuels, zone);
   const h0 = grow >= 1 ? ["get", "h0"] : ["*", grow, ["get", "h0"]];
-  if (!conds.length) return { color: GROUP_COLOR, height: heightExpr(h0) };
-  const on = conds.length === 1 ? conds[0] : ["all", ...conds];
+  if (!on) return { color: GROUP_COLOR, height: heightExpr(h0) };
   return { color: ["case", on, GROUP_COLOR, MUTED_PLANT], height: heightExpr(["case", on, h0, 0]) };
 }
 
@@ -189,47 +214,52 @@ function labelPoints(geo) {
   };
 }
 
-const fmtGW = (mw) => `${(mw / 1000).toFixed(mw < 10000 ? 1 : 0)} GW`;
+const fmtGW = (mw) => (mw < 1000 ? `${Math.round(mw)} MW` : `${(mw / 1000).toFixed(mw < 10000 ? 1 : 0)} GW`);
 const fmtCap = (mw) => `${Math.round(mw).toLocaleString("en-IN")} MW`;
 const ordinal = (n) => `${n}${["th", "st", "nd", "rd"][(n % 100 > 10 && n % 100 < 14) || n % 10 > 3 ? 0 : n % 10]}`;
 const zoneName = (zone) => (zone === "IN" ? "All India" : ZONE_TO_NAME[zone] || zone);
 
+// plants.json: every operational plant and total, from NITI Aayog's ICED
+// (web/public, built by `python -m gridscrapers.iced export`)
 function usePlants() {
-  const [plants, setPlants] = useState(null);
+  const [doc, setDoc] = useState(null);
   useEffect(() => {
     let dead = false;
     fetch("/plants.json")
       .then((r) => r.json())
-      .then((doc) => {
+      .then((d) => {
         if (dead) return;
-        const rows = doc.plants.map((row) => Object.fromEntries(doc.fields.map((f, j) => [f, row[j]])));
-        setPlants(rows.filter((p) => p.capacity_mw > 0));
+        const rows = d.plants.map((row) => Object.fromEntries(d.fields.map((f, j) => [f, row[j]])));
+        setDoc({ records: rows.filter((p) => p.capacity_mw > 0), retrieved: d.retrieved });
       })
-      .catch(() => !dead && setPlants([]));
+      .catch(() => !dead && setDoc({ records: [], retrieved: null }));
     return () => { dead = true; };
   }, []);
-  return plants;
+  return doc;
 }
 
 function plantStats(plants) {
   if (!plants?.length) return null;
   const byGroup = {};
   for (const g of PLANT_GROUPS) byGroup[g] = { mw: 0, fuels: {} };
-  let total = 0, tallest = plants[0];
+  let total = 0, tallest = null, count = 0;
   for (const p of plants) {
     const g = byGroup[fuelGroup(p.fuel)];
     if (!g) continue;
     g.mw += p.capacity_mw;
     g.fuels[p.fuel] = (g.fuels[p.fuel] || 0) + p.capacity_mw;
     total += p.capacity_mw;
-    if (p.capacity_mw > tallest.capacity_mw) tallest = p;
+    if (p.kind === "plant") {
+      count += 1;
+      if (!tallest || p.capacity_mw > tallest.capacity_mw) tallest = p;
+    }
   }
   for (const g of PLANT_GROUPS) {
     byGroup[g].fuels = Object.entries(byGroup[g].fuels)
       .map(([fuel, mw]) => ({ fuel, mw }))
       .sort((a, b) => b.mw - a.mw);
   }
-  return { byGroup, total, count: plants.length, tallest };
+  return { byGroup, total, count, tallest };
 }
 
 export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }) {
@@ -243,7 +273,11 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
   const [tooltip, setTooltip] = useState(null);
   const [facet, setFacet] = useState(null); // {kind: "group"|"fuel", key}
   const [gridLines, setGridLines] = useState(0); // EHV lines drawn, for the key
-  const plants = usePlants();
+  const plantDoc = usePlants();
+  const records = plantDoc?.records;
+  const plants = useMemo(() => records?.filter((r) => r.kind === "plant"), [records]);
+  const totals = useMemo(() => records?.filter((r) => r.kind !== "plant"), [records]);
+  const totalsRef = useRef([]);
   modeRef.current = colorMode;
   paintRef.current.activeFuels = activeFuelsOf(facet);
   paintRef.current.zone = selectedZone;
@@ -255,6 +289,11 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     const { color, height } = plantPaint(activeFuels, zone, grow);
     map.setPaintProperty("plants", "fill-extrusion-color", color);
     map.setPaintProperty("plants", "fill-extrusion-height", height);
+    const disc = discPaint(activeFuels, zone);
+    map.setPaintProperty("plant-totals", "circle-color", disc.color);
+    map.setPaintProperty("plant-totals", "circle-stroke-color", disc.color);
+    map.setPaintProperty("plant-totals", "circle-opacity", disc.opacity);
+    map.setPaintProperty("plant-totals", "circle-stroke-opacity", disc.stroke);
   };
 
   useEffect(() => {
@@ -378,6 +417,23 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
           setGridLines(lines.features.length);
         })
         .catch(() => {});
+      map.addSource("plant-totals", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "plant-totals",
+        type: "circle",
+        source: "plant-totals",
+        layout: { visibility: "none", "circle-sort-key": ["-", 0, ["get", "capacity_mw"]] },
+        paint: {
+          "circle-radius": DISC_RADIUS,
+          "circle-color": GROUP_COLOR,
+          "circle-opacity": 0.3,
+          "circle-stroke-color": GROUP_COLOR,
+          "circle-stroke-width": 1,
+          "circle-stroke-opacity": 0.85,
+          "circle-pitch-alignment": "map",
+          "circle-pitch-scale": "map",
+        },
+      });
       map.addSource("plants", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
         id: "plants",
@@ -408,6 +464,8 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         bearing: -9,
       });
 
+      // a column under the cursor wins; otherwise the smallest disc, which is
+      // the most specific total there (they nest: district discs inside a state's)
       const pickPlant = (point) => {
         if (modeRef.current !== "plants") return null;
         const { x, y } = point;
@@ -416,6 +474,11 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         for (const h of hits) {
           const p = plantsRef.current[h.properties.i];
           if (p && (!best || p.capacity_mw > best.capacity_mw)) best = p;
+        }
+        if (best) return best;
+        for (const h of map.queryRenderedFeatures(point, { layers: ["plant-totals"] })) {
+          const t = totalsRef.current[h.properties.i];
+          if (t && (!best || t.capacity_mw < best.capacity_mw)) best = t;
         }
         return best;
       };
@@ -470,6 +533,15 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
       map.getSource("plants").setData(columns(plants, map.getZoom()));
     };
     setHeights();
+    totalsRef.current = totals || [];
+    map.getSource("plant-totals").setData({
+      type: "FeatureCollection",
+      features: (totals || []).map((t, i) => ({
+        type: "Feature",
+        properties: { i, fuel: t.fuel, zone: t.zone || "", capacity_mw: t.capacity_mw },
+        geometry: { type: "Point", coordinates: [t.lon, t.lat] },
+      })),
+    });
     const onZoomEnd = () => map.getSource("plants").setData(columns(plantsRef.current, map.getZoom()));
     let lastH = containerRef.current.clientHeight;
     const ro = new ResizeObserver(() => {
@@ -479,7 +551,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     ro.observe(containerRef.current);
     map.on("zoomend", onZoomEnd);
     return () => { map.off("zoomend", onZoomEnd); ro.disconnect(); };
-  }, [ready, plants]);
+  }, [ready, plants, totals]);
 
   // paint demand + carbon intensity + staleness as feature-state on refresh
   useEffect(() => {
@@ -508,6 +580,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     const map = mapRef.current;
     const plantsMode = colorMode === "plants";
     map.setLayoutProperty("plants", "visibility", plantsMode ? "visible" : "none");
+    map.setLayoutProperty("plant-totals", "visibility", plantsMode ? "visible" : "none");
     map.setLayoutProperty("states-label", "visibility", plantsMode ? "none" : "visible");
     // plants: India brightened against its neighbours, so the fleet stands on it
     map.setPaintProperty("states-fill", "fill-color", plantsMode ? SHEET : fillColorExpr(colorMode));
@@ -542,7 +615,9 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
       <div className="map-wrap" ref={containerRef}>
         {tooltip && <Tooltip tip={tooltip} zonesData={zonesData} />}
       </div>
-      {colorMode === "plants" && <PlantKey {...keyProps} plants={plants} facet={facet} setFacet={setFacet} />}
+      {colorMode === "plants" && (
+        <PlantKey {...keyProps} plants={records} retrieved={plantDoc?.retrieved} facet={facet} setFacet={setFacet} />
+      )}
       {colorMode === "demand" && <DemandKey {...keyProps} />}
       {colorMode === "carbon" && <CarbonKey {...keyProps} />}
     </>
@@ -566,11 +641,25 @@ function Tooltip({ tip, zonesData }) {
           <span className="t-fuel">{fuelLabel(p.fuel)}</span>
           <span className="num">{fmtCap(p.capacity_mw)}</span>
         </div>
-        <div className="t-sub">
-          {ZONE_TO_NAME[p.zone] || "outside state boundaries"}
-          {p.commissioning_year ? ` · commissioned c. ${p.commissioning_year}` : ""}
-        </div>
-        {p.owner && <div className="t-sub">{p.owner}</div>}
+        {p.kind === "plant" ? (
+          <>
+            <div className="t-sub">
+              {[p.district, ZONE_TO_NAME[p.zone]].filter(Boolean).join(", ")}
+              {p.since ? ` · since ${p.since}` : ""}
+              {p.units > 1 ? ` · ${p.units} units` : ""}
+            </div>
+            {p.owner && <div className="t-sub">{p.owner}</div>}
+            {p.located !== "plant" && (
+              <div className="t-sub t-approx">Location approximate: centre of its {p.located}</div>
+            )}
+          </>
+        ) : (
+          <div className="t-sub">
+            {p.kind === "district"
+              ? `District total${p.units > 1 ? ` of ${p.units} entries` : ""}, ${ZONE_TO_NAME[p.zone] || ""}`
+              : "State total: ICED doesn't publish districts for this capacity"}
+          </div>
+        )}
       </div>
     );
   }
@@ -776,7 +865,7 @@ function CarbonKey({ zonesData, selectedZone, onSelect, gridLines }) {
   );
 }
 
-function PlantKey({ plants, selectedZone, onSelect, facet, setFacet, gridLines }) {
+function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, gridLines }) {
   const scoped = useMemo(
     () => (selectedZone === "IN" ? plants : plants?.filter((p) => p.zone === selectedZone)),
     [plants, selectedZone],
@@ -791,7 +880,7 @@ function PlantKey({ plants, selectedZone, onSelect, facet, setFacet, gridLines }
     return (
       <aside className="legend">
         <KeyHead title={title} selectedZone={selectedZone} onSelect={onSelect} />
-        <p className="lg-note">No plants for this state in the open registry.</p>
+        <p className="lg-note">No operational plants listed for this state.</p>
       </aside>
     );
   }
@@ -803,7 +892,7 @@ function PlantKey({ plants, selectedZone, onSelect, facet, setFacet, gridLines }
       <KeyHead title={title} selectedZone={selectedZone} onSelect={onSelect} />
       {isState && (
         <p className="lg-line">
-          {stats.count.toLocaleString("en-IN")} plants · {fmtGW(stats.total)} in the registry
+          {fmtGW(stats.total)} operational · {stats.count.toLocaleString("en-IN")} plants plus district totals
         </p>
       )}
       {PLANT_GROUPS.filter((g) => stats.byGroup[g].mw > 0).map((g) => {
@@ -835,25 +924,24 @@ function PlantKey({ plants, selectedZone, onSelect, facet, setFacet, gridLines }
       })}
       {facet && <button className="lg-reset" onClick={() => setFacet(null)}>Show every fuel</button>}
       <GridLineKey n={gridLines} />
-      <p className="lg-note">
-        Column height is installed capacity. The largest{isState ? " here" : ""}
-        {isState ? "" : `, in ${zoneName(stats.tallest.zone)},`} is {stats.tallest.name},{" "}
-        {fmtCap(stats.tallest.capacity_mw)}.
-      </p>
-      {isState ? (
+      <div className="lg-marks">
+        <span><i className="mark-col" />plant, height is capacity</span>
+        <span><i className="mark-disc" />district or state total</span>
+      </div>
+      {stats.tallest && (
         <p className="lg-note">
-          From the last open plant registry (WRI, 2021): plants built since are missing, most of
-          them solar and wind. <a href="/data-gaps">Why</a>
-        </p>
-      ) : (
-        <p className="lg-note">
-          These {national.count.toLocaleString("en-IN")} plants, {fmtGW(national.total)}, are the
-          last open plant registry (WRI, 2021). India has {fmtGW(INSTALLED.mw)} installed
-          ({INSTALLED.source}, {INSTALLED.asOf}). Almost all of the difference is renewables: the
-          registry has {fmtGW(national.byGroup.renewable.mw)} of solar, wind and biomass; India
-          has {fmtGW(INSTALLED.renewablesMw)}. <a href="/data-gaps">Why</a>
+          The largest{isState ? " here" : `, in ${zoneName(stats.tallest.zone)},`} is{" "}
+          {stats.tallest.name.split("/")[0].trim()}, {fmtCap(stats.tallest.capacity_mw)}
+          {stats.tallest.owner ? `, run by ${stats.tallest.owner.replace(/\.$/, "")}` : ""}.
         </p>
       )}
+      <p className="lg-note">
+        {isState ? "" : `${fmtGW(national.total)} of operational capacity, against CEA's ${fmtGW(INSTALLED.mw)}. `}
+        Coal, gas, nuclear and large hydro are drawn plant by plant. Solar, wind, biomass and small
+        hydro are only published as totals for a district, and most solar only for a whole state.
+        Source: NITI Aayog ICED{retrieved ? `, ${retrieved}` : ""}; locations from the WRI registry
+        and OpenStreetMap. <a href="/data-gaps">What&rsquo;s missing</a>
+      </p>
     </aside>
   );
 }

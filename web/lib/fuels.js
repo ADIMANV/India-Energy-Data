@@ -10,7 +10,7 @@
 export const GROUPS = {
   fossil: { label: "Fossil", color: "#d55181" },
   firm: { label: "Hydro & nuclear", color: "#3987e5" },
-  renewable: { label: "Solar, wind & biomass", color: "#c98500" },
+  renewable: { label: "Solar, wind & other renewables", color: "#c98500" },
   // energy we can't attribute to a fuel (exchange purchases, own-generation
   // totals). Neutral on purpose: calling it fossil would be a guess.
   unattributed: { label: "Unattributed", color: "#6f6a61" },
@@ -27,11 +27,12 @@ export const FUEL_GROUP = {
   coal: "fossil", gas: "fossil", oil: "fossil",
   hydro: "firm", nuclear: "firm",
   solar: "renewable", wind: "renewable", biomass: "renewable", res_nonsolar: "renewable",
+  small_hydro: "renewable", // MNRE counts plants under 25 MW as renewable, not as large hydro
   other: "unattributed", own_generation: "unattributed",
 };
 
 const FUEL_LABELS = {
-  res_nonsolar: "other renewables", own_generation: "own generation",
+  res_nonsolar: "other renewables", own_generation: "own generation", small_hydro: "small hydro",
   other: "unattributed", import: "imported",
 };
 export const fuelLabel = (fuel) => FUEL_LABELS[fuel] || fuel;
