@@ -51,7 +51,14 @@ export default function Home() {
       />
 
       <header className="topbar">
-        <a className="wordmark" href="/">India Electricity Data</a>
+        <a className="wordmark" href="/">
+          <svg viewBox="6 6 20 20" aria-hidden="true">
+            <rect x="7" y="7" width="5" height="18" rx="1" fill="#d55181" />
+            <rect x="13.5" y="13" width="5" height="12" rx="1" fill="#3987e5" />
+            <rect x="20" y="17" width="5" height="8" rx="1" fill="#c98500" />
+          </svg>
+          India Electricity Data
+        </a>
         <StateSearch selectedZone={selectedZone} onSelect={setSelectedZone} />
         <nav className="seg" aria-label="Map layer">
           {MODES.map((m) => (

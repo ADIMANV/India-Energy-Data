@@ -1,5 +1,7 @@
-// The basemap: a quiet grey relief map, so the data sits in a real landscape
-// instead of floating on a void. Vector tiles and fonts from OpenFreeMap
+// The basemap: a survey sheet. Buff land, blue water and relief lit warm from
+// the north-west with cool shadows — after Survey of India topographic sheets
+// and Swiss relief cartography — so the data sits in a real landscape instead
+// of floating on a void. Vector tiles and fonts from OpenFreeMap
 // (OpenMapTiles schema, OSM data) and elevation from the AWS Terrain Tiles
 // open dataset — both free and keyless.
 //
@@ -9,10 +11,10 @@
 // by GridMap on top. Country and state labels are left out for the same reason
 // (they'd sit against lines we don't draw); city and river names stay.
 
-export const LAND = "#dfe1de";
-export const WATER = "#f3f4f2";
-const LABEL = "#4d5658";
-const HALO = "rgba(243, 244, 242, 0.85)";
+export const LAND = "#ede5d6";
+export const WATER = "#bcd6df";
+const LABEL = "#494137";
+const HALO = "rgba(249, 245, 236, 0.85)";
 
 const name = ["coalesce", ["get", "name:en"], ["get", "name_en"], ["get", "name"]];
 
@@ -39,9 +41,9 @@ export function baseStyle() {
         source: "dem",
         paint: {
           "hillshade-exaggeration": 0.7,
-          "hillshade-shadow-color": "#5b6567",
-          "hillshade-highlight-color": "#ffffff",
-          "hillshade-accent-color": "#7c8587",
+          "hillshade-shadow-color": "#515b6f",
+          "hillshade-highlight-color": "#fffaf0",
+          "hillshade-accent-color": "#7c7466",
           "hillshade-illumination-direction": 315,
         },
       },
@@ -66,8 +68,8 @@ export function baseStyle() {
         minzoom: 4.5,
         filter: ["in", ["get", "class"], ["literal", ["motorway", "trunk"]]],
         paint: {
-          "line-color": "#cdb77c",
-          "line-opacity": 0.55,
+          "line-color": "#b9805f",
+          "line-opacity": 0.42,
           "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.3, 9, 1.3],
         },
       },

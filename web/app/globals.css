@@ -1,21 +1,21 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* A light relief map with slate cards floating on it. The map carries the
-   geography and the data colours; the chrome is one slate tone and one sans,
-   so nothing in it competes with the map for attention. */
+/* A survey sheet with ink cards laid on it. The map carries the geography
+   and every data colour; the chrome is one ink, one paper tone and one sans,
+   so nothing in it competes with the map. */
 :root {
-  --font-sans: var(--f-host);
-  --panel: #2b3437;
-  --panel-hi: #353f42;       /* tiles and inner cards */
-  --panel-glass: rgba(43, 52, 55, 0.94);
-  --line: rgba(255, 255, 255, 0.08);
-  --text: #eeebe6;           /* 11.6:1 on the panel */
-  --muted: #a9b2b3;          /* 6.2:1 */
-  --faint: #8a9496;          /* 4.1:1 — captions only */
-  --page: #1f2629;           /* long-form pages */
+  --panel: #18222c;          /* ink */
+  --panel-hi: #222e3a;
+  --panel-glass: rgba(24, 34, 44, 0.95);
+  --paper: #ede5d6;          /* the map's land, reused for active controls */
+  --line: rgba(243, 239, 230, 0.1);
+  --text: #f3efe6;           /* 14.9:1 on ink */
+  --muted: #aab4bd;          /* 8.1:1 */
+  --faint: #8a95a2;          /* 5.4:1 — captions only */
+  --page: #121a22;           /* long-form pages */
   --serious: #f0a070;        /* stale, always with the word */
-  --shadow: 0 6px 24px rgba(18, 24, 26, 0.28);
-  --radius: 10px;
+  --shadow: 0 8px 28px rgba(30, 24, 14, 0.22);
+  --radius: 6px;
   color-scheme: dark;
 }
 
@@ -31,12 +31,14 @@ button, input { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid #9fd3c6; outline-offset: 2px; }
 ::selection { background: rgba(159, 211, 198, 0.35); }
 
-.num { font-variant-numeric: tabular-nums; }
-.mono { font-variant-numeric: tabular-nums; }
+/* Proportional figures by default: Schibsted's tabular set gives the decimal
+   point a full digit's width ("215 . 0"). Tabular only where numbers stack in
+   a column and must line up — tables and chart axes. */
+.num, .mono { font-variant-numeric: normal; }
 .muted { color: var(--muted); font-size: 12.5px; }
 
 /* ---------- the stage: a full-bleed map, cards floating on it ---------- */
-.app { position: relative; height: 100vh; height: 100dvh; overflow: hidden; background: #dfe1de; }
+.app { position: relative; height: 100vh; height: 100dvh; overflow: hidden; background: var(--paper); }
 .map-wrap { position: absolute; inset: 0; }
 .map-wrap .maplibregl-map { position: absolute; inset: 0; }
 
@@ -48,9 +50,11 @@ button, input { font: inherit; color: inherit; }
   border-radius: var(--radius); box-shadow: var(--shadow);
 }
 .wordmark {
+  display: flex; align-items: center; gap: 9px;
   color: var(--text); text-decoration: none; white-space: nowrap;
-  font-size: 12.5px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+  font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em;
 }
+.wordmark svg { width: 18px; height: 18px; }
 
 .search {
   position: relative; display: flex; align-items: center; gap: 6px;
@@ -87,7 +91,7 @@ button, input { font: inherit; color: inherit; }
   padding: 5px 13px; border-radius: 6px; font-size: 13px; font-weight: 500;
 }
 .seg button:hover { color: var(--text); }
-.seg button.on { background: var(--text); color: var(--panel); }
+.seg button.on { background: var(--paper); color: var(--panel); font-weight: 600; }
 
 .live { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .live b { color: var(--text); font-weight: 600; }
@@ -109,34 +113,34 @@ button, input { font: inherit; color: inherit; }
 .crumbs { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
 .crumbs button { background: none; border: 0; cursor: pointer; color: var(--muted); padding: 0; }
 .crumbs button:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
-.panel h2 { font-size: 25px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.15; margin-top: 5px; }
+.panel h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-top: 6px; }
 .p-meta { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .p-meta.stale { color: var(--serious); }
 
-.p-sec { margin-top: 22px; }
+/* section labels are eyebrows with a rule running out to the edge */
+.p-sec { margin-top: 24px; }
 .p-sec h3 {
-  display: flex; align-items: center; gap: 9px;
-  font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
 }
-.sec-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 24px; height: 24px; border-radius: 50%; background: var(--panel-hi); color: var(--muted);
-}
-.sec-icon svg { width: 13px; height: 13px; }
+.p-sec h3::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.tile { background: var(--panel-hi); border-radius: 8px; padding: 11px 12px 12px; min-width: 0; }
+/* stats as a ruled ledger rather than boxes */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; }
+.tile { padding: 12px 0 13px; min-width: 0; border-bottom: 1px solid var(--line); }
+.tile:nth-child(odd) { padding-right: 14px; border-right: 1px solid var(--line); }
+.tile:nth-child(even) { padding-left: 16px; }
 .tile-label {
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
 }
 .tile-value { display: flex; align-items: baseline; gap: 5px; margin-top: 6px; }
-.tile-value .num { font-size: 23px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.tile-value .num { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
 .tile-unit { font-size: 12px; color: var(--muted); }
 .tile-bar { height: 3px; margin-top: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; overflow: hidden; }
-.tile-bar i { display: block; height: 100%; background: var(--text); }
+.tile-bar i { display: block; height: 100%; background: var(--paper); }
 .tile-sub { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.35; }
 
-.card { background: var(--panel-hi); border-radius: 8px; padding: 12px; }
+.card { padding: 10px 0 2px; }
 .card-note { margin-bottom: 10px; }
 .p-note { font-size: 13px; line-height: 1.5; color: var(--muted); }
 
@@ -152,7 +156,7 @@ button, input { font: inherit; color: inherit; }
 .fuelbar-label::first-letter { text-transform: uppercase; }
 .fuelbar-track { flex: 1; height: 7px; background: rgba(255, 255, 255, 0.08); border-radius: 4px; overflow: hidden; }
 .fuelbar-fill { display: block; height: 100%; border-radius: 4px; }
-.fuelbar-pct { width: 36px; text-align: right; font-size: 12.5px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.fuelbar-pct { width: 36px; text-align: right; font-size: 12.5px; flex-shrink: 0; }
 
 .chart-caption { font-size: 11.5px; color: var(--faint); margin-top: 6px; line-height: 1.45; }
 .chart-tip {
@@ -160,7 +164,7 @@ button, input { font: inherit; color: inherit; }
   padding: 8px 10px; font-size: 12px; line-height: 1.6; box-shadow: var(--shadow);
 }
 .chart-tip .t-age { color: var(--muted); margin-bottom: 2px; }
-.chart-tip b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.chart-tip b { font-weight: 600; }
 .chart-tip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; box-shadow: none; }
 
 /* ---------- the key, bottom left: All India until a state is picked ---------- */
@@ -171,7 +175,7 @@ button, input { font: inherit; color: inherit; }
   background: var(--panel-glass); backdrop-filter: blur(8px);
   border-radius: var(--radius); box-shadow: var(--shadow);
 }
-.lg-title { font-size: 15px; font-weight: 600; letter-spacing: -0.005em; margin-bottom: 8px; }
+.lg-title { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
 .lg-group { margin-bottom: 6px; transition: opacity 0.15s; }
 .lg-group.off { opacity: 0.4; }
 .lg-row {
@@ -182,6 +186,7 @@ button, input { font: inherit; color: inherit; }
 .lg-row:hover .lg-label, .lg-row.on .lg-label { text-decoration: underline; text-underline-offset: 3px; }
 .lg-swatch { display: inline-block; width: 5px; height: 15px; border-radius: 2px; }
 .lg-swatch.flat { width: 14px; height: 9px; }
+.lg-swatch.line { width: 16px; height: 2px; border-radius: 1px; background: #d3cab8; }
 .lg-swatch.hatch {
   width: 14px; height: 9px; border-radius: 2px;
   background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0 1px, transparent 1px 4px), rgba(255, 255, 255, 0.08);
@@ -201,12 +206,12 @@ button, input { font: inherit; color: inherit; }
 .legend a { color: var(--text); text-underline-offset: 2px; }
 .lg-rampwrap { margin: 8px 0 4px; }
 .lg-ramp { height: 8px; border-radius: 4px; margin-bottom: 5px; }
-.lg-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lg-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
 .lg-arms { color: var(--faint); margin-top: 1px; }
 .lg-nodata { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); }
 .lg-back { background: none; border: 0; cursor: pointer; padding: 0 0 6px; font-size: 12px; color: var(--muted); }
 .lg-back:hover { color: var(--text); }
-.lg-fig { font-size: 30px; font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.lg-fig { font-size: 30px; font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; margin-top: 2px; }
 .lg-unit { font-size: 13px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
 .lg-line { font-size: 12.5px; color: var(--muted); margin: 4px 0 2px; line-height: 1.45; }
 .lg-line a { color: var(--text); }
@@ -249,16 +254,10 @@ button, input { font: inherit; color: inherit; }
   background: var(--panel-glass); color: var(--muted); font-size: 10.5px; border-radius: 8px;
 }
 .maplibregl-ctrl-attrib a { color: var(--muted) !important; }
-
-/* review only: the typeface switcher */
-.font-picker {
-  position: absolute; left: 324px; bottom: 12px; z-index: 7;
-  display: flex; align-items: center; gap: 4px; padding: 4px;
-  background: var(--panel-glass); border-radius: 8px; box-shadow: var(--shadow); font-size: 12px;
+.maplibregl-ctrl-scale {
+  background: var(--panel-glass); color: var(--muted); border-color: var(--muted);
+  font-size: 10.5px; border-radius: 0 0 3px 3px;
 }
-.font-picker span { color: var(--faint); padding: 0 6px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
-.font-picker button { background: none; border: 0; cursor: pointer; padding: 5px 9px; border-radius: 6px; color: var(--muted); font-size: 12.5px; }
-.font-picker button.on { background: var(--text); color: var(--panel); }
 
 /* ---------- long-form pages: methodology, data gaps, download, status ---------- */
 .doc-page { max-width: 760px; margin: 0 auto; padding: 32px 24px 72px; }
@@ -278,7 +277,7 @@ button, input { font: inherit; color: inherit; }
 .markdown p, .markdown li { margin: 12px 0; }
 .doc-page > p { margin: 12px 0; }
 .markdown ul, .markdown ol { margin: 12px 0 12px 24px; }
-.markdown a, .doc-page > p a { color: #9fd3c6; text-underline-offset: 3px; }
+.markdown a, .doc-page > p a { color: var(--paper); text-underline-offset: 3px; }
 .markdown strong, .doc-page > p strong { color: var(--text); font-weight: 600; }
 .markdown hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
 .markdown code, .doc-page > p code {
@@ -343,7 +342,6 @@ table.dict td.unit { color: var(--muted); white-space: nowrap; font-size: 13px; 
   .legend { position: relative; inset: auto; width: auto; max-height: none; margin: 8px; order: 2; }
   .panel { position: relative; inset: auto; width: auto; margin: 0 8px 8px; order: 3; overflow: visible; }
   .maplibregl-ctrl-bottom-right { right: 0 !important; }
-  .font-picker { position: fixed; left: 8px; right: 8px; bottom: 8px; overflow-x: auto; }
   .markdown, .doc-page > p { font-size: 15.5px; }
   .markdown h1, .doc-page > h1 { font-size: 32px; }
 }

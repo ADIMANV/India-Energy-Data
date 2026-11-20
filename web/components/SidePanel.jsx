@@ -20,22 +20,6 @@ function BasisNote({ estimated, basis }) {
   );
 }
 
-function Icon({ name }) {
-  const paths = {
-    now: "M9 1 3 9h4l-1 6 6-8H8l1-6z",
-    mix: "M2 13h12M3 10h4v3H3zM8 6h3v7H8zM12 3h2v10h-2z",
-    supply: "M1 12c2-5 4-6 6-3s4 2 7-6",
-    carbon: "M8 2c3 3 4 5 4 7a4 4 0 0 1-8 0c0-2 1-4 4-7z",
-    market: "M3 3h10M3 7h10M6 3c3 0 3 4 0 4l5 6",
-  };
-  return (
-    <span className="sec-icon" aria-hidden="true">
-      <svg viewBox="0 0 16 16"><path d={paths[name]} fill="none" stroke="currentColor"
-        strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-    </span>
-  );
-}
-
 // One stat: a small label, the number, and what qualifies it.
 function Tile({ label, value, unit, sub, bar }) {
   return (
@@ -133,7 +117,7 @@ export default function SidePanel({ zone, onSelect, refreshKey, zonesData }) {
       )}
 
       <section className="p-sec">
-        <h3><Icon name="now" />Right now</h3>
+        <h3>Right now</h3>
         <div className="tiles">
           <Tile label="Demand met" value={fmtMW(demand?.value)} sub={deltaText(demandDelta)} />
           {isNational ? (
@@ -156,7 +140,7 @@ export default function SidePanel({ zone, onSelect, refreshKey, zonesData }) {
 
       {mix.length > 0 && (
         <section className="p-sec">
-          <h3><Icon name="mix" />Generation mix</h3>
+          <h3>Generation mix</h3>
           {partialNational ? (
             <p className="p-note">
               Only {fmtMW(mixMW)} of the {fmtMW(demand.value)} India is using right now has been
@@ -173,21 +157,21 @@ export default function SidePanel({ zone, onSelect, refreshKey, zonesData }) {
 
       {hasSupply && (
         <section className="p-sec">
-          <h3><Icon name="supply" />Supply, last 24 hours</h3>
+          <h3>Supply, last 24 hours</h3>
           <div className="card"><SupplyChart points={points} /></div>
         </section>
       )}
 
       {points.some((p) => p.metric === "carbon_intensity") && (
         <section className="p-sec">
-          <h3><Icon name="carbon" />Carbon intensity, last 24 hours</h3>
+          <h3>Carbon intensity, last 24 hours</h3>
           <div className="card"><CIChart points={points} /></div>
         </section>
       )}
 
       {(price || purchase) && (
         <section className="p-sec">
-          <h3><Icon name="market" />Power exchange</h3>
+          <h3>Power exchange</h3>
           <div className="tiles">
             {price && <Tile label="Price" value={`₹${price.value.toFixed(2)}`} unit="/kWh" />}
             {purchase && <Tile label="Bought on the exchange" value={fmtMW(purchase.value)} />}

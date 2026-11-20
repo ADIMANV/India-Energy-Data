@@ -6,19 +6,20 @@ import { NAME_TO_ZONE, ZONE_TO_NAME, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MI
 import { BASIS_LABELS, FUEL_GROUP, GROUPS, INSTALLED, MAP_GROUP_COLORS, fuelGroup, fuelLabel } from "../lib/fuels";
 import { ATTRIBUTION, BEFORE_LABELS, baseStyle } from "../lib/basemap";
 
-const BORDER = "rgba(38, 46, 48, 0.38)";
-const SELECTED = "#1d2426";
-const MUTED_PLANT = "#b4b8b4";
+const BORDER = "rgba(58, 48, 36, 0.36)";
+const SELECTED = "#18222c";
+const MUTED_PLANT = "#c9bfae";
+const SHEET = "#f9f5ec"; // India's paper in plants mode, lighter than the land around it
 
 // Demand: one green-teal hue, light = small, dark = large (on a light map the
 // dark end is the emphatic one). Shade is size, not greenness — that's carbon.
-const DEMAND_STOPS = [[0, "#d7eee8"], [2000, "#a2cfc4"], [8000, "#6dad9e"], [18000, "#3a8777"], [30000, "#0d5d50"]];
+const DEMAND_STOPS = [[0, "#d0ece5"], [2000, "#9acdc2"], [8000, "#64ab9d"], [18000, "#2e8576"], [30000, "#005b4f"]];
 // Carbon: green ↔ rust around 500 g/kWh. Equal OKLCH lightness steps out from
-// a light neutral midpoint, so low-carbon and coal-heavy states both stand out
-// and states near the middle recede into the map.
+// a warm paper-coloured midpoint, so low-carbon and coal-heavy states both
+// stand out and states near the middle recede into the sheet.
 const CARBON_STOPS = [
-  [0, "#186f3b"], [125, "#418d59"], [250, "#70ac80"], [375, "#aacbb1"], [500, "#e4e9e5"],
-  [625, "#deb7a7"], [750, "#ca896c"], [875, "#af6340"], [1000, "#934319"],
+  [0, "#1b6c36"], [125, "#418954"], [250, "#6fa87b"], [375, "#a8c7ad"], [500, "#e7e0d6"],
+  [625, "#deb3a2"], [750, "#ca8469"], [875, "#af5e3e"], [1000, "#903f1c"],
 ];
 
 const INDIA = [[68, 6.5], [97.5, 36]];
@@ -53,7 +54,7 @@ function hatchImage() {
   const c = document.createElement("canvas");
   c.width = c.height = n;
   const g = c.getContext("2d");
-  g.strokeStyle = "rgba(38, 46, 48, 0.32)";
+  g.strokeStyle = "rgba(58, 48, 36, 0.34)";
   g.lineWidth = 1;
   g.beginPath();
   g.moveTo(-1, n + 1); g.lineTo(n + 1, -1);
@@ -241,6 +242,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
   const [ready, setReady] = useState(false);
   const [tooltip, setTooltip] = useState(null);
   const [facet, setFacet] = useState(null); // {kind: "group"|"fuel", key}
+  const [gridLines, setGridLines] = useState(0); // EHV lines drawn, for the key
   const plants = usePlants();
   modeRef.current = colorMode;
   paintRef.current.activeFuels = activeFuelsOf(facet);
@@ -270,10 +272,12 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     map.addControl(new maplibregl.AttributionControl({
       customAttribution:
         "Boundaries: datameet (CC BY 2.5 IN) · Plants: WRI Global Power Plant Database (CC BY 4.0) · " +
-        "Live: Vidyut Pravah, MERIT, state load despatch centres · " + ATTRIBUTION,
+        "Live: Vidyut Pravah, MERIT, state load despatch centres · Transmission: OpenStreetMap (ODbL) · " +
+        ATTRIBUTION,
       compact: true,
     }), "bottom-right");
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+    map.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: "metric" }), "bottom-right");
     mapRef.current = map;
 
     // The map lives in a flex child that often has no measured size at init,
@@ -318,9 +322,9 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
         id: "relief-over", type: "hillshade", source: "dem",
         paint: {
           "hillshade-exaggeration": 0.55,
-          "hillshade-shadow-color": "rgba(32, 40, 42, 0.42)",
-          "hillshade-highlight-color": "rgba(255, 255, 255, 0.3)",
-          "hillshade-accent-color": "rgba(32, 40, 42, 0.12)",
+          "hillshade-shadow-color": "rgba(52, 60, 82, 0.42)",
+          "hillshade-highlight-color": "rgba(255, 250, 240, 0.32)",
+          "hillshade-accent-color": "rgba(52, 60, 82, 0.12)",
           "hillshade-illumination-direction": 315,
         },
       });
@@ -346,11 +350,34 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
           "text-padding": 4,
         },
         paint: {
-          "text-color": "rgba(29, 36, 38, 0.62)",
-          "text-halo-color": "rgba(255, 255, 255, 0.55)",
+          "text-color": "rgba(52, 44, 34, 0.66)",
+          "text-halo-color": "rgba(249, 245, 236, 0.6)",
           "text-halo-width": 1,
         },
       });
+      // The EHV transmission backbone (400 kV and up, from OpenStreetMap):
+      // what the plants feed. Drawn in ink rather than colour — it's context,
+      // and colour on this map means fuel or a reading. Mapped geometry only;
+      // OSM records where lines run, not what they carry.
+      fetch("/gridlines.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((lines) => {
+          if (!lines || !map.getStyle()) return;
+          map.addSource("gridlines", { type: "geojson", data: lines });
+          map.addLayer({
+            id: "gridlines", type: "line", source: "gridlines",
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: {
+              "line-color": "#2a2620",
+              "line-opacity": ["case", [">=", ["get", "kv"], 700], 0.5, 0.3],
+              "line-width": ["interpolate", ["linear"], ["zoom"],
+                3, ["case", [">=", ["get", "kv"], 700], 0.9, 0.45],
+                8, ["case", [">=", ["get", "kv"], 700], 2.2, 1.2]],
+            },
+          }, "states-label");
+          setGridLines(lines.features.length);
+        })
+        .catch(() => {});
       map.addSource("plants", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
         id: "plants",
@@ -483,8 +510,8 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     map.setLayoutProperty("plants", "visibility", plantsMode ? "visible" : "none");
     map.setLayoutProperty("states-label", "visibility", plantsMode ? "none" : "visible");
     // plants: India brightened against its neighbours, so the fleet stands on it
-    map.setPaintProperty("states-fill", "fill-color", plantsMode ? "#ffffff" : fillColorExpr(colorMode));
-    map.setPaintProperty("states-fill", "fill-opacity", plantsMode ? 0.42 : 0.86);
+    map.setPaintProperty("states-fill", "fill-color", plantsMode ? SHEET : fillColorExpr(colorMode));
+    map.setPaintProperty("states-fill", "fill-opacity", plantsMode ? 0.62 : 0.86);
     map.setPaintProperty("states-nodata", "fill-opacity", plantsMode ? 0 : missingExpr(colorMode));
     setTooltip(null);
     if (!plantsMode) return;
@@ -509,7 +536,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     mapRef.current.setFilter("states-selected", ["==", ["get", "zone"], selectedZone || "___none___"]);
   }, [ready, selectedZone]);
 
-  const keyProps = { zonesData, selectedZone, onSelect };
+  const keyProps = { zonesData, selectedZone, onSelect, gridLines };
   return (
     <>
       <div className="map-wrap" ref={containerRef}>
@@ -607,6 +634,15 @@ function NoData() {
   );
 }
 
+function GridLineKey({ n }) {
+  if (!n) return null;
+  return (
+    <div className="lg-nodata">
+      <i className="lg-swatch line" /> transmission, 400 kV and up (OpenStreetMap)
+    </div>
+  );
+}
+
 function RankList({ label, rows, value, onSelect }) {
   if (!rows.length) return null;
   return (
@@ -624,7 +660,7 @@ function RankList({ label, rows, value, onSelect }) {
   );
 }
 
-function DemandKey({ zonesData, selectedZone, onSelect }) {
+function DemandKey({ zonesData, selectedZone, onSelect, gridLines }) {
   const zones = zonesData?.zones || [];
   const india = zones.find((z) => z.zone === "IN");
   const states = zones
@@ -640,6 +676,7 @@ function DemandKey({ zonesData, selectedZone, onSelect }) {
         <RankList label="Largest right now" rows={states.slice(0, 5)}
                   value={(z) => fmtMW(z.demand_met_mw)} onSelect={onSelect} />
         <NoData />
+        <GridLineKey n={gridLines} />
       </aside>
     );
   }
@@ -663,11 +700,12 @@ function DemandKey({ zonesData, selectedZone, onSelect }) {
       )}
       {ramp}
       <NoData />
+      <GridLineKey n={gridLines} />
     </aside>
   );
 }
 
-function CarbonKey({ zonesData, selectedZone, onSelect }) {
+function CarbonKey({ zonesData, selectedZone, onSelect, gridLines }) {
   const zones = zonesData?.zones || [];
   const india = ciOf(zones.find((z) => z.zone === "IN"));
   const states = zones
@@ -688,6 +726,7 @@ function CarbonKey({ zonesData, selectedZone, onSelect }) {
         </p>
         {ramp}
         <NoData />
+        <GridLineKey n={gridLines} />
       </aside>
     );
   }
@@ -732,11 +771,12 @@ function CarbonKey({ zonesData, selectedZone, onSelect }) {
       )}
       {ramp}
       <NoData />
+      <GridLineKey n={gridLines} />
     </aside>
   );
 }
 
-function PlantKey({ plants, selectedZone, onSelect, facet, setFacet }) {
+function PlantKey({ plants, selectedZone, onSelect, facet, setFacet, gridLines }) {
   const scoped = useMemo(
     () => (selectedZone === "IN" ? plants : plants?.filter((p) => p.zone === selectedZone)),
     [plants, selectedZone],
@@ -794,6 +834,7 @@ function PlantKey({ plants, selectedZone, onSelect, facet, setFacet }) {
         );
       })}
       {facet && <button className="lg-reset" onClick={() => setFacet(null)}>Show every fuel</button>}
+      <GridLineKey n={gridLines} />
       <p className="lg-note">
         Column height is installed capacity. The largest{isState ? " here" : ""}
         {isState ? "" : `, in ${zoneName(stats.tallest.zone)},`} is {stats.tallest.name},{" "}
