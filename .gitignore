@@ -41,3 +41,6 @@ docs/sources/*.xlsx
 !docs/sources/NPP_dgr2_100626.xls
 !docs/sources/CEA_IC_July2026.xlsx
 !docs/sources/CEA_IC_Oct2026.xlsx
+
+# third-party downloads kept local until their reuse terms are confirmed
+data/iced/
