@@ -545,3 +545,57 @@ async def export_capacity_csv():
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="india_installed_capacity.csv"'},
     )
+
+
+@app.get("/v1/stations/status")
+async def stations_status():
+    """What each conventional station could and couldn't run on the latest day
+    CEA reported, keyed like web/public/plants.json's `cea` links.
+
+    stations: {station_key: [monitored_mw, outage_mw, actual_mu, down_units]},
+    where each down unit is [unit, mw, out_mw, since, expected, kind, remark].
+    kind is forced / planned / reserve (healthy but unscheduled) / fuel /
+    unstated. Gas and most hydro stations report outage only as a station
+    total, with no units and no reason; that capacity counts as unstated.
+    CEA's outage is a snapshot at reporting time, so a hydro station can be
+    listed as fully out yet have generated during the day — actual_mu says so.
+    Coal, gas, hydro and nuclear only: CEA's daily report has no plant-level
+    solar or wind.
+    """
+    import psycopg
+
+    async with pool.connection() as conn:
+        try:
+            rows = await (await conn.execute(
+                """
+                SELECT as_of, station_key, monitored_mw, outage_mw, actual_mu, units
+                FROM station_status
+                WHERE as_of = (SELECT max(as_of) FROM station_status)
+                """
+            )).fetchall()
+        except psycopg.errors.UndefinedTable:
+            rows = []
+    if not rows:
+        return {"as_of": None, "stations": {}, "totals": None}
+    as_of = rows[0][0]
+    stations, kinds = {}, {}
+    monitored = outage = 0.0
+    for _, key, mon, out, mu, units in rows:
+        down = [[u.get("unit"), u.get("mw"), u.get("out_mw"), u.get("since"), u.get("expected"),
+                 u.get("kind"), u.get("remark")] for u in (units or []) if u.get("out_mw")]
+        for u in down:
+            kinds[u[5] or "unstated"] = kinds.get(u[5] or "unstated", 0) + (u[2] or 0)
+        rest = (out or 0) - sum(u[2] or 0 for u in down)
+        if rest > 1:
+            kinds["unstated"] = kinds.get("unstated", 0) + rest
+        stations[key] = [round(mon or 0, 1), round(out or 0, 1), round(mu or 0, 2), down]
+        monitored += mon or 0
+        outage += out or 0
+    return {
+        "as_of": as_of.isoformat(),
+        "source": "Central Electricity Authority, daily generation report (dgr2)",
+        "source_url": f"https://npp.gov.in/public-reports/cea/daily/dgr/{as_of:%d-%m-%Y}/dgr2-{as_of.isoformat()}.xls",
+        "totals": {"monitored_mw": round(monitored), "outage_mw": round(outage),
+                   "outage_by_kind_mw": {k: round(v) for k, v in sorted(kinds.items())}},
+        "stations": stations,
+    }

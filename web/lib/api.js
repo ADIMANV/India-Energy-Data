@@ -14,3 +14,5 @@ export const fetchHistory = (zone, metric = "demand_met", hours = 24) =>
 // one fetch per zone covering every panel chart
 export const PANEL_METRICS = "demand_met,generation,carbon_intensity,net_import";
 export const fetchPanelHistory = (zone) => fetchHistory(zone, PANEL_METRICS, 48);
+// CEA's daily report, station by station: capacity monitored, under outage, and why
+export const fetchStationStatus = () => get("/v1/stations/status");

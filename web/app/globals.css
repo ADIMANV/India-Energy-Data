@@ -31,10 +31,11 @@ button, input { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid #9fd3c6; outline-offset: 2px; }
 ::selection { background: rgba(159, 211, 198, 0.35); }
 
-/* Proportional figures by default: Schibsted's tabular set gives the decimal
-   point a full digit's width ("215 . 0"). Tabular only where numbers stack in
-   a column and must line up — tables and chart axes. */
+/* Proportional figures by default; tabular only where numbers stack in a
+   column and must line up — tables and chart axes. */
 .num, .mono { font-variant-numeric: normal; }
+/* the display face: condensed capitals for titles and the figures that matter */
+.display { font-family: var(--font-display), "Arial Narrow", sans-serif; font-weight: 400; text-transform: uppercase; letter-spacing: 0.01em; }
 .muted { color: var(--muted); font-size: 12.5px; }
 
 /* ---------- the stage: a full-bleed map, cards floating on it ---------- */
@@ -52,7 +53,7 @@ button, input { font: inherit; color: inherit; }
 .wordmark {
   display: flex; align-items: center; gap: 9px;
   color: var(--text); text-decoration: none; white-space: nowrap;
-  font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em;
+  font-family: var(--font-display), "Arial Narrow", sans-serif; font-weight: 400; font-size: 22px; letter-spacing: 0.02em; text-transform: uppercase;
 }
 .wordmark svg { width: 18px; height: 18px; }
 
@@ -113,7 +114,7 @@ button, input { font: inherit; color: inherit; }
 .crumbs { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
 .crumbs button { background: none; border: 0; cursor: pointer; color: var(--muted); padding: 0; }
 .crumbs button:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
-.panel h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-top: 6px; }
+.panel h2 { font-family: var(--font-display), "Arial Narrow", sans-serif; font-weight: 400; font-size: 40px; letter-spacing: 0.01em; line-height: 1; text-transform: uppercase; margin-top: 8px; }
 .p-meta { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .p-meta.stale { color: var(--serious); }
 
@@ -134,7 +135,7 @@ button, input { font: inherit; color: inherit; }
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
 }
 .tile-value { display: flex; align-items: baseline; gap: 5px; margin-top: 6px; }
-.tile-value .num { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+.tile-value .num { font-family: var(--font-display), "Arial Narrow", sans-serif; font-weight: 400; font-size: 36px; letter-spacing: 0.01em; line-height: 1; }
 .tile-unit { font-size: 12px; color: var(--muted); }
 .tile-bar { height: 3px; margin-top: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; overflow: hidden; }
 .tile-bar i { display: block; height: 100%; background: var(--paper); }
@@ -175,7 +176,7 @@ button, input { font: inherit; color: inherit; }
   background: var(--panel-glass); backdrop-filter: blur(8px);
   border-radius: var(--radius); box-shadow: var(--shadow);
 }
-.lg-title { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+.lg-title { font-family: var(--font-display), "Arial Narrow", sans-serif; font-weight: 400; font-size: 26px; line-height: 1.05; letter-spacing: 0.02em; text-transform: uppercase; margin-bottom: 8px; }
 .lg-group { margin-bottom: 6px; transition: opacity 0.15s; }
 .lg-group.off { opacity: 0.4; }
 .lg-row {
@@ -211,8 +212,22 @@ button, input { font: inherit; color: inherit; }
 .lg-nodata { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); }
 .lg-back { background: none; border: 0; cursor: pointer; padding: 0 0 6px; font-size: 12px; color: var(--muted); }
 .lg-back:hover { color: var(--text); }
-.lg-fig { font-size: 30px; font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; margin-top: 2px; }
-.lg-unit { font-size: 13px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.lg-fig { font-family: var(--font-display), "Arial Narrow", sans-serif; font-weight: 400; font-size: 44px; line-height: 1; letter-spacing: 0.01em; margin-top: 4px; }
+.lg-unit { font-family: var(--font-sans), sans-serif; font-size: 13px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.lg-seg { display: inline-flex; gap: 2px; padding: 2px; margin: 0 0 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); }
+.lg-seg button {
+  background: none; border: 0; cursor: pointer; border-radius: 4px; padding: 3px 10px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.lg-seg button:hover { color: var(--text); }
+.lg-seg button.on { background: var(--paper); color: var(--panel); }
+.lg-reasons { list-style: none; }
+.lg-reasons li {
+  display: grid; grid-template-columns: 150px 1fr auto; gap: 8px; align-items: center;
+  padding: 2px 0; font-size: 12.5px; color: var(--muted);
+}
+.lg-reasons i { display: block; height: 4px; border-radius: 2px; background: #d3cab8; min-width: 2px; }
+.lg-reasons .num { font-size: 12px; color: var(--text); }
 .lg-line { font-size: 12.5px; color: var(--muted); margin: 4px 0 2px; line-height: 1.45; }
 .lg-line a { color: var(--text); }
 .lg-sub { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin: 12px 0 4px; }
@@ -233,6 +248,12 @@ button, input { font: inherit; color: inherit; }
   padding: 10px 12px 11px; font-size: 12.5px; min-width: 170px; max-width: 300px;
 }
 .t-name { font-size: 14.5px; font-weight: 600; line-height: 1.25; margin-bottom: 5px; }
+.t-status { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); }
+.t-bar { height: 3px; margin: 5px 0 6px; background: rgba(255, 255, 255, 0.12); border-radius: 2px; overflow: hidden; }
+.t-bar i { display: block; height: 100%; background: var(--paper); }
+.t-unit { margin-top: 3px; }
+.t-remark { display: block; color: var(--faint); }
+.t-src { margin-top: 5px; color: var(--faint); font-size: 11px; }
 .t-line { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
 .t-line .num { font-size: 12.5px; }
 .t-fuel { display: inline-block; margin-right: auto; }
@@ -267,7 +288,7 @@ button, input { font: inherit; color: inherit; }
 
 .markdown, .doc-page > p { font-size: 16.5px; line-height: 1.65; color: #dcdad5; }
 .markdown h1, .doc-page > h1 {
-  font-size: 40px; font-weight: 600; line-height: 1.1; letter-spacing: -0.025em; margin: 4px 0 22px; color: var(--text);
+  font-family: var(--font-display), "Arial Narrow", sans-serif; font-weight: 400; font-size: 56px; line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; margin: 4px 0 22px; color: var(--text);
 }
 .markdown h2, .doc-page > h2 {
   font-size: 22px; font-weight: 600; line-height: 1.25; letter-spacing: -0.012em;
@@ -310,8 +331,8 @@ table.dict td.unit { color: var(--muted); white-space: nowrap; font-size: 13px; 
 .doc-page pre code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; color: var(--text); }
 
 .status-page { max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
-.status-page h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
-.status-page h1 a, .status-page h2 a { font-size: 12.5px; font-weight: 400; color: var(--muted); margin-left: 14px; }
+.status-page h1 { font-family: var(--font-display), "Arial Narrow", sans-serif; font-weight: 400; font-size: 48px; line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; margin-bottom: 8px; }
+.status-page h1 a, .status-page h2 a { font-family: var(--font-sans), sans-serif; text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 400; color: var(--muted); margin-left: 14px; }
 .status-page h2 { font-size: 19px; font-weight: 600; margin: 36px 0 10px; }
 .status-page .sub { color: var(--muted); font-size: 13.5px; line-height: 1.5; margin: 4px 0 12px; }
 .status-page table, .accuracy-live table { width: 100%; border-collapse: collapse; font-size: 13px; }

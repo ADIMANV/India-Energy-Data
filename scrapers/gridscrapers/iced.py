@@ -67,6 +67,7 @@ OSM_SOURCE = {"coal": "coal", "gas": "gas", "oil": "gas", "nuclear": "nuclear", 
 # out of zone-level totals but still drawn.
 STATE_ALIASES = {
     "Jammu and Kashmir": "IN-JK", "Ladakh": "IN-JK", "Delhi": "IN-DL",
+    "Arunachal Pradesh": "IN-AR",             # datameet spells it "Arunanchal"
     "Dadra and Nagar Haveli and Daman and Diu": "IN-GJ",
     "Andaman and Nicobar Islands": None, "Lakshadweep": None, "Others": None,
 }
@@ -82,7 +83,7 @@ DISTRICT_ALIASES = {
 
 PLANT_STOPWORDS = re.compile(
     r"\b(tps|stps|sstps|tpp|ttps|stpp|ccpp|ccgt|thermal|power|station|project|plant|hep|"
-    r"hydro ?electric|hydel|electric|ltd|limited|pvt|private|company|co|corporation|ext|"
+    r"hydro ?electric|hydel|electric|hps|hpp|hep|gps|ps|ltd|limited|pvt|private|company|co|corporation|ext|"
     r"extension|stage|phase|unit|super|gas|based|combined|cycle|gt|nuclear|atomic|aps|npp|"
     r"of|the|and|i|ii|iii|iv|v)\b")
 
@@ -241,7 +242,126 @@ class Locator:
         return label_points.get(zone)
 
 
-def build(units, locator, state_points) -> tuple[list[list], dict]:
+# CEA's daily report abbreviates what ICED spells out
+CEA_WORDS = {"rbph": "river bed", "chph": "canal head", "lb": "left bank", "rb": "right bank",
+             "sgr": "sagar", "dph": "dam", "lig": "lignite", "addl": "additional",
+             "ramagundem": "ramagundam"}
+# Words that name an owner or a vintage, not a plant: matching them is a
+# bonus, missing them isn't a miss ("ADANI POWER LIMITED TIRODA" is ICED's
+# "Tirora TPS"; "KOTHAGUDEM TPS (NEW)" is part of "Kothagudem TPS").
+OPTIONAL_WORDS = {"adani", "jsw", "gmr", "ntpc", "nhpc", "neepco", "sjvn", "nlc", "dvc", "jindal",
+                  "lanco", "essar", "reliance", "rattanindia", "cesc", "torrent", "sembcorp", "energy",
+                  "shree", "shri", "sri", "new", "old", "exp", "extn", "rep", "cfbc", "lignite", "liq",
+                  "pss", "psp", "additional"}
+# Plants renamed by an acquisition, where no word survives: CEA station key ->
+# a fragment of ICED's name. Checked by hand against owner and capacity.
+CEA_ALIASES = {
+    "IN-CG|adani power limited raipur tpp": "raikheda",          # ex-GMR Chhattisgarh
+    "IN-CG|adani power limited raigarh tpp": "avantha bhandar",  # ex-Korba West Power
+    "IN-CG|vedanta ltd chhattisgarh tpp": "singhitarai",         # ex-Athena Chhattisgarh
+    "IN-DL|i p ccpp": "i.p. gas turbine",
+    "IN-PB|gh tps leh moh": "guru hargobind",                    # at Lehra Mohabbat
+    "IN-JH|maithon rb tpp": "maithon tpp",
+    "IN-TN|ntpl tuticorin tpp": "tuticorin joint venture",        # NLC–TANGEDCO JV
+    "IN-UK|sravanthi ccpp": "kashipur combined cycle",            # Sravanthi's Kashipur, phases I+II
+    "IN-ML|myntdu leshka st 1 hps": "myntdu",
+}
+
+
+def _tokens(s: str) -> list[str]:
+    s = re.sub(r"\b((?:[A-Za-z]\.){2,})", lambda m: m.group(1).replace(".", "") + " ", s)  # D.P.L. -> DPL
+    words = []
+    for w in norm_plant(s).split():
+        words += CEA_WORDS.get(w, w).split()
+    return [w for w in words if len(w) >= 3]
+
+
+def _aliases(name: str) -> list[str]:
+    """ICED often packs several names into one: 'Vijayawada or Dr. Narla Tata
+    Rao TPS', 'Akaltara TPS/ JSW Mahanadi Power Company Ltd'."""
+    parts = re.split(r"/| or |\(|\)", name)
+    return [name] + [x.strip() for x in parts if len(x.strip()) > 2]
+
+
+def _name_score(station: str, plant_name: str) -> float:
+    st = _tokens(station)
+    if not st:
+        return 0.0
+    best = 0.0
+    for alias in _aliases(plant_name):
+        pt = _tokens(alias)
+        initials = "".join(w[0] for w in re.findall(r"[a-z]+", alias.lower()))
+        got, need, solid = 0.0, 0, False
+        for t in st:
+            r = max((SequenceMatcher(None, t, u).ratio() for u in pt), default=0.0)
+            if r < 0.8 and len(t) >= 5 and (any(t in u for u in pt) or t in "".join(pt)):
+                r = 0.9                                   # NALLUR in PILLAIPERUMALNALLUR; NABINAGAR = NABI NAGAR
+            if r < 0.8 and 3 <= len(t) <= 5 and initials.startswith(t):
+                r = 1.0                                   # DSPM, SGPL, GREL
+            if r >= 0.8:
+                got, need = got + r, need + 1
+                solid = solid or len(t) >= 4 or r == 1.0  # URI, JOG: short but exact
+            elif t not in OPTIONAL_WORDS:
+                need += 1
+        if need and solid:
+            best = max(best, got / need)
+    return best
+
+
+def link_cea_stations(plants: dict, stations: list[dict]) -> dict:
+    """Attach CEA daily-report stations to ICED plants: {plant key: [station_key]}.
+
+    CEA's daily report says, per station, how much capacity is down; ICED says
+    where and whose the plant is. Names are matched word by word against every
+    name ICED gives a plant, and capacity settles near-ties (CEA's 2,600 MW
+    "RAMAGUNDEM STPS" is ICED's 2,600 MW Ramagundam STPS, not the 1,600 MW
+    "Ramagundam STPP/Telangana Phase I"). A plant takes stations only up to
+    its capacity. ICED's phases of one plant are one target, since CEA often
+    reports them together; a station can cross a state line only on a near-
+    exact name and capacity (Lower Subansiri sits on the Assam border).
+    """
+    import math
+
+    groups: dict = defaultdict(lambda: {"keys": [], "mw": 0.0})
+    for key, p in plants.items():
+        base = re.sub(r"\s*[-,(]?\s*\b(phase|stage|unit|ph)\b.*$", "", p["name"].lower()).strip()
+        fam = next((f for f, members in FAMILY.items() if p["fuel"] in members), p["fuel"])
+        g = groups[(p["zone"], fam, base)]
+        g["keys"].append(key)
+        g["mw"] += p["mw"]
+        g["name"], g["zone"], g["fam"] = p["name"], p["zone"], fam
+    pairs = []
+    for st in stations:
+        mw = st.get("monitored_mw") or 0.0
+        alias = CEA_ALIASES.get(st["station_key"])
+        for gid, g in groups.items():
+            if st["fuel"] not in FAMILY.get(g["fam"], {g["fam"]}):
+                continue
+            same = g["zone"] == st["zone"]
+            if alias:
+                score = 1.0 if same and any(alias in plants[k]["name"].lower() for k in g["keys"]) else 0.0
+            else:
+                score = _name_score(st["station"], g["name"])
+            fit = max(0.0, 1 - abs(math.log(mw / g["mw"]))) if mw > 0 and g["mw"] > 0 else 0.0
+            if same and score >= 0.8:
+                pairs.append((score + 0.2 * fit, st["station_key"], gid, mw))
+            elif not same and score >= 0.95 and 0.67 <= (mw / g["mw"] if g["mw"] else 0) <= 1.5:
+                pairs.append((score + 0.2 * fit - 0.1, st["station_key"], gid, mw))
+    pairs.sort(key=lambda x: -x[0])
+    taken, used = set(), defaultdict(float)
+    links: dict = defaultdict(list)
+    for _, skey, gid, mw in pairs:
+        g = groups[gid]
+        if skey in taken or used[gid] + mw > 1.25 * g["mw"] + 20:
+            continue
+        taken.add(skey)
+        used[gid] += mw
+        for k in g["keys"]:
+            links[k].append(skey)
+    return links
+
+
+def build(units, locator, state_points, cea_stations=()) -> tuple[list[list], dict]:
     """-> (rows for plants.json, stats). Operational capacity only."""
     stats = Counter()
     plants: dict[tuple, dict] = {}
@@ -267,8 +387,11 @@ def build(units, locator, state_points) -> tuple[list[list], dict]:
             t["mw"] += u["mw"]
             t["n"] += 1
 
+    links = link_cea_stations(plants, list(cea_stations))
+    stats["cea_stations"] = len(cea_stations)
+    stats["cea_stations_linked"] = len({s for v in links.values() for s in v})
     rows = []
-    for p in plants.values():
+    for key, p in plants.items():
         ll = locator.plant(p["zone"], p["fuel"], p["name"])
         located = "plant"
         if ll is None:
@@ -283,7 +406,9 @@ def build(units, locator, state_points) -> tuple[list[list], dict]:
         owner = p["agencies"].most_common(1)[0][0] if p["agencies"] else None
         rows.append([p["name"], p["fuel"], round(p["mw"], 1), ll[0], ll[1], p["zone"], owner,
                      min(p["years"]) if p["years"] else None, p["district"] or None, p["units"],
-                     "plant", located])
+                     "plant", located, links.get(key) or None])
+        if links.get(key):
+            stats["plants_with_status_mw"] += p["mw"]
 
     for (fuel, zone, district, state), t in totals.items():
         ll, kind = (locator.district(zone, district), "district") if district else (None, "state")
@@ -295,13 +420,13 @@ def build(units, locator, state_points) -> tuple[list[list], dict]:
         stats[f"totals_{kind}_mw"] += t["mw"]
         label = f"{district} district" if kind == "district" else f"{state}, districts not published"
         rows.append([label, fuel, round(t["mw"], 1), ll[0], ll[1], zone, None, None,
-                     district, t["n"], kind, kind])
+                     district, t["n"], kind, kind, None])
     rows.sort(key=lambda r: -r[2])
     return rows, dict(stats)
 
 
 FIELDS = ["name", "fuel", "capacity_mw", "lon", "lat", "zone", "owner", "since",
-          "district", "units", "kind", "located"]
+          "district", "units", "kind", "located", "cea"]
 
 
 def state_label_points(geoms) -> dict:
@@ -320,11 +445,19 @@ def state_label_points(geoms) -> dict:
     return out
 
 
-def export(xlsx: str, out: str, gppd_csv: str | None = None) -> dict:
+def export(xlsx: str, out: str, gppd_csv: str | None = None, dgr2: str | None = None) -> dict:
+    """dgr2: a CEA daily generation report (.xls), to link each plant to the
+    stations CEA reports outages for. Station names are stable day to day, so
+    any recent report will do; the live status itself comes from the API."""
+    from datetime import date
+
+    from .cea import parse_station_status
+
     geoms = load_state_geoms()
     gppd = india_plants(_read_gppd(gppd_csv), geoms)
     locator = Locator(load_osm("districts"), load_osm("power_plants"), gppd, geoms)
-    rows, stats = build(read_units(xlsx), locator, state_label_points(geoms))
+    stations = parse_station_status(Path(dgr2).read_bytes(), date.today()) if dgr2 else []
+    rows, stats = build(read_units(xlsx), locator, state_label_points(geoms), stations)
     doc = {
         "source": "NITI Aayog, India Climate & Energy Dashboard — Power Plants Database",
         "source_url": "https://iced.niti.gov.in/energy/electricity/generation/power-plant-details",
@@ -347,11 +480,12 @@ def main() -> int:
     ex.add_argument("xlsx")
     ex.add_argument("--gppd-csv")
     ex.add_argument("--out", default=str(DEFAULT_OUT))
+    ex.add_argument("--dgr2", help="a recent CEA dgr2 .xls, to link plants to CEA's daily outage report")
     args = ap.parse_args()
     if args.command == "fetch-osm":
         fetch_osm()
         return 0
-    stats = export(args.xlsx, args.out, args.gppd_csv)
+    stats = export(args.xlsx, args.out, args.gppd_csv, args.dgr2)
     print(f"[iced] {json.dumps(stats)}", file=sys.stderr)
     return 0
 

@@ -1,10 +1,11 @@
-import { Schibsted_Grotesk } from "next/font/google";
+import { Inter, League_Gothic } from "next/font/google";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
-// One face for everything — interface, headings, long-form pages and figures
-// (tabular numerals where columns of numbers need to line up).
-const sans = Schibsted_Grotesk({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+// Two faces: League Gothic, a condensed display face, for titles and the big
+// figures, set in capitals; Inter for everything you read or click.
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const display = League_Gothic({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 
 export const metadata = {
   title: "India Electricity Data",
@@ -14,7 +15,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={sans.variable}>
+    <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body>{children}</body>
     </html>
   );

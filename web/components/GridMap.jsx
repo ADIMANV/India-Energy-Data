@@ -5,6 +5,7 @@ import maplibregl from "maplibre-gl";
 import { NAME_TO_ZONE, ZONE_TO_NAME, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
 import { BASIS_LABELS, FUEL_GROUP, GROUPS, INSTALLED, MAP_GROUP_COLORS, fuelGroup, fuelLabel } from "../lib/fuels";
 import { ATTRIBUTION, BEFORE_LABELS, baseStyle } from "../lib/basemap";
+import { fetchStationStatus } from "../lib/api";
 
 const BORDER = "rgba(58, 48, 36, 0.36)";
 const SELECTED = "#18222c";
@@ -238,20 +239,68 @@ function usePlants() {
   return doc;
 }
 
-function plantStats(plants) {
+// /v1/stations/status: CEA's daily generation report, station by station.
+// {as_of, stations: {station_key: [monitored_mw, outage_mw, actual_mu, down_units]}}
+function useStationStatus() {
+  const [status, setStatus] = useState(null);
+  useEffect(() => {
+    let dead = false;
+    fetchStationStatus()
+      .then((d) => !dead && setStatus(d))
+      .catch(() => !dead && setStatus({ as_of: null, stations: {} }));
+    return () => { dead = true; };
+  }, []);
+  return status;
+}
+
+// A plant's share of capacity online, from the CEA stations linked to it.
+// CEA's outage figure is a snapshot at reporting time, so a hydro station can
+// be listed fully out yet have run for hours that day; its average output
+// over the day is then the floor for what was online.
+function statusOf(plant, stations) {
+  const keys = (plant.cea || []).filter((k) => stations[k]);
+  if (!keys.length) return null;
+  let mon = 0, out = 0, mu = 0;
+  const down = [];
+  for (const k of keys) {
+    const [m, o, a, units] = stations[k];
+    mon += m; out += o; mu += a;
+    down.push(...units);
+  }
+  if (mon <= 0) return null;
+  const avgMw = (mu * 1000) / 24;
+  const frac = Math.min(1, Math.max(mon - out, avgMw) / mon);
+  const unitOut = down.reduce((s, u) => s + (u[2] || 0), 0);
+  return {
+    frac, mon, out, mu, avgMw, keys,
+    down: down.sort((a, b) => (b[2] || 0) - (a[2] || 0)),
+    unexplained: Math.max(0, out - unitOut),
+    ranAnyway: mon - out <= 0 && avgMw > 0,
+  };
+}
+
+const onlineMw = (p, online) =>
+  online && p.kind === "plant" && p.status ? p.capacity_mw * p.status.frac : p.capacity_mw;
+
+function plantStats(plants, online) {
   if (!plants?.length) return null;
   const byGroup = {};
   for (const g of PLANT_GROUPS) byGroup[g] = { mw: 0, fuels: {} };
-  let total = 0, tallest = null, count = 0;
+  let total = 0, tallest = null, count = 0, convInstalled = 0, convOnline = 0;
+  const off = [];
   for (const p of plants) {
     const g = byGroup[fuelGroup(p.fuel)];
     if (!g) continue;
-    g.mw += p.capacity_mw;
-    g.fuels[p.fuel] = (g.fuels[p.fuel] || 0) + p.capacity_mw;
-    total += p.capacity_mw;
+    const mw = onlineMw(p, online);
+    g.mw += mw;
+    g.fuels[p.fuel] = (g.fuels[p.fuel] || 0) + mw;
+    total += mw;
     if (p.kind === "plant") {
-      count += 1;
-      if (!tallest || p.capacity_mw > tallest.capacity_mw) tallest = p;
+      if (online && p.status?.frac === 0) off.push(p);
+      else count += 1;
+      if (!tallest || mw > onlineMw(tallest, online)) tallest = p;
+      convInstalled += p.capacity_mw;
+      convOnline += mw;
     }
   }
   for (const g of PLANT_GROUPS) {
@@ -259,8 +308,46 @@ function plantStats(plants) {
       .map(([fuel, mw]) => ({ fuel, mw }))
       .sort((a, b) => b.mw - a.mw);
   }
-  return { byGroup, total, count, tallest };
+  off.sort((a, b) => b.capacity_mw - a.capacity_mw);
+  return { byGroup, total, count, tallest, convInstalled, convOnline, off };
 }
+
+// CEA's reason for each unit down, in words; gas and most hydro stations give
+// a station total with no units and no reason
+const OUTAGE_KINDS = [
+  ["forced", "Breakdowns"],
+  ["planned", "Planned maintenance"],
+  ["reserve", "Healthy, not scheduled"],
+  ["fuel", "Short of fuel"],
+  ["unstated", "No reason given"],
+];
+const KIND_SHORT = { forced: "breakdown", planned: "maintenance", reserve: "not scheduled", fuel: "short of fuel" };
+
+function outageByKind(plants, stations) {
+  const seen = new Set();
+  const by = Object.fromEntries(OUTAGE_KINDS.map(([k]) => [k, 0]));
+  for (const p of plants) {
+    for (const k of p.status?.keys || []) {
+      if (seen.has(k)) continue; // phases of one plant share a station
+      seen.add(k);
+      const [, out, , units] = stations[k];
+      let unitOut = 0;
+      for (const u of units) { by[u[5] || "unstated"] += u[2] || 0; unitOut += u[2] || 0; }
+      if (out - unitOut > 1) by.unstated += out - unitOut;
+    }
+  }
+  return by;
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// "2026-11-14T23:00" -> "14 Nov" (year added when it isn't the report's)
+function shortDate(iso, refYear) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+  if (!m) return iso || "";
+  const d = `${+m[3]} ${MONTHS[+m[2] - 1]}`;
+  return refYear && +m[1] !== refYear ? `${d} ${m[1]}` : d;
+}
+const sentence = (s) => (s ? s.charAt(0) + s.slice(1).toLowerCase() : "");
 
 export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }) {
   const containerRef = useRef(null);
@@ -274,8 +361,21 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
   const [facet, setFacet] = useState(null); // {kind: "group"|"fuel", key}
   const [gridLines, setGridLines] = useState(0); // EHV lines drawn, for the key
   const plantDoc = usePlants();
-  const records = plantDoc?.records;
+  const status = useStationStatus();
+  // "online": capacity online in CEA's latest daily report; "installed": nameplate
+  const [basis, setBasis] = useState("online");
+  const records = useMemo(() => {
+    const recs = plantDoc?.records;
+    if (recs && status) for (const p of recs) p.status = p.kind === "plant" ? statusOf(p, status.stations) : null;
+    return recs;
+  }, [plantDoc, status]);
+  const online = basis === "online" && !!status?.as_of;
   const plants = useMemo(() => records?.filter((r) => r.kind === "plant"), [records]);
+  // a plant with every unit down isn't drawn while showing what's online
+  const drawn = useMemo(
+    () => plants?.filter((p) => !online || !p.status || p.status.frac > 0),
+    [plants, online],
+  );
   const totals = useMemo(() => records?.filter((r) => r.kind !== "plant"), [records]);
   const totalsRef = useRef([]);
   modeRef.current = colorMode;
@@ -310,7 +410,8 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     });
     map.addControl(new maplibregl.AttributionControl({
       customAttribution:
-        "Boundaries: datameet (CC BY 2.5 IN) · Plants: WRI Global Power Plant Database (CC BY 4.0) · " +
+        "Boundaries: datameet (CC BY 2.5 IN) · Plants: NITI Aayog ICED; locations WRI Global Power Plant " +
+        "Database (CC BY 4.0) · Plant status: CEA daily generation report · " +
         "Live: Vidyut Pravah, MERIT, state load despatch centres · Transmission: OpenStreetMap (ODbL) · " +
         ATTRIBUTION,
       compact: true,
@@ -515,22 +616,24 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     };
   }, [onSelect]);
 
-  // Column heights: the tallest plant gets ~30% of the map's height, and every
-  // other column is linear in installed capacity — a 25 MW solar farm really
-  // is that small next to a 4,760 MW coal station.
+  // Column heights: the largest installed plant gets ~30% of the map's height,
+  // and every column is linear in capacity — online capacity by default, so a
+  // station with half its units down stands half as tall as it would. The
+  // scale is the installed one either way, so switching bases only moves the
+  // columns that changed.
   useEffect(() => {
-    if (!ready || !plants?.length) return;
+    if (!ready || !plants?.length || !drawn) return;
     const map = mapRef.current;
     const maxCap = Math.max(...plants.map((p) => p.capacity_mw));
     const setHeights = () => {
       const h = containerRef.current?.clientHeight || 600;
       const pxPerMW = Math.min(260, Math.max(110, h * 0.3)) / maxCap;
-      for (const p of plants) {
-        const px = Math.max(p.capacity_mw * pxPerMW, 1.2);
+      for (const p of drawn) {
+        const px = Math.max(onlineMw(p, online) * pxPerMW, 1.2);
         p.h0 = px * M_PER_PX_Z0 * Math.cos((p.lat * Math.PI) / 180);
       }
-      plantsRef.current = plants;
-      map.getSource("plants").setData(columns(plants, map.getZoom()));
+      plantsRef.current = drawn;
+      map.getSource("plants").setData(columns(drawn, map.getZoom()));
     };
     setHeights();
     totalsRef.current = totals || [];
@@ -551,7 +654,7 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     ro.observe(containerRef.current);
     map.on("zoomend", onZoomEnd);
     return () => { map.off("zoomend", onZoomEnd); ro.disconnect(); };
-  }, [ready, plants, totals]);
+  }, [ready, plants, drawn, totals, online]);
 
   // paint demand + carbon intensity + staleness as feature-state on refresh
   useEffect(() => {
@@ -613,10 +716,11 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
   return (
     <>
       <div className="map-wrap" ref={containerRef}>
-        {tooltip && <Tooltip tip={tooltip} zonesData={zonesData} />}
+        {tooltip && <Tooltip tip={tooltip} zonesData={zonesData} asOf={status?.as_of} />}
       </div>
       {colorMode === "plants" && (
-        <PlantKey {...keyProps} plants={records} retrieved={plantDoc?.retrieved} facet={facet} setFacet={setFacet} />
+        <PlantKey {...keyProps} plants={records} retrieved={plantDoc?.retrieved} facet={facet} setFacet={setFacet}
+                  status={status} basis={basis} setBasis={setBasis} online={online} />
       )}
       {colorMode === "demand" && <DemandKey {...keyProps} />}
       {colorMode === "carbon" && <CarbonKey {...keyProps} />}
@@ -624,7 +728,53 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
   );
 }
 
-function Tooltip({ tip, zonesData }) {
+// What CEA's daily report says about one plant: how much is online, and for
+// the units that aren't, since when and why.
+function PlantStatus({ p, asOf }) {
+  const s = p.status;
+  if (!s) {
+    return <div className="t-sub">No daily status: CEA&rsquo;s report doesn&rsquo;t list this plant.</div>;
+  }
+  const year = asOf ? +asOf.slice(0, 4) : null;
+  const on = p.capacity_mw * s.frac;
+  return (
+    <div className="t-status">
+      <div className="t-line">
+        <span className="t-fuel">
+          {s.frac >= 0.995 ? "All online" : s.frac === 0 ? "Offline" : "Online"}
+        </span>
+        {s.frac > 0 && s.frac < 0.995 && (
+          <span className="num">{fmtCap(on)} of {Math.round(p.capacity_mw).toLocaleString("en-IN")}</span>
+        )}
+      </div>
+      <div className="t-bar"><i style={{ width: `${s.frac * 100}%` }} /></div>
+      {s.ranAnyway ? (
+        <div className="t-sub">
+          Listed as out at reporting time, but it ran that day: {(s.mu).toFixed(1)} GWh, about{" "}
+          {fmtCap(s.avgMw)} on average.
+        </div>
+      ) : (
+        <>
+          {s.down.slice(0, 3).map((u, i) => (
+            <div className="t-sub t-unit" key={i}>
+              {u[0] ? `Unit ${u[0]}` : "A unit"}, {Math.round(u[2])} MW
+              {u[5] && KIND_SHORT[u[5]] ? `, ${KIND_SHORT[u[5]]}` : ""}
+              {u[3] ? ` since ${shortDate(u[3], year)}` : ""}
+              {u[6] ? <span className="t-remark">{sentence(u[6])}</span> : null}
+            </div>
+          ))}
+          {s.down.length > 3 && <div className="t-sub">and {s.down.length - 3} more units</div>}
+          {s.unexplained > 1 && (
+            <div className="t-sub">{fmtCap(s.unexplained)} out, no reason given</div>
+          )}
+        </>
+      )}
+      <div className="t-sub t-src">CEA daily report{asOf ? `, ${shortDate(asOf)}` : ""}</div>
+    </div>
+  );
+}
+
+function Tooltip({ tip, zonesData, asOf }) {
   // flip to the cursor's left near the right edge so it never clips
   const style = {
     left: tip.x,
@@ -652,13 +802,17 @@ function Tooltip({ tip, zonesData }) {
             {p.located !== "plant" && (
               <div className="t-sub t-approx">Location approximate: centre of its {p.located}</div>
             )}
+            {asOf && <PlantStatus p={p} asOf={asOf} />}
           </>
         ) : (
-          <div className="t-sub">
-            {p.kind === "district"
-              ? `District total${p.units > 1 ? ` of ${p.units} entries` : ""}, ${ZONE_TO_NAME[p.zone] || ""}`
-              : "State total: ICED doesn't publish districts for this capacity"}
-          </div>
+          <>
+            <div className="t-sub">
+              {p.kind === "district"
+                ? `District total${p.units > 1 ? ` of ${p.units} entries` : ""}, ${ZONE_TO_NAME[p.zone] || ""}`
+                : "State total: ICED doesn't publish districts for this capacity"}
+            </div>
+            <div className="t-sub">Installed capacity: there&rsquo;s no daily status for solar or wind.</div>
+          </>
         )}
       </div>
     );
@@ -865,15 +1019,21 @@ function CarbonKey({ zonesData, selectedZone, onSelect, gridLines }) {
   );
 }
 
-function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, gridLines }) {
+function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, gridLines,
+                    status, basis, setBasis, online }) {
   const scoped = useMemo(
     () => (selectedZone === "IN" ? plants : plants?.filter((p) => p.zone === selectedZone)),
     [plants, selectedZone],
   );
-  const stats = useMemo(() => plantStats(scoped), [scoped]);
-  const national = useMemo(() => plantStats(plants), [plants]);
+  const stats = useMemo(() => plantStats(scoped, online), [scoped, online]);
+  const national = useMemo(() => plantStats(plants, false), [plants]);
+  const reasons = useMemo(
+    () => (online && scoped ? outageByKind(scoped, status.stations) : null),
+    [scoped, online, status],
+  );
   const isState = selectedZone !== "IN";
-  const title = isState ? zoneName(selectedZone) : "Installed capacity, by fuel";
+  const asOf = status?.as_of ? shortDate(status.as_of) : null;
+  const title = isState ? zoneName(selectedZone) : online ? "Online now" : "Installed capacity";
 
   if (!plants) return <aside className="legend"><p className="lg-note">Loading plants…</p></aside>;
   if (!stats) {
@@ -887,14 +1047,51 @@ function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, 
   const active = activeFuelsOf(facet);
   const toggle = (next) =>
     setFacet(facet && facet.kind === next.kind && facet.key === next.key ? null : next);
+  const offMw = stats.off.reduce((s, p) => s + p.capacity_mw, 0);
+  const reasonRows = reasons ? OUTAGE_KINDS.filter(([k]) => reasons[k] >= 1) : [];
+  const reasonMax = reasons ? Math.max(...reasonRows.map(([k]) => reasons[k]), 1) : 1;
   return (
     <aside className="legend">
       <KeyHead title={title} selectedZone={selectedZone} onSelect={onSelect} />
-      {isState && (
-        <p className="lg-line">
-          {fmtGW(stats.total)} operational · {stats.count.toLocaleString("en-IN")} plants plus district totals
-        </p>
+      {status?.as_of && (
+        <div className="lg-seg" role="group" aria-label="Column height">
+          <button className={basis === "online" ? "on" : ""} aria-pressed={basis === "online"}
+                  onClick={() => setBasis("online")}>Online</button>
+          <button className={basis === "installed" ? "on" : ""} aria-pressed={basis === "installed"}
+                  onClick={() => setBasis("installed")}>Installed</button>
+        </div>
       )}
+      {online ? (
+        <>
+          <div className="lg-fig num">
+            {fmtGW(stats.convOnline)}<span className="lg-unit"> of {fmtGW(stats.convInstalled)}</span>
+          </div>
+          <p className="lg-line">
+            coal, gas, nuclear and hydro capacity online in CEA&rsquo;s daily report for {asOf}
+          </p>
+          {reasonRows.length > 0 && (
+            <>
+              <div className="lg-sub">Offline, by CEA&rsquo;s stated reason</div>
+              <ul className="lg-reasons">
+                {reasonRows.map(([k, label]) => (
+                  <li key={k}>
+                    <span>{label}</span>
+                    <i style={{ width: `${(reasons[k] / reasonMax) * 100}%` }} />
+                    <span className="num">{fmtGW(reasons[k])}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </>
+      ) : (
+        isState && (
+          <p className="lg-line">
+            {fmtGW(stats.total)} operational · {stats.count.toLocaleString("en-IN")} plants plus district totals
+          </p>
+        )
+      )}
+      <div className="lg-sub">{online ? "Online by fuel · renewables installed" : "By fuel"}</div>
       {PLANT_GROUPS.filter((g) => stats.byGroup[g].mw > 0).map((g) => {
         const grp = stats.byGroup[g];
         const groupOn = !active || grp.fuels.some((f) => active.includes(f.fuel));
@@ -923,12 +1120,29 @@ function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, 
         );
       })}
       {facet && <button className="lg-reset" onClick={() => setFacet(null)}>Show every fuel</button>}
+      {online && stats.off.length > 0 && (
+        <>
+          <div className="lg-sub">
+            Fully offline, not drawn · {stats.off.length} {stats.off.length === 1 ? "plant" : "plants"}, {fmtGW(offMw)}
+          </div>
+          <ol className="lg-rank">
+            {stats.off.slice(0, 4).map((p) => (
+              <li key={`${p.name}|${p.zone}`}>
+                <button onClick={() => onSelect(p.zone)}>
+                  {p.name.split("/")[0].replace(/\s+(Private|Pvt\.?)?\s*(Ltd|Limited)\.?$/i, "").trim()}
+                </button>
+                <span className="num">{fmtGW(p.capacity_mw)}</span>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
       <GridLineKey n={gridLines} />
       <div className="lg-marks">
-        <span><i className="mark-col" />plant, height is capacity</span>
+        <span><i className="mark-col" />plant, height is {online ? "capacity online" : "capacity"}</span>
         <span><i className="mark-disc" />district or state total</span>
       </div>
-      {stats.tallest && (
+      {!online && stats.tallest && (
         <p className="lg-note">
           The largest{isState ? " here" : `, in ${zoneName(stats.tallest.zone)},`} is{" "}
           {stats.tallest.name.split("/")[0].trim()}, {fmtCap(stats.tallest.capacity_mw)}
@@ -936,10 +1150,14 @@ function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, 
         </p>
       )}
       <p className="lg-note">
-        {isState ? "" : `${fmtGW(national.total)} of operational capacity, against CEA's ${fmtGW(INSTALLED.mw)}. `}
-        Coal, gas, nuclear and large hydro are drawn plant by plant. Solar, wind, biomass and small
-        hydro are only published as totals for a district, and most solar only for a whole state.
-        Source: NITI Aayog ICED{retrieved ? `, ${retrieved}` : ""}; locations from the WRI registry
+        {online
+          ? "Online is installed capacity minus units CEA lists under outage. A plant with every unit down isn't drawn. CEA publishes no daily status for solar, wind, biomass or small hydro, so their discs are installed capacity. "
+          : status && !status.as_of
+            ? "CEA's daily plant status isn't available right now, so heights are installed capacity. "
+            : ""}
+        {isState || online ? "" : `${fmtGW(national.total)} of operational capacity, against CEA's ${fmtGW(INSTALLED.mw)}. `}
+        Solar, wind, biomass and small hydro are only published as district or state totals.
+        Plants: NITI Aayog ICED{retrieved ? `, ${retrieved}` : ""}; locations from the WRI registry
         and OpenStreetMap. <a href="/data-gaps">What&rsquo;s missing</a>
       </p>
     </aside>

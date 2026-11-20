@@ -99,10 +99,21 @@ installed capacity to within 1%. It replaced a four-year-old open registry on
 this map.
 
 What it doesn't have is a single coordinate. Every map of Indian power plants
-therefore has to guess where they are. Ours places 394 of 443 coal, gas,
+therefore has to guess where they are. Ours places 397 of 443 coal, gas,
 nuclear and large hydro plants by matching their names against the 2021 WRI
 registry and OpenStreetMap, and puts the other 46 at the centre of their
 district, marked as approximate.
+
+Whether a plant is running today is published by a different body, under
+different names. CEA's daily generation report lists 524 conventional stations
+with the capacity under outage and, unit by unit, since when and why. Nothing
+joins it to the registry: CEA's "ADANI POWER LIMITED TIRODA TPP" is ICED's
+"Tirora TPS", and "DSPM TPS" is "Dr. Shyama Prasad Mukherjee TPS". Matching by
+name and capacity links 483 of the 524 stations, which covers every coal, gas,
+nuclear and large hydro plant on the map. Gas and most hydro stations report
+only a station total with no reason, and outages are a snapshot at reporting
+time, so a hydro station can be listed as fully out on a day it ran. Solar and
+wind have no daily plant-level status at all.
 
 Solar and wind are worse: they are published only as **totals per district**,
 and **139 of India's 171 GW of solar only as totals per state** — "districts

@@ -76,3 +76,58 @@ def test_only_operational_units_count():
         unit("Coal", "Akaltara TPS", "Chhattisgarh", "Janjgir-Champa", 600, status="retired"),
     ], locator(), STATE_POINTS)
     assert [r[2] for r in rows] == [600]
+
+
+def _plant(name, zone, fuel, mw):
+    return {"name": name, "zone": zone, "fuel": fuel, "mw": mw}
+
+
+def _station(name, zone, fuel, mw):
+    from gridscrapers.cea import station_key
+
+    return {"station": name, "zone": zone, "fuel": fuel, "monitored_mw": mw,
+            "station_key": station_key(zone, name)}
+
+
+def test_cea_stations_link_by_name_aliases_and_capacity():
+    plants = {
+        1: _plant("Ramagundam STPS", "IN-TS", "coal", 2600),
+        2: _plant("Ramagundam STPP/Telangana Phase I", "IN-TS", "coal", 1600),
+        3: _plant("Vijayawada or Dr. Narla Tata Rao TPS", "IN-AP", "coal", 2560),
+        4: _plant("Dr. Shyama Prasad Mukherjee TPS", "IN-CG", "coal", 500),
+        5: _plant("Tirora TPS", "IN-MH", "coal", 3300),
+        6: _plant("Bhakra Nangal (Left & Right) Hydroelectric Power Project", "IN-HP", "hydro", 1415),
+        7: _plant("Kashipur Combined Cycle Power Plant Phase I", "IN-UK", "gas", 225),
+        8: _plant("Kashipur Combined Cycle Power Plant Phase II", "IN-UK", "gas", 214),
+        9: _plant("Raikheda TPP", "IN-CG", "coal", 1370),
+    }
+    links = iced.link_cea_stations(plants, [
+        _station("RAMAGUNDEM STPS", "IN-TS", "coal", 2600),
+        _station("TELANGANA STPP PH-1", "IN-TS", "coal", 1600),
+        _station("Dr. N.TATA RAO TPS", "IN-AP", "coal", 2560),
+        _station("DSPM TPS", "IN-CG", "coal", 500),
+        _station("ADANI POWER LIMITED TIRODA TPP", "IN-MH", "coal", 3300),
+        _station("BHAKRA LEFT HPS", "IN-HP", "hydro", 630),
+        _station("BHAKRA RIGHT HPS", "IN-HP", "hydro", 785),
+        _station("SRAVANTHI CCPP", "IN-UK", "gas", 439),
+        _station("ADANI POWER LIMITED RAIPUR TPP", "IN-CG", "coal", 1370),
+        _station("SOME HPS", "IN-TS", "hydro", 100),
+    ])
+    assert links[1] == ["IN-TS|ramagundem stps"]            # capacity breaks the name tie
+    assert links[2] == ["IN-TS|telangana stpp ph 1"]
+    assert links[3] == ["IN-AP|dr n tata rao tps"]           # the name after "or"
+    assert links[4] == ["IN-CG|dspm tps"]                    # initials
+    assert links[5] == ["IN-MH|adani power limited tiroda tpp"]  # owner word optional
+    assert sorted(links[6]) == ["IN-HP|bhakra left hps", "IN-HP|bhakra right hps"]
+    assert links[7] == links[8] == ["IN-UK|sravanthi ccpp"]  # phases are one target
+    assert links[9] == ["IN-CG|adani power limited raipur tpp"]  # renamed by acquisition
+    assert all("IN-TS|some hps" not in v for v in links.values())
+
+
+def test_a_plant_takes_stations_only_up_to_its_capacity():
+    plants = {1: _plant("Korba STPS", "IN-CG", "coal", 2600)}
+    links = iced.link_cea_stations(plants, [
+        _station("KORBA STPS", "IN-CG", "coal", 2600),
+        _station("KORBA-WEST TPS", "IN-CG", "coal", 1340),   # a different plant ICED lacks here
+    ])
+    assert links[1] == ["IN-CG|korba stps"]
