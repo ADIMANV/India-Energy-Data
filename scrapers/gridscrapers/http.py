@@ -40,7 +40,10 @@ def make_client(*, verify: bool = True, legacy_tls: bool = False) -> httpx.Clien
     return httpx.Client(
         verify=gov_ssl_context() if legacy_tls else verify,
         headers={"User-Agent": UA},
-        timeout=60 if legacy_tls else 30,  # report PDFs are slow to serve
+        # report PDFs are slow to serve, but a server that doesn't accept the
+        # connection at all should fail in seconds, not hold the tick for
+        # minutes (WRLDC's report host stopped answering in Oct 2026)
+        timeout=httpx.Timeout(60 if legacy_tls else 30, connect=15),
         follow_redirects=True,
     )
 

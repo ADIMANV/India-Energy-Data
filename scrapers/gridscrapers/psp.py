@@ -562,9 +562,19 @@ def ensure_current(conn: psycopg.Connection) -> None:
     yesterday = (datetime.now(IST) - timedelta(days=1)).date()
     for cfg in REGIONS.values():
         latest = latest_ingested(conn, cfg)
-        if latest is None or latest < yesterday:
-            print(f"[psp {cfg.region}] latest={latest}, fetching", file=sys.stderr)
-            ingest(n_reports=1, conn=conn, cfg=cfg)
+        if latest is not None and latest >= yesterday:
+            continue
+        # A report that isn't up yet, or a host that's down, would otherwise
+        # be retried (and quarantined) every 15 minutes. Back off 2h, as
+        # cea.ensure_current does.
+        recent_fail = conn.execute(
+            "SELECT 1 FROM psp_quarantine WHERE source=%s AND created_at > now() - interval '2 hours' LIMIT 1",
+            (cfg.source,),
+        ).fetchone()
+        if recent_fail:
+            continue
+        print(f"[psp {cfg.region}] latest={latest}, fetching", file=sys.stderr)
+        ingest(n_reports=1, conn=conn, cfg=cfg)
 
 
 def main() -> int:
