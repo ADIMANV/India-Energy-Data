@@ -25,6 +25,14 @@ from .zones import NATIONAL
 IST = ZoneInfo("Asia/Kolkata")
 RE_FLAT_FUELS = ("wind", "res_nonsolar", "biomass")
 RE_CAP_FRAC = 0.95  # RE never exceeds 95% of instantaneous demand
+# Coal and nuclear can't follow solar down to nothing at noon: a coal unit's
+# technical minimum is ~55% of its rating (CERC), and a state's firm fleet
+# keeps running through the day. So the conventional fleet never drops below
+# this fraction of its daily-average output; solar beyond that room is
+# exported, not burned less coal. Without it, a state whose daily mix is 42%
+# coal (Gujarat, Nov 2026, with Khavda's inter-state parks in its RE report)
+# read 4% coal and 81 g/kWh at midday.
+MUST_RUN_FRAC = 0.55
 
 # A full-mix measured source (one that reports a state's whole generation, not
 # just its own fleet) should produce a total within this band of demand. Outside
@@ -101,20 +109,22 @@ def shaped_mix(zone: str, zshares: dict[str, float], demand_mw: float,
                d_avg_mw: float, ts_utc: datetime) -> dict[str, float]:
     """Intra-day mix in MW: solar follows the clear-sky curve, wind and other
     RE run flat at their daily-average MW, conventional fuels absorb the
-    residual in proportion to their daily energy split. Sums to demand_mw."""
+    residual in proportion to their daily energy split, but never below
+    MUST_RUN_FRAC of their daily-average output. Sums to demand_mw."""
     w = solar.weight(zone, ts_utc.astimezone(IST))
     solar_mw = zshares.get("solar", 0.0) * d_avg_mw * w
     re_flat = {f: zshares.get(f, 0.0) * d_avg_mw for f in RE_FLAT_FUELS}
     re_total = solar_mw + sum(re_flat.values())
-    cap = RE_CAP_FRAC * demand_mw
+    conv_shares = {f: s for f, s in zshares.items()
+                   if f not in RE_FLAT_FUELS and f != "solar" and s > 0}
+    conv_sum = sum(conv_shares.values())
+    floor = MUST_RUN_FRAC * conv_sum * d_avg_mw
+    cap = min(RE_CAP_FRAC * demand_mw, max(demand_mw - floor, 0.0))
     if re_total > cap > 0:
         k = cap / re_total
         solar_mw *= k
         re_flat = {f: v * k for f, v in re_flat.items()}
         re_total = cap
-    conv_shares = {f: s for f, s in zshares.items()
-                   if f not in RE_FLAT_FUELS and f != "solar" and s > 0}
-    conv_sum = sum(conv_shares.values())
     conv_mw = max(demand_mw - re_total, 0.0)
     mix = {f: conv_mw * s / conv_sum for f, s in conv_shares.items()} if conv_sum else {}
     if solar_mw > 0:

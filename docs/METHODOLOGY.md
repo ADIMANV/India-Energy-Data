@@ -77,7 +77,14 @@ consumption MU with a known fuel.
    - wind + other RE run flat at their daily-average MW (capped together
      with solar at 95% of instantaneous demand);
    - conventional fuels absorb the residual `demand − RE` in proportion to
-     their daily energy split.
+     their daily energy split, but never drop below **55% of their
+     daily-average output** (`MUST_RUN_FRAC`): a coal unit's technical
+     minimum is ~55% of its rating, so the firm fleet keeps running at noon
+     and solar beyond that room is exported rather than displacing it. Added
+     21 Nov 2026, when Gujarat — on the CEA blend after WRLDC's reports
+     stopped, with Khavda's inter-state solar counted in its RE report — read
+     4% coal and 81 g/kWh at midday on a 42%-coal day; it now reads ~21% coal
+     at noon.
    Geometry only — no clouds; monsoon haze makes real solar flatter than
    the curve, which the conventional residual absorbs. Stored as
    `generation` datapoints, `source='estimate'`, `estimated=true`.
