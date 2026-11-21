@@ -97,3 +97,28 @@ tail -f logs/tick-cron.log    # scraper runs (cron)
 $C run --rm tick              # manual tick
 $C up -d --build api          # deploy code update (after git pull)
 ```
+
+## Updates
+
+The server deploys itself: root's crontab runs `deploy/autodeploy.sh` every
+5 minutes, which pulls `main` when it has moved and runs `deploy/update.sh`
+(pull, migrations 010+, rebuild api and tick image, smoke test). Its log is
+`logs/deploy.log`. Install once:
+
+```sh
+( sudo crontab -l; echo "*/5 * * * * /opt/india-grid/deploy/autodeploy.sh >> /opt/india-grid/logs/deploy.log 2>&1" ) | sudo crontab -
+```
+
+To deploy by hand: `sudo bash /opt/india-grid/deploy/update.sh`.
+
+### After a parser fix, or a gap in the data
+
+`update.sh` doesn't touch data. When a change needs history redone, run it by
+hand once it's deployed:
+
+```sh
+C="docker compose -f deploy/docker-compose.prod.yml --env-file .env"
+$C run --rm tick python -m gridscrapers.cea reparse                 # re-parse every archived dgr2
+$C run --rm tick python -m gridscrapers.cea ingest --backfill 30    # fetch missing days (+ RE, blend)
+$C run --rm tick python -m gridscrapers.psp ingest --region WR --backfill 30
+```
