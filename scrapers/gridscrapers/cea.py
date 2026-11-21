@@ -490,9 +490,17 @@ def main() -> int:
     yesterday = (datetime.now(IST) - timedelta(days=1)).date()
     ok = 0
     with psycopg.connect(get_dsn()) as conn, make_client(legacy_tls=True) as client:
+        # each day as the tick does it: conventional (dgr2), then renewables,
+        # then that day's blended shares
         for i in range(args.backfill):
-            if ingest_day(conn, client, yesterday - timedelta(days=i)) is None:
+            day = yesterday - timedelta(days=i)
+            if ingest_day(conn, client, day) is None:
                 ok += 1
+                re_err = ingest_re_day(conn, client, day)
+                if re_err:
+                    print(f"[CEA-RE] {day}: {re_err}", file=sys.stderr)
+                else:
+                    compute_blend_shares(conn, day)
             conn.commit()
             time.sleep(1.0)
     print(f"[CEA] ingested {ok}/{args.backfill}", file=sys.stderr)
