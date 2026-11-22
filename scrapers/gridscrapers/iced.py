@@ -88,6 +88,15 @@ PLANT_STOPWORDS = re.compile(
     r"of|the|and|i|ii|iii|iv|v)\b")
 
 
+# Name matches that are a letter apart but a different place, found by checking
+# placements against known sites (Nov 2026): (zone, ICED name) -> the wrong
+# registry/OSM name. These plants fall back to their district, marked as such.
+LOCATION_REJECT = {
+    ("IN-MH", "ghatgarh"): "bhatgarh",          # Bhatghar dam, Pune: 130 km from Ghatghar
+    ("IN-HP", "sorang hydro"): "solang hydro",  # Solang, Kullu: not Sorang, Kinnaur
+}
+
+
 def zone_of(state: str | None) -> str | None:
     if not state:
         return None
@@ -227,10 +236,11 @@ class Locator:
     def plant(self, zone, fuel, name):
         """Coordinates for a named plant: WRI registry first, then OpenStreetMap."""
         key = norm_plant(name.split("/")[0])
+        reject = LOCATION_REJECT.get((zone, key))
         for pool, ok in ((self.gppd, lambda f: f in FAMILY[fuel]), (self.osm, lambda f: f == fuel)):
             best, score = None, 0.0
             for n, f, ll in pool.get(zone, []):
-                if ok(f):
+                if ok(f) and n != reject:
                     s = _similar(n, key)
                     if s > score:
                         best, score = ll, s

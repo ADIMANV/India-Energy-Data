@@ -131,3 +131,12 @@ def test_a_plant_takes_stations_only_up_to_its_capacity():
         _station("KORBA-WEST TPS", "IN-CG", "coal", 1340),   # a different plant ICED lacks here
     ])
     assert links[1] == ["IN-CG|korba stps"]
+
+
+def test_a_known_wrong_name_match_falls_back_to_the_district():
+    # "Ghatgarh" and "Bhatgarh" are a letter apart and 130 km apart
+    loc = iced.Locator(
+        [{"names": ["Ahmednagar"], "lon": 74.7, "lat": 19.1, "zone": "IN-MH"}], [],
+        [{"name": "Bhatgarh", "fuel": "hydro", "lon": 73.87, "lat": 18.18, "zone": "IN-MH"}], GEOMS)
+    assert loc.plant("IN-MH", "hydro", "Ghatgarh Hydroelectric Power Project") is None
+    assert loc.district("IN-MH", "Ahmednagar") == (74.7, 19.1)
