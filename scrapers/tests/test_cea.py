@@ -119,3 +119,20 @@ def test_station_key_folds_case_and_punctuation():
 
     assert station_key("IN-CG", "KORBA-WEST  TPS") == "IN-CG|korba west tps"
     assert station_key("IN-AP", "Dr. N.TATA RAO TPS") == "IN-AP|dr n tata rao tps"
+
+
+def test_missing_days_finds_holes_not_just_yesterday():
+    from datetime import date as d
+
+    from gridscrapers.cea import missing_days
+
+    class Conn:
+        def execute(self, sql, params):
+            class R:
+                def fetchall(_):
+                    return [(d(2026, 11, 19),), (d(2026, 11, 17),), (d(2026, 11, 16),),
+                            (d(2026, 11, 15),), (d(2026, 11, 14),)]
+            return R()
+
+    # 20 Nov was published late and missed; 21 Nov isn't out yet; 18 Nov is a hole
+    assert missing_days(Conn(), d(2026, 11, 21)) == [d(2026, 11, 18), d(2026, 11, 20), d(2026, 11, 21)]

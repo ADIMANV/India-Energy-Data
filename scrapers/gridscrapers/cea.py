@@ -450,33 +450,50 @@ def latest_ingested(conn: psycopg.Connection) -> date | None:
     ).fetchone()[0]
 
 
-def ensure_current(conn: psycopg.Connection) -> None:
-    """Tick hook: ingest T-1 dgr2 if missing (no-op once ingested).
+CATCH_UP_DAYS = 7
 
-    NPP publishes dgr2 late morning IST; back off 2h between attempts so an
-    unpublished report doesn't add a quarantine row every 15-min tick.
+
+def missing_days(conn: psycopg.Connection, yesterday: date) -> list[date]:
+    """Days in the last CATCH_UP_DAYS with no dgr2 rows, oldest first."""
+    have = {d for (d,) in conn.execute(
+        "SELECT DISTINCT as_of FROM cea_state_energy WHERE sector <> 'RE' AND as_of > %s",
+        (yesterday - timedelta(days=CATCH_UP_DAYS),),
+    ).fetchall()}
+    return [d for d in (yesterday - timedelta(days=i) for i in range(CATCH_UP_DAYS - 1, -1, -1))
+            if d not in have]
+
+
+def ensure_current(conn: psycopg.Connection) -> None:
+    """Tick hook: ingest any day of the last week whose dgr2 is missing.
+
+    Not just T-1: a day whose report was late (published after T-1 had moved
+    on) used to be skipped for good. NPP publishes late morning IST; each day
+    backs off 2h after a failed attempt, so an unpublished report doesn't add
+    a quarantine row every 15-min tick.
     """
     yesterday = (datetime.now(IST) - timedelta(days=1)).date()
-    latest = latest_ingested(conn)
-    if latest is not None and latest >= yesterday:
+    days = missing_days(conn, yesterday)
+    if not days:
         return
-    recent_attempt = conn.execute(
-        "SELECT 1 FROM psp_quarantine WHERE source=%s AND as_of=%s "
-        "AND created_at > now() - interval '2 hours' LIMIT 1",
-        (SOURCE, yesterday),
-    ).fetchone()
-    if recent_attempt:
+    recent = {d for (d,) in conn.execute(
+        "SELECT DISTINCT as_of FROM psp_quarantine WHERE source=%s AND as_of = ANY(%s) "
+        "AND created_at > now() - interval '2 hours'",
+        (SOURCE, days),
+    ).fetchall()}
+    days = [d for d in days if d not in recent]
+    if not days:
         return
     with make_client(legacy_tls=True) as client:
-        err = ingest_day(conn, client, yesterday)
-        if err:
-            print(f"[CEA] {yesterday}: {err}", file=sys.stderr)
-            return
-        re_err = ingest_re_day(conn, client, yesterday)
-        if re_err:
-            print(f"[CEA-RE] {yesterday}: {re_err}", file=sys.stderr)
-        n = compute_blend_shares(conn, yesterday)
-        print(f"[CEA] cea_blend_t1 shares for {n} zones", file=sys.stderr)
+        for day in days:
+            err = ingest_day(conn, client, day)
+            if err:
+                print(f"[CEA] {day}: {err}", file=sys.stderr)
+                continue
+            re_err = ingest_re_day(conn, client, day)
+            if re_err:
+                print(f"[CEA-RE] {day}: {re_err}", file=sys.stderr)
+            n = compute_blend_shares(conn, day)
+            print(f"[CEA] {day}: cea_blend_t1 shares for {n} zones", file=sys.stderr)
 
 
 def main() -> int:
