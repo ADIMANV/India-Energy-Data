@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { NAME_TO_ZONE, ZONE_TO_NAME, ageMinutes, ageLabel, fmtMW, STALE_AFTER_MIN } from "../lib/zones";
-import { BASIS_LABELS, FUEL_GROUP, GROUPS, INSTALLED, MAP_GROUP_COLORS, fuelGroup, fuelLabel } from "../lib/fuels";
+import {
+  BASIS_LABELS, FUEL_GROUP, GROUPS, INSTALLED, MAP_GROUP_COLORS, RENEWABLE_GROUPS, fuelGroup, fuelLabel,
+} from "../lib/fuels";
 import { ATTRIBUTION, BEFORE_LABELS, baseStyle } from "../lib/basemap";
 import { fetchStationStatus } from "../lib/api";
 
@@ -26,7 +28,7 @@ const CARBON_STOPS = [
 ];
 
 const INDIA = [[68, 6.5], [97.5, 36]];
-const PLANT_GROUPS = ["fossil", "firm", "renewable"];
+const PLANT_GROUPS = ["fossil", "firm", "wind", "solar"];
 
 // MapLibre draws 512-px tiles: at zoom z one pixel spans 360/(512·2^z) degrees
 // of longitude, and 40,075 km/(512·2^z)·cos(lat) metres on the ground.
@@ -98,13 +100,12 @@ function columns(plants, zoom) {
 // MapLibre only accepts ["zoom"] at the top level of the expression, so any
 // per-plant condition has to go inside the stops rather than around them.
 const heightExpr = (h0) => ["interpolate", ["exponential", 0.5], ["zoom"], 0, h0, 22, ["/", h0, 4194304]];
-// darker steps of the same three hues than the panel uses: these sit on a
+// darker steps of the same four hues than the panel uses: these sit on a
 // light map, the panel's on a dark card (validated separately for each)
+const fuelsIn = (group) => Object.keys(FUEL_GROUP).filter((f) => FUEL_GROUP[f] === group);
 const GROUP_COLOR = [
   "match", ["get", "fuel"],
-  ["coal", "gas", "oil"], MAP_GROUP_COLORS.fossil,
-  ["hydro", "nuclear"], MAP_GROUP_COLORS.firm,
-  ["solar", "wind", "biomass", "res_nonsolar", "small_hydro"], MAP_GROUP_COLORS.renewable,
+  ...PLANT_GROUPS.flatMap((g) => [fuelsIn(g), MAP_GROUP_COLORS[g]]),
   GROUPS.unattributed.color,
 ];
 
@@ -1133,9 +1134,13 @@ function CarbonKey({ zonesData, selectedZone, onSelect, gridLines }) {
 // One row of a meter list: a name and figure, and under them a bar on a scale
 // shared by the whole list. With a status, the bar splits into what's online
 // (the full hue) and what isn't (a dim step of the same hue).
-function Meter({ name, figure, color, total, online, max, onClick, active, dim, title }) {
+function Meter({ name, figure, color, total, online, max, onClick, active, dim, title, segments }) {
   const w = max > 0 ? (total / max) * 100 : 0;
   const on = online == null ? total : online;
+  const fills = segments
+    ? segments.filter(([mw]) => mw > 0)
+    : [[on, color], [total - on > 0.5 ? total - on : 0, `color-mix(in oklab, ${color} 30%, var(--panel))`]]
+      .filter(([mw]) => mw > 0);
   const Tag = onClick ? "button" : "div";
   return (
     <li className={`meter${active ? " on" : ""}${dim ? " off" : ""}`}>
@@ -1143,17 +1148,14 @@ function Meter({ name, figure, color, total, online, max, onClick, active, dim, 
         <span className="meter-name">{name}</span>
         <span className="meter-fig num">{figure}</span>
         <span className="meter-track" style={{ width: `${Math.max(w, 0.6)}%` }}>
-          {on > 0 && <i style={{ flexGrow: on, background: color }} />}
-          {total - on > 0.5 && (
-            <i style={{ flexGrow: total - on, background: `color-mix(in oklab, ${color} 30%, var(--panel))` }} />
-          )}
+          {fills.map(([mw, c], i) => <i key={i} style={{ flexGrow: mw, background: c }} />)}
         </span>
       </Tag>
     </li>
   );
 }
 
-// The one whole split three ways: what the state's (or India's) installed
+// The one whole split four ways: what the state's (or India's) installed
 // capacity is made of. Each block prints its share where it fits.
 function MixBar({ groups, installed }) {
   const parts = PLANT_GROUPS.map((g) => ({ g, mw: groups[g].installed })).filter((x) => x.mw > 0);
@@ -1227,6 +1229,11 @@ function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, 
   const offMw = stats.off.reduce((s, p) => s + p.capacity_mw, 0);
   const reFuels = (d) => Object.entries(d.fuels).sort((a, b) => b[1] - a[1])
     .map(([f, mw]) => `${fuelLabel(f)} ${fmtGW(mw)}`).join(", ");
+  // a district's bar split by group, wind then solar, as in the mix bar
+  const reSegments = (d) => RENEWABLE_GROUPS.map((g) => [
+    Object.entries(d.fuels).reduce((s, [f, mw]) => s + (fuelGroup(f) === g ? mw : 0), 0),
+    GROUPS[g].color,
+  ]);
 
   return (
     <aside className={`legend${isState ? " legend-wide" : ""}`}>
@@ -1273,7 +1280,7 @@ function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, 
                  name={fuelLabel(f.fuel)}
                  figure={online && f.status
                    ? `${fmtGW(f.online)} of ${fmtGW(f.installed)}`
-                   : `${fmtGW(f.installed)}${online && f.group === "renewable" ? " installed" : ""}`}
+                   : `${fmtGW(f.installed)}${online && RENEWABLE_GROUPS.includes(f.group) ? " installed" : ""}`}
                  color={GROUPS[f.group].color}
                  total={f.installed}
                  online={online && f.status ? f.online : null}
@@ -1321,13 +1328,13 @@ function PlantKey({ plants, retrieved, selectedZone, onSelect, facet, setFacet, 
 
       {isState && stats.districts.length > 0 && (
         <>
-          <div className="lg-sub">Solar, wind &amp; other renewables, by district</div>
+          <div className="lg-sub">Renewables, by district</div>
           <ul className="meters">
             {stats.districts.slice(0, 6).map((d) => (
               <Meter key={d.district || "-"}
                      name={d.district || "District not published"}
                      figure={fmtGW(d.mw)}
-                     color={GROUPS.renewable.color}
+                     segments={reSegments(d)}
                      total={d.mw}
                      max={reMax}
                      title={reFuels(d)}

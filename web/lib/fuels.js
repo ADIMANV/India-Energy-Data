@@ -2,32 +2,42 @@
 // and the side panel, so a fuel looks the same everywhere on the site.
 //
 // Colour is by GROUP, not by fuel. On a map any two plants can end up side by
-// side, and no set of more than three hues stays tellable-apart for every pair
-// — for colour-blind readers, and past four not even with full colour vision
-// (checked with the dataviz validator, all pairs, OKLab ΔE). These three pass
-// on the map's land colour: worst pair ΔE 13.2 colour-blind, 19.3 normal. The
+// side, so every pair has to stay tellable-apart — for colour-blind readers
+// too — not just neighbours in a stack. Four groups is the most that passes:
+// solar and wind split, because they peak at different hours and sit in
+// different districts, and hydro & nuclear stepped deeper so wind's cyan clears
+// it. Checked with the dataviz validator, all pairs, OKLab ΔE, on the panel:
+// worst pair 10.5 colour-blind, 15.7 normal vision, every colour ≥ 3:1. The
 // individual fuel is carried by labels, tooltips and the legend filter.
 export const GROUPS = {
   fossil: { label: "Fossil", color: "#d55181" },
-  firm: { label: "Hydro & nuclear", color: "#3987e5" },
-  renewable: { label: "Solar, wind & other renewables", color: "#c98500" },
+  firm: { label: "Hydro & nuclear", color: "#2f6fd6" },
+  // CEA often reports wind, biomass and small hydro as one "RES non-solar"
+  // number, mostly wind, so they share wind's colour rather than a fifth hue
+  wind: { label: "Wind & other renewables", color: "#0ea5c6" },
+  solar: { label: "Solar", color: "#c98500" },
   // energy we can't attribute to a fuel (exchange purchases, own-generation
   // totals). Neutral on purpose: calling it fossil would be a guess.
   unattributed: { label: "Unattributed", color: "#6f6a61" },
 };
-export const GROUP_ORDER = ["fossil", "firm", "renewable", "unattributed"];
+// stack order, bottom up: firm generation first, solar's midday hump on top
+export const GROUP_ORDER = ["fossil", "firm", "wind", "solar", "unattributed"];
+export const RENEWABLE_GROUPS = ["wind", "solar"];
 
-// The same three hues, stepped darker for the light basemap: the colours above
+// The same four hues, stepped darker for the light basemap: the colours above
 // sit on the dark panel and fall under 3:1 against light grey land. Validated
-// as a set on the map's land colour (all pairs, worst ΔE 11.7 colour-blind,
-// 18.6 normal, every colour ≥ 3:1).
-export const MAP_GROUP_COLORS = { fossil: "#c2427a", firm: "#2a78d6", renewable: "#a86e00" };
+// as a set on the map's land colour (all pairs, worst ΔE 8.8 colour-blind,
+// 15.2 normal, every colour ≥ 3:1). Wind is only ever a disc and hydro only a
+// column, so shape backs up the closest pair.
+export const MAP_GROUP_COLORS = {
+  fossil: "#c2427a", firm: "#2456b0", wind: "#0a8fb0", solar: "#a86e00",
+};
 
 export const FUEL_GROUP = {
   coal: "fossil", gas: "fossil", oil: "fossil",
   hydro: "firm", nuclear: "firm",
-  solar: "renewable", wind: "renewable", biomass: "renewable", res_nonsolar: "renewable",
-  small_hydro: "renewable", // MNRE counts plants under 25 MW as renewable, not as large hydro
+  solar: "solar", wind: "wind", biomass: "wind", res_nonsolar: "wind",
+  small_hydro: "wind", // MNRE counts plants under 25 MW as renewable, not as large hydro
   other: "unattributed", own_generation: "unattributed",
 };
 
