@@ -446,7 +446,11 @@ export default function GridMap({ zonesData, onSelect, selectedZone, colorMode }
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(containerRef.current);
 
-    map.on("load", async () => {
+    // Our layers go in as soon as the style is parsed, not on "load": "load"
+    // waits for every basemap and terrain tile, so a slow or unreachable tile
+    // host (OpenFreeMap, AWS terrain) used to leave India blank. The states,
+    // plants and outline are our own files; they draw whatever the basemap does.
+    map.once("style.load", async () => {
       map.resize();
       // compact attribution opens expanded and only folds on the first drag;
       // start it folded so it never runs underneath the key (the ⓘ opens it)
